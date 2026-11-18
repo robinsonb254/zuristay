@@ -14,30 +14,61 @@ import {
   CreditCard,
 } from "lucide-react";
 
-const properties = [
+type Unit = {
+  id: string;
+  name: string;
+  unit_type?: string | null;
+  description?: string | null;
+  capacity: number;
+  total_units: number;
+  customer_rate: number;
+  currency: string;
+};
+
+type Property = {
+  id: string;
+  name: string;
+  location: string;
+  price: number;
+  currency: string;
+  image: string;
+  units: Unit[];
+  isLive: boolean;
+};
+
+const featuredProperties: Property[] = [
   {
     id: "1",
     name: "Ocean View Resort",
     location: "Diani Beach, Kwale",
     price: 12500,
+    currency: "KSh",
     image:
       "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000",
+    units: [],
+    isLive: false,
   },
   {
     id: "2",
     name: "The City Garden Hotel",
     location: "Nairobi, Kenya",
     price: 8500,
+    currency: "KSh",
     image:
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
+    units: [],
+    isLive: false,
   },
   {
     id: "3",
     name: "Palm Breeze Villas",
     location: "Watamu, Kilifi",
     price: 18000,
+    currency: "KSh",
     image:
       "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000",
+    units: [],
+    isLive: false,
   },
 ];
 
@@ -50,8 +81,16 @@ function getToday() {
   ].join("-");
 }
 
+function formatMoney(amount: number, currency: string) {
+  return `${currency} ${amount.toLocaleString("en-KE", {
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export default function BookingPage() {
+  const [liveProperties, setLiveProperties] = useState<Property[]>([]);
   const [propertyId, setPropertyId] = useState("1");
+  const [unitId, setUnitId] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState("2");
@@ -61,6 +100,7 @@ export default function BookingPage() {
   const [phone, setPhone] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [error, setError] = useState("");
+  const [loadingProperties, setLoadingProperties] = useState(true);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingReference, setBookingReference] = useState("");
 
@@ -68,13 +108,76 @@ export default function BookingPage() {
     const params = new URLSearchParams(window.location.search);
     const selectedId = params.get("propertyId");
 
-    if (selectedId && properties.some((item) => item.id === selectedId)) {
+    if (selectedId) {
       setPropertyId(selectedId);
     }
+
+    async function loadProperties() {
+      try {
+        const response = await fetch("/api/properties");
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error("Unable to load accommodation listings.");
+        }
+
+        const listings: Property[] = (result.properties ?? [])
+          .filter((item: any) => Array.isArray(item.units) && item.units.length > 0)
+          .map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            location: [
+              item.address,
+              item.city,
+              item.county,
+              item.country,
+            ]
+              .filter(Boolean)
+              .join(", "),
+            price: Number(item.starting_rate ?? 0),
+            currency: item.currency || "KSh",
+            image:
+              item.images?.find((image: any) => image.is_cover)?.image_url ||
+              item.images?.[0]?.image_url ||
+              "",
+            units: item.units.map((unit: any) => ({
+              ...unit,
+              customer_rate: Number(unit.customer_rate),
+              capacity: Number(unit.capacity),
+              total_units: Number(unit.total_units),
+            })),
+            isLive: true,
+          }));
+
+        setLiveProperties(listings);
+      } catch (loadError) {
+        console.error("Property loading error:", loadError);
+      } finally {
+        setLoadingProperties(false);
+      }
+    }
+
+    loadProperties();
   }, []);
 
+  const allProperties = [...featuredProperties, ...liveProperties];
+
   const property =
-    properties.find((item) => item.id === propertyId) || properties[0];
+    allProperties.find((item) => item.id === propertyId) ||
+    featuredProperties[0];
+
+  const selectedUnit =
+    property.units.find((unit) => unit.id === unitId) ||
+    property.units[0] ||
+    null;
+
+  const price = selectedUnit
+    ? selectedUnit.customer_rate
+    : property.price;
+
+  const currency = selectedUnit
+    ? selectedUnit.currency || property.currency
+    : property.currency;
 
   const nights =
     checkIn && checkOut
@@ -88,7 +191,15 @@ export default function BookingPage() {
         )
       : 0;
 
-  const total = property.price * nights * Number(rooms);
+  const total = price * nights * Number(rooms || 1);
+
+  useEffect(() => {
+    if (property.units.length > 0) {
+      setUnitId(property.units[0].id);
+    } else {
+      setUnitId("");
+    }
+  }, [propertyId, liveProperties]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,6 +227,23 @@ export default function BookingPage() {
 
     if (Number(rooms) < 1 || Number(rooms) > 10) {
       setError("Please select between 1 and 10 rooms.");
+      return;
+    }
+
+    if (property.isLive && !selectedUnit) {
+      setError("Please select an accommodation option.");
+      return;
+    }
+
+    if (
+      selectedUnit &&
+      Number(guests) > selectedUnit.capacity * Number(rooms)
+    ) {
+      setError(
+        `This accommodation supports up to ${
+          selectedUnit.capacity * Number(rooms)
+        } guest(s) for the selected number of rooms.`
+      );
       return;
     }
 
@@ -156,13 +284,19 @@ export default function BookingPage() {
 
             <div className="mt-5 space-y-3 text-sm text-slate-600">
               <p><strong>Property:</strong> {property.name}</p>
+              {selectedUnit && (
+                <p><strong>Accommodation:</strong> {selectedUnit.name}</p>
+              )}
               <p><strong>Guest:</strong> {fullName}</p>
               <p><strong>Check-in:</strong> {checkIn}</p>
               <p><strong>Check-out:</strong> {checkOut}</p>
               <p><strong>Nights:</strong> {nights}</p>
               <p><strong>Guests:</strong> {guests}</p>
               <p><strong>Rooms:</strong> {rooms}</p>
-              <p><strong>Estimated total:</strong> KSh {total.toLocaleString("en-KE")}</p>
+              <p><strong>Estimated total:</strong> {formatMoney(total, currency)}</p>
+              {specialRequests && (
+                <p><strong>Special requests:</strong> {specialRequests}</p>
+              )}
             </div>
           </div>
 
@@ -231,17 +365,51 @@ export default function BookingPage() {
               onChange={(event) => setPropertyId(event.target.value)}
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-orange-500"
             >
-              {properties.map((item) => (
+              {allProperties.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} — KSh {item.price.toLocaleString("en-KE")} / night
+                  {item.name} — {formatMoney(
+                    item.units.length > 0
+                      ? Math.min(...item.units.map((unit) => unit.customer_rate))
+                      : item.price,
+                    item.currency
+                  )} / night
                 </option>
               ))}
             </select>
 
+            {property.units.length > 0 && (
+              <>
+                <label className="mt-5 block text-sm font-bold text-slate-700">
+                  Choose room or accommodation type
+                </label>
+                <select
+                  value={selectedUnit?.id || ""}
+                  onChange={(event) => setUnitId(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-orange-500"
+                >
+                  {property.units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name} — {formatMoney(unit.customer_rate, unit.currency)} / night
+                    </option>
+                  ))}
+                </select>
+
+                {selectedUnit && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Capacity: {selectedUnit.capacity} guest(s) per room · Listed units: {selectedUnit.total_units}
+                  </p>
+                )}
+              </>
+            )}
+
             <div className="mt-5 flex gap-4">
               <div
                 className="h-24 w-28 shrink-0 rounded-xl bg-cover bg-center"
-                style={{ backgroundImage: `url("${property.image}")` }}
+                style={{
+                  backgroundImage: property.image
+                    ? `url("${property.image}")`
+                    : undefined,
+                }}
               />
               <div>
                 <h3 className="font-bold text-blue-950">
@@ -252,10 +420,16 @@ export default function BookingPage() {
                   {property.location}
                 </p>
                 <p className="mt-2 font-bold text-orange-500">
-                  KSh {property.price.toLocaleString("en-KE")} / night
+                  {formatMoney(price, currency)} / night
                 </p>
               </div>
             </div>
+
+            {loadingProperties && (
+              <p className="mt-4 text-xs text-slate-400">
+                Checking for additional approved accommodation listings...
+              </p>
+            )}
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -387,7 +561,10 @@ export default function BookingPage() {
           </div>
 
           {error && (
-            <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <p
+              role="alert"
+              className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700"
+            >
               {error}
             </p>
           )}
@@ -409,7 +586,11 @@ export default function BookingPage() {
 
             <div
               className="mt-5 h-44 rounded-xl bg-cover bg-center"
-              style={{ backgroundImage: `url("${property.image}")` }}
+              style={{
+                backgroundImage: property.image
+                  ? `url("${property.image}")`
+                  : undefined,
+              }}
             />
 
             <h3 className="mt-4 font-bold text-blue-950">
@@ -421,12 +602,18 @@ export default function BookingPage() {
               {property.location}
             </p>
 
+            {selectedUnit && (
+              <p className="mt-2 text-sm text-slate-500">
+                Accommodation: {selectedUnit.name}
+              </p>
+            )}
+
             <div className="my-6 border-t border-slate-200" />
 
             <div className="space-y-4 text-sm">
               <div className="flex justify-between gap-3">
                 <span className="text-slate-500">Price per night</span>
-                <strong>KSh {property.price.toLocaleString("en-KE")}</strong>
+                <strong>{formatMoney(price, currency)}</strong>
               </div>
 
               <div className="flex justify-between gap-3">
@@ -445,12 +632,12 @@ export default function BookingPage() {
             <div className="flex items-center justify-between gap-3">
               <span className="font-bold text-blue-950">Estimated total</span>
               <span className="text-2xl font-black text-orange-500">
-                KSh {total.toLocaleString("en-KE")}
+                {formatMoney(total, currency)}
               </span>
             </div>
 
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              The final amount will be confirmed after availability, applicable taxes and booking conditions are verified.
+              This is an estimate only. Availability, final price, taxes and booking conditions must still be verified.
             </p>
 
             <div className="mt-6 flex items-center gap-3 rounded-xl bg-green-50 p-4 text-sm text-green-800">
