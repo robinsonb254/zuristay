@@ -19,12 +19,16 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("destinations")
-    .select("id, city, country_name, country_code, slug")
+    .select("id, name, city, county, country, country_code, active")
+    .eq("active", true)
     .order("city", { ascending: true });
 
   if (error) {
     return NextResponse.json(
-      { error: "Unable to retrieve destinations.", details: error.message },
+      {
+        error: "Unable to retrieve destinations.",
+        details: error.message,
+      },
       { status: 500 }
     );
   }
