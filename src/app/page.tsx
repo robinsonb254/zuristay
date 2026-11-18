@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   Search,
   MapPin,
@@ -100,13 +100,28 @@ export default function Home() {
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const currentDate = new Date();
+  const today = [
+    currentDate.getFullYear(),
+    String(currentDate.getMonth() + 1).padStart(2, "0"),
+    String(currentDate.getDate()).padStart(2, "0"),
+  ].join("-");
 
-  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
+  function handleSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!destination.trim()) {
       setSearchMessage("Please enter your destination.");
+      return;
+    }
+
+    if (checkIn && checkIn < today) {
+      setSearchMessage("Check-in cannot be in the past.");
+      return;
+    }
+
+    if ((checkIn && !checkOut) || (!checkIn && checkOut)) {
+      setSearchMessage("Please select both check-in and check-out dates.");
       return;
     }
 
@@ -116,7 +131,7 @@ export default function Home() {
     }
 
     const params = new URLSearchParams({
-      destination,
+      destination: destination.trim(),
       checkIn,
       checkOut,
       guests,
@@ -139,17 +154,31 @@ export default function Home() {
           </a>
 
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
-            <a href="#destinations" className="hover:text-[#c49a52]">Explore</a>
-            <a href="#featured" className="hover:text-[#c49a52]">Featured stays</a>
-            <a href="#benefits" className="hover:text-[#c49a52]">Why ZuriStay</a>
-            <a href="#partners" className="hover:text-[#c49a52]">List your property</a>
+            <a href="#destinations" className="hover:text-[#c49a52]">
+              Explore
+            </a>
+            <a href="#featured" className="hover:text-[#c49a52]">
+              Featured stays
+            </a>
+            <a href="#benefits" className="hover:text-[#c49a52]">
+              Why ZuriStay
+            </a>
+            <a href="#partners" className="hover:text-[#c49a52]">
+              List your property
+            </a>
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
-            <a href="/login" className="rounded-full px-5 py-3 text-sm font-semibold hover:bg-gray-100">
+            <a
+              href="/login"
+              className="rounded-full px-5 py-3 text-sm font-semibold hover:bg-gray-100"
+            >
               Sign in
             </a>
-            <a href="/register" className="rounded-full bg-[#173b30] px-6 py-3 text-sm font-semibold text-white hover:bg-[#245545]">
+            <a
+              href="/register"
+              className="rounded-full bg-[#173b30] px-6 py-3 text-sm font-semibold text-white hover:bg-[#245545]"
+            >
               Register
             </a>
           </div>
@@ -158,6 +187,7 @@ export default function Home() {
             onClick={() => setMenuOpen(!menuOpen)}
             className="rounded-lg p-2 md:hidden"
             aria-label="Toggle menu"
+            aria-expanded={menuOpen}
           >
             {menuOpen ? <X size={25} /> : <Menu size={25} />}
           </button>
@@ -165,10 +195,18 @@ export default function Home() {
 
         {menuOpen && (
           <nav className="flex flex-col gap-4 border-t bg-white p-5 text-sm md:hidden">
-            <a href="#destinations" onClick={() => setMenuOpen(false)}>Explore</a>
-            <a href="#featured" onClick={() => setMenuOpen(false)}>Featured stays</a>
-            <a href="#benefits" onClick={() => setMenuOpen(false)}>Why ZuriStay</a>
-            <a href="#partners" onClick={() => setMenuOpen(false)}>List your property</a>
+            <a href="#destinations" onClick={() => setMenuOpen(false)}>
+              Explore
+            </a>
+            <a href="#featured" onClick={() => setMenuOpen(false)}>
+              Featured stays
+            </a>
+            <a href="#benefits" onClick={() => setMenuOpen(false)}>
+              Why ZuriStay
+            </a>
+            <a href="#partners" onClick={() => setMenuOpen(false)}>
+              List your property
+            </a>
             <a href="/login">Sign in</a>
             <a href="/register">Register</a>
           </nav>
@@ -210,10 +248,15 @@ export default function Home() {
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 lg:col-span-2">
               <MapPin className="shrink-0 text-[#c49a52]" />
               <div className="w-full">
-                <label className="text-xs font-bold text-gray-800">Destination</label>
+                <label className="text-xs font-bold text-gray-800">
+                  Destination
+                </label>
                 <input
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
+                  onChange={(e) => {
+                    setDestination(e.target.value);
+                    setSearchMessage("");
+                  }}
                   placeholder="Where are you going?"
                   list="destinations-list"
                   className="w-full bg-transparent text-sm text-gray-600 outline-none"
@@ -229,12 +272,17 @@ export default function Home() {
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-l">
               <CalendarDays className="shrink-0 text-[#c49a52]" />
               <div className="w-full">
-                <label className="text-xs font-bold text-gray-800">Check-in</label>
+                <label className="text-xs font-bold text-gray-800">
+                  Check-in
+                </label>
                 <input
                   type="date"
                   min={today}
                   value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
+                  onChange={(e) => {
+                    setCheckIn(e.target.value);
+                    setSearchMessage("");
+                  }}
                   className="w-full bg-transparent text-xs text-gray-600 outline-none"
                 />
               </div>
@@ -243,12 +291,17 @@ export default function Home() {
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-l">
               <CalendarDays className="shrink-0 text-[#c49a52]" />
               <div className="w-full">
-                <label className="text-xs font-bold text-gray-800">Check-out</label>
+                <label className="text-xs font-bold text-gray-800">
+                  Check-out
+                </label>
                 <input
                   type="date"
                   min={checkIn || today}
                   value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
+                  onChange={(e) => {
+                    setCheckOut(e.target.value);
+                    setSearchMessage("");
+                  }}
                   className="w-full bg-transparent text-xs text-gray-600 outline-none"
                 />
               </div>
@@ -257,14 +310,18 @@ export default function Home() {
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-l">
               <Users className="shrink-0 text-[#c49a52]" />
               <div className="w-full">
-                <label className="text-xs font-bold text-gray-800">Guests</label>
+                <label className="text-xs font-bold text-gray-800">
+                  Guests
+                </label>
                 <select
                   value={guests}
                   onChange={(e) => setGuests(e.target.value)}
                   className="w-full bg-transparent text-sm text-gray-600 outline-none"
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                    <option key={n} value={n}>{n} {n === 1 ? "guest" : "guests"}</option>
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "guest" : "guests"}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -273,14 +330,18 @@ export default function Home() {
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-l">
               <BedDouble className="shrink-0 text-[#c49a52]" />
               <div className="w-full">
-                <label className="text-xs font-bold text-gray-800">Rooms</label>
+                <label className="text-xs font-bold text-gray-800">
+                  Rooms
+                </label>
                 <select
                   value={rooms}
                   onChange={(e) => setRooms(e.target.value)}
                   className="w-full bg-transparent text-sm text-gray-600 outline-none"
                 >
                   {[1, 2, 3, 4, 5].map((n) => (
-                    <option key={n} value={n}>{n} {n === 1 ? "room" : "rooms"}</option>
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "room" : "rooms"}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -289,7 +350,9 @@ export default function Home() {
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-t lg:col-span-2">
               <SlidersHorizontal className="shrink-0 text-[#c49a52]" />
               <div className="w-full">
-                <label className="text-xs font-bold text-gray-800">Nightly budget</label>
+                <label className="text-xs font-bold text-gray-800">
+                  Nightly budget
+                </label>
                 <select
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
@@ -313,7 +376,10 @@ export default function Home() {
           </form>
 
           {searchMessage && (
-            <p className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-red-700">
+            <p
+              role="alert"
+              className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-red-700"
+            >
               {searchMessage}
             </p>
           )}
@@ -330,8 +396,12 @@ export default function Home() {
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
               EXPLORE THE WORLD
             </p>
-            <h2 className="text-3xl font-bold md:text-4xl">Popular destinations</h2>
-            <p className="mt-3 text-gray-500">Find inspiration for your next getaway.</p>
+            <h2 className="text-3xl font-bold md:text-4xl">
+              Popular destinations
+            </h2>
+            <p className="mt-3 text-gray-500">
+              Find inspiration for your next getaway.
+            </p>
           </div>
           <a href="#featured" className="flex items-center gap-2 text-sm font-bold">
             Explore stays <ArrowRight size={17} />
@@ -339,20 +409,21 @@ export default function Home() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {destinations.map((destination) => (
+          {destinations.map((item) => (
             <button
               type="button"
-              key={destination.name}
+              key={item.name}
               onClick={() => {
-                setDestination(destination.name);
+                setDestination(item.name);
+                setSearchMessage("");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="h-64 overflow-hidden">
                 <img
-                  src={destination.image}
-                  alt={destination.name}
+                  src={item.image}
+                  alt={item.name}
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
                 />
               </div>
@@ -360,8 +431,10 @@ export default function Home() {
                 <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
                   KENYA
                 </p>
-                <h3 className="mt-2 text-xl font-bold">{destination.name}</h3>
-                <p className="mt-2 text-sm text-gray-500">{destination.description}</p>
+                <h3 className="mt-2 text-xl font-bold">{item.name}</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  {item.description}
+                </p>
               </div>
             </button>
           ))}
@@ -374,35 +447,60 @@ export default function Home() {
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
               HANDPICKED FOR YOU
             </p>
-            <h2 className="text-3xl font-bold md:text-4xl">Featured stays</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">
+              Featured stays
+            </h2>
             <p className="mt-3 text-gray-500">
-              Get inspired by some example properties.
+              Explore some of our featured accommodation.
             </p>
           </div>
 
           <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
             {stays.map((stay) => (
-              <article key={stay.name} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <article
+                key={stay.name}
+                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+              >
                 <div className="relative h-60">
-                  <img src={stay.image} alt={stay.name} className="h-full w-full object-cover" />
+                  <img
+                    src={stay.image}
+                    alt={stay.name}
+                    className="h-full w-full object-cover"
+                  />
                   <span className="absolute right-4 top-4 rounded-full bg-white px-3 py-2 text-sm font-bold">
-                    <Star size={14} className="mr-1 inline fill-[#c49a52] text-[#c49a52]" />
+                    <Star
+                      size={14}
+                      className="mr-1 inline fill-[#c49a52] text-[#c49a52]"
+                    />
                     {stay.rating}
                   </span>
                 </div>
+
                 <div className="p-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">{stay.type}</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
+                    {stay.type}
+                  </p>
                   <h3 className="mt-2 text-xl font-bold">{stay.name}</h3>
                   <p className="mt-2 flex items-center gap-1 text-sm text-gray-500">
                     <MapPin size={15} /> {stay.location}
                   </p>
-                  <p className="mt-3 text-xs text-gray-500">{stay.facilities}</p>
+                  <p className="mt-3 text-xs text-gray-500">
+                    {stay.facilities}
+                  </p>
+
                   <div className="mt-5 flex items-center justify-between border-t pt-4">
                     <div>
                       <p className="text-xs text-gray-500">Starting from</p>
-                      <p className="text-lg font-bold">{money(stay.price)} <span className="text-xs font-normal text-gray-500">/ night</span></p>
+                      <p className="text-lg font-bold">
+                        {money(stay.price)}{" "}
+                        <span className="text-xs font-normal text-gray-500">
+                          / night
+                        </span>
+                      </p>
                     </div>
-                    <span className="text-xs font-semibold text-gray-400">Example listing</span>
+                    <span className="text-xs font-semibold text-[#173b30]">
+                      Featured
+                    </span>
                   </div>
                 </div>
               </article>
@@ -414,26 +512,49 @@ export default function Home() {
       <section id="benefits" className="py-24">
         <div className="container">
           <div className="mx-auto mb-14 max-w-2xl text-center">
-            <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">THE ZURISTAY EXPERIENCE</p>
-            <h2 className="text-3xl font-bold md:text-4xl">A better way to find your stay</h2>
-            <p className="mt-4 text-gray-500">More choice, transparent pricing and a smoother booking experience.</p>
+            <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
+              THE ZURISTAY EXPERIENCE
+            </p>
+            <h2 className="text-3xl font-bold md:text-4xl">
+              A better way to find your stay
+            </h2>
+            <p className="mt-4 text-gray-500">
+              More choice, transparent pricing and a smoother booking
+              experience.
+            </p>
           </div>
 
           <div className="grid gap-10 md:grid-cols-3">
             <div className="text-center">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f4eee2] text-[#b88c45]"><Search size={29} /></div>
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f4eee2] text-[#b88c45]">
+                <Search size={29} />
+              </div>
               <h3 className="text-xl font-bold">Find your perfect match</h3>
-              <p className="mt-3 text-sm leading-7 text-gray-500">Discover accommodation that matches your destination, budget and preferences.</p>
+              <p className="mt-3 text-sm leading-7 text-gray-500">
+                Discover accommodation that matches your destination, budget
+                and preferences.
+              </p>
             </div>
+
             <div className="text-center">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f4eee2] text-[#b88c45]"><ShieldCheck size={29} /></div>
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f4eee2] text-[#b88c45]">
+                <ShieldCheck size={29} />
+              </div>
               <h3 className="text-xl font-bold">Book with confidence</h3>
-              <p className="mt-3 text-sm leading-7 text-gray-500">Our property approval process is designed to build trust and transparency.</p>
+              <p className="mt-3 text-sm leading-7 text-gray-500">
+                Our property approval process is designed to build trust and
+                transparency.
+              </p>
             </div>
+
             <div className="text-center">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f4eee2] text-[#b88c45]"><Headphones size={29} /></div>
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f4eee2] text-[#b88c45]">
+                <Headphones size={29} />
+              </div>
               <h3 className="text-xl font-bold">Support when you need it</h3>
-              <p className="mt-3 text-sm leading-7 text-gray-500">Enjoy a booking experience designed around your travel needs.</p>
+              <p className="mt-3 text-sm leading-7 text-gray-500">
+                Enjoy a booking experience designed around your travel needs.
+              </p>
             </div>
           </div>
         </div>
@@ -441,12 +562,22 @@ export default function Home() {
 
       <section id="partners" className="container py-20">
         <div className="overflow-hidden rounded-3xl bg-[#173b30] px-8 py-16 text-center text-white md:px-20">
-          <p className="mb-4 text-xs font-bold tracking-[0.2em] text-[#d8b879]">PARTNER WITH ZURISTAY</p>
-          <h2 className="text-3xl font-bold md:text-5xl">Have a property?<br />Let the world discover it.</h2>
-          <p className="mx-auto mt-5 max-w-xl leading-7 text-white/70">
-            Bring your hotel, apartment, villa or guesthouse to a growing community of travellers.
+          <p className="mb-4 text-xs font-bold tracking-[0.2em] text-[#d8b879]">
+            PARTNER WITH ZURISTAY
           </p>
-          <a href="/partner/register" className="mt-8 inline-flex rounded-full bg-[#c49a52] px-8 py-4 font-bold text-white hover:bg-[#ae8540]">
+          <h2 className="text-3xl font-bold md:text-5xl">
+            Have a property?
+            <br />
+            Let the world discover it.
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl leading-7 text-white/70">
+            Bring your hotel, apartment, villa or guesthouse to a growing
+            community of travellers.
+          </p>
+          <a
+            href="/partner/register"
+            className="mt-8 inline-flex rounded-full bg-[#c49a52] px-8 py-4 font-bold text-white hover:bg-[#ae8540]"
+          >
             Become a ZuriStay partner
           </a>
         </div>
@@ -455,12 +586,18 @@ export default function Home() {
       <footer className="bg-[#102c24] py-12 text-white">
         <div className="container flex flex-col justify-between gap-8 md:flex-row">
           <div>
-            <h2 className="text-3xl font-bold">Zuri<span className="text-[#c49a52]">Stay</span></h2>
-            <p className="mt-3 text-sm text-white/60">Your world. Your stay.</p>
+            <h2 className="text-3xl font-bold">
+              Zuri<span className="text-[#c49a52]">Stay</span>
+            </h2>
+            <p className="mt-3 text-sm text-white/60">
+              Your world. Your stay.
+            </p>
           </div>
           <div className="text-sm text-white/60">
             <p>Explore stays. Discover experiences.</p>
-            <p className="mt-3">© {new Date().getFullYear()} ZuriStay. All rights reserved.</p>
+            <p className="mt-3">
+              © {new Date().getFullYear()} ZuriStay. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
