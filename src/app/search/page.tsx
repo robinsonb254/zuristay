@@ -1,5 +1,6 @@
 
 import Link from "next/link";
+import LivePropertyResults from "./LivePropertyResults";
 import {
   Search,
   MapPin,
@@ -359,22 +360,20 @@ export default async function SearchPage({
               />
 
               <h3 className="mt-4 text-xl font-bold text-blue-950">
-                No matching stays found
+                No matching featured stays found
               </h3>
 
               <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500">
-                Try another destination or increase your nightly budget to explore more accommodation.
+                You can still explore live partner listings below.
               </p>
-
-              <Link
-                href="/search"
-                className="mt-6 inline-block rounded-xl bg-blue-950 px-6 py-3 text-sm font-bold text-white"
-              >
-                Explore all stays
-              </Link>
             </div>
           )}
         </div>
+
+        <LivePropertyResults
+          destination={destination}
+          budget={budget}
+        />
       </section>
 
       <footer className="mt-12 bg-blue-950 px-5 py-8 text-center text-sm text-blue-100">
