@@ -36,10 +36,7 @@ type Application = {
 };
 
 type Filter = "all" | "pending" | "approved" | "rejected";
-
-type AdminProfile = {
-  role: string;
-};
+type AdminProfile = { role: string };
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-KE", {
@@ -221,7 +218,9 @@ export default function AdminApplicationsPage() {
   const filteredApplications =
     filter === "all"
       ? applications
-      : applications.filter((application) => application.status === filter);
+      : applications.filter(
+          (application) => application.status === filter
+        );
 
   const pendingCount = applications.filter(
     (application) => application.status === "pending"
@@ -255,7 +254,10 @@ export default function AdminApplicationsPage() {
       <header className="border-b border-slate-200 bg-blue-950 text-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8">
           <div>
-            <Link href="/admin" className="text-sm font-semibold text-blue-200 hover:text-white">
+            <Link
+              href="/admin"
+              className="text-sm font-semibold text-blue-200 hover:text-white"
+            >
               <span className="inline-flex items-center gap-2">
                 <ArrowLeft size={16} />
                 Back to dashboard
@@ -538,7 +540,7 @@ export default function AdminApplicationsPage() {
               </h3>
               <p className="mt-1 text-sm leading-6 text-blue-900/75">
                 Approving an application creates a partner account linked to
-                the applicant&apos;s verified ZuriStay login. It does not create,
+                the applicant's verified ZuriStay login. It does not create,
                 approve or publish a property listing. Property details,
                 ownership and accommodation information must be reviewed
                 separately.
