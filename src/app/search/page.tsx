@@ -12,7 +12,6 @@ import {
   Car,
   Utensils,
   ArrowUpDown,
-  Heart,
 } from "lucide-react";
 
 const properties = [
@@ -100,13 +99,20 @@ export default async function SearchPage({
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
-          <Link href="/" className="text-2xl font-black tracking-tight text-blue-950">
+          <Link
+            href="/"
+            className="text-2xl font-black tracking-tight text-blue-950"
+          >
             Zuri<span className="text-orange-500">Stay</span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-semibold text-slate-600 md:flex">
-            <Link href="/" className="hover:text-orange-500">Home</Link>
-            <Link href="/login" className="hover:text-orange-500">Sign in</Link>
+            <Link href="/" className="hover:text-orange-500">
+              Home
+            </Link>
+            <Link href="/login" className="hover:text-orange-500">
+              Sign in
+            </Link>
             <Link
               href="/partner/register"
               className="rounded-full bg-blue-950 px-5 py-3 text-white transition hover:bg-blue-900"
@@ -115,7 +121,10 @@ export default async function SearchPage({
             </Link>
           </nav>
 
-          <Link href="/" className="text-sm font-semibold text-blue-950 md:hidden">
+          <Link
+            href="/"
+            className="text-sm font-semibold text-blue-950 md:hidden"
+          >
             Home
           </Link>
         </div>
@@ -126,6 +135,7 @@ export default async function SearchPage({
           <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-orange-400">
             Find your perfect stay
           </p>
+
           <h1 className="text-3xl font-black md:text-4xl">
             Discover accommodation across Kenya
           </h1>
@@ -136,7 +146,9 @@ export default async function SearchPage({
             className="mt-8 grid gap-3 rounded-2xl bg-white p-4 text-slate-800 shadow-xl md:grid-cols-2 lg:grid-cols-6"
           >
             <label className="flex flex-col gap-2 lg:col-span-2">
-              <span className="text-xs font-bold text-slate-500">DESTINATION</span>
+              <span className="text-xs font-bold text-slate-500">
+                DESTINATION
+              </span>
               <span className="flex items-center gap-2">
                 <MapPin size={18} className="text-orange-500" />
                 <input
@@ -149,7 +161,9 @@ export default async function SearchPage({
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500">CHECK-IN</span>
+              <span className="text-xs font-bold text-slate-500">
+                CHECK-IN
+              </span>
               <span className="flex items-center gap-2">
                 <CalendarDays size={17} className="text-orange-500" />
                 <input
@@ -162,7 +176,9 @@ export default async function SearchPage({
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500">CHECK-OUT</span>
+              <span className="text-xs font-bold text-slate-500">
+                CHECK-OUT
+              </span>
               <span className="flex items-center gap-2">
                 <CalendarDays size={17} className="text-orange-500" />
                 <input
@@ -175,7 +191,9 @@ export default async function SearchPage({
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500">GUESTS</span>
+              <span className="text-xs font-bold text-slate-500">
+                GUESTS
+              </span>
               <span className="flex items-center gap-2">
                 <Users size={17} className="text-orange-500" />
                 <input
@@ -209,11 +227,13 @@ export default async function SearchPage({
             <p className="text-sm font-semibold text-orange-500">
               ZURISTAY ACCOMMODATION
             </p>
+
             <h2 className="mt-2 text-2xl font-black md:text-3xl">
               {destination
                 ? `Stays in ${destination}`
                 : "Explore available stays"}
             </h2>
+
             <p className="mt-2 text-sm text-slate-500">
               {hasSearch
                 ? `${guests} guest(s) · ${rooms} room(s)${checkIn ? ` · Check-in ${checkIn}` : ""}${checkOut ? ` · Check-out ${checkOut}` : ""}`
@@ -229,6 +249,7 @@ export default async function SearchPage({
               <SlidersHorizontal size={17} />
               Filters
             </button>
+
             <button
               type="button"
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold"
@@ -248,7 +269,9 @@ export default async function SearchPage({
               >
                 <div
                   className="min-h-64 bg-cover bg-center md:min-h-full"
-                  style={{ backgroundImage: `url("${property.image}")` }}
+                  style={{
+                    backgroundImage: `url("${property.image}")`,
+                  }}
                   role="img"
                   aria-label={property.name}
                 />
@@ -259,6 +282,7 @@ export default async function SearchPage({
                       <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-900">
                         {property.type}
                       </span>
+
                       <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
                         <MapPin size={13} />
                         {property.location}
@@ -274,6 +298,7 @@ export default async function SearchPage({
                         <Star size={13} fill="currentColor" />
                         {property.rating}
                       </span>
+
                       <span className="text-sm text-slate-500">
                         {property.reviews} reviews
                       </span>
@@ -281,7 +306,10 @@ export default async function SearchPage({
 
                     <div className="mt-5 flex flex-wrap gap-4 text-sm text-slate-500">
                       {property.facilities.map((facility) => (
-                        <span key={facility} className="flex items-center gap-2">
+                        <span
+                          key={facility}
+                          className="flex items-center gap-2"
+                        >
                           {facility.toLowerCase().includes("pool") ||
                           facility.toLowerCase().includes("beach") ? (
                             <Waves size={16} />
@@ -300,31 +328,44 @@ export default async function SearchPage({
 
                   <div className="flex min-w-40 flex-row items-end justify-between gap-4 border-t border-slate-100 pt-5 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-6 md:pt-0">
                     <div className="text-left md:text-right">
-                      <p className="text-xs text-slate-500">Starting from</p>
+                      <p className="text-xs text-slate-500">
+                        Starting from
+                      </p>
+
                       <p className="mt-1 text-2xl font-black text-blue-950">
                         {money(property.price)}
                       </p>
-                      <p className="text-xs text-slate-500">per night</p>
+
+                      <p className="text-xs text-slate-500">
+                        per night
+                      </p>
                     </div>
-                    <button
-                      type="button"
-                      className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-600"
+
+                    <Link
+                      href={`/property/${property.id}`}
+                      className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-orange-600"
                     >
                       View details
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </article>
             ))
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
-              <MapPin className="mx-auto text-orange-500" size={36} />
+              <MapPin
+                className="mx-auto text-orange-500"
+                size={36}
+              />
+
               <h3 className="mt-4 text-xl font-bold text-blue-950">
                 No matching stays found
               </h3>
+
               <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500">
                 Try another destination or increase your nightly budget to explore more accommodation.
               </p>
+
               <Link
                 href="/search"
                 className="mt-6 inline-block rounded-xl bg-blue-950 px-6 py-3 text-sm font-bold text-white"
