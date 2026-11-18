@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -63,6 +63,15 @@ export default function BookingPage() {
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [bookingReference, setBookingReference] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const selectedId = params.get("propertyId");
+
+    if (selectedId && properties.some((item) => item.id === selectedId)) {
+      setPropertyId(selectedId);
+    }
+  }, []);
 
   const property =
     properties.find((item) => item.id === propertyId) || properties[0];
