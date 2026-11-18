@@ -65,6 +65,24 @@ const destinationHighlights = [
     image:
       "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900",
   },
+  {
+    name: "Kisumu",
+    description: "Lakeside stays and western Kenya experiences",
+    image:
+      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
+  },
+  {
+    name: "Bungoma",
+    description: "Discover stays in western Kenya",
+    image:
+      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900",
+  },
+  {
+    name: "Eldoret",
+    description: "City comfort and highland escapes",
+    image:
+      "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=900",
+  },
 ];
 
 const stays = [
