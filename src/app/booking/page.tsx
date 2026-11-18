@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -13,12 +13,12 @@ import {
   CheckCircle2,
   CreditCard,
 } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Unit = {
   id: string;
   name: string;
   unit_type?: string | null;
-  description?: string | null;
   capacity: number;
   total_units: number;
   customer_rate: number;
@@ -34,6 +34,19 @@ type Property = {
   image: string;
   units: Unit[];
   isLive: boolean;
+};
+
+type BookingResult = {
+  booking_id: string;
+  booking_reference: string;
+  hold_expires_at: string;
+  currency: string;
+  subtotal: number;
+  commission: number;
+  total_amount: number;
+  booking_status: string;
+  payment_status: string;
+  idempotent_replay?: boolean;
 };
 
 const featuredProperties: Property[] = [
@@ -74,6 +87,7 @@ const featuredProperties: Property[] = [
 
 function getToday() {
   const date = new Date();
+
   return [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, "0"),
@@ -101,8 +115,13 @@ export default function BookingPage() {
   const [specialRequests, setSpecialRequests] = useState("");
   const [error, setError] = useState("");
   const [loadingProperties, setLoadingProperties] = useState(true);
-  const [confirmed, setConfirmed] = useState(false);
-  const [bookingReference, setBookingReference] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [booking, setBooking] = useState<BookingResult | null>(null);
+
+  const idempotencyRef = useRef<{
+    fingerprint: string;
+    key: string;
+  } | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -122,7 +141,10 @@ export default function BookingPage() {
         }
 
         const listings: Property[] = (result.properties ?? [])
-          .filter((item: any) => Array.isArray(item.units) && item.units.length > 0)
+          .filter(
+            (item: any) =>
+              Array.isArray(item.units) && item.units.length > 0
+          )
           .map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -135,9 +157,10 @@ export default function BookingPage() {
               .filter(Boolean)
               .join(", "),
             price: Number(item.starting_rate ?? 0),
-            currency: item.currency || "KSh",
+            currency: item.currency || "KES",
             image:
-              item.images?.find((image: any) => image.is_cover)?.image_url ||
+              item.images?.find((image: any) => image.is_cover)
+                ?.image_url ||
               item.images?.[0]?.image_url ||
               "",
             units: item.units.map((unit: any) => ({
@@ -152,6 +175,7 @@ export default function BookingPage() {
         setLiveProperties(listings);
       } catch (loadError) {
         console.error("Property loading error:", loadError);
+        setError("Unable to load live accommodation listings.");
       } finally {
         setLoadingProperties(false);
       }
@@ -181,29 +205,29 @@ export default function BookingPage() {
 
   const nights =
     checkIn && checkOut
-      ? Math.max(
-          0,
-          Math.round(
-            (new Date(`${checkOut}T00:00:00`).getTime() -
-              new Date(`${checkIn}T00:00:00`).getTime()) /
-              86400000
-          )
+      ? Math.round(
+          (new Date(`${checkOut}T00:00:00`).getTime() -
+            new Date(`${checkIn}T00:00:00`).getTime()) /
+            86400000
         )
       : 0;
 
-  const total = price * nights * Number(rooms || 1);
+  const estimatedTotal = price * Math.max(0, nights) * Number(rooms || 1);
 
   useEffect(() => {
-    if (property.units.length > 0) {
-      setUnitId(property.units[0].id);
-    } else {
-      setUnitId("");
-    }
+    setUnitId(property.units[0]?.id || "");
   }, [propertyId, liveProperties]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    if (!property.isLive || !selectedUnit) {
+      setError(
+        "This property is not connected to live room inventory yet. Please select an approved live accommodation listing."
+      );
+      return;
+    }
 
     if (!checkIn || !checkOut) {
       setError("Please select your check-in and check-out dates.");
@@ -215,8 +239,8 @@ export default function BookingPage() {
       return;
     }
 
-    if (nights < 1) {
-      setError("Check-out must be after check-in.");
+    if (nights < 1 || nights > 30) {
+      setError("Stays must be between 1 and 30 nights.");
       return;
     }
 
@@ -230,15 +254,12 @@ export default function BookingPage() {
       return;
     }
 
-    if (property.isLive && !selectedUnit) {
-      setError("Please select an accommodation option.");
+    if (Number(rooms) > selectedUnit.total_units) {
+      setError("The selected room quantity exceeds the listed room inventory.");
       return;
     }
 
-    if (
-      selectedUnit &&
-      Number(guests) > selectedUnit.capacity * Number(rooms)
-    ) {
+    if (Number(guests) > selectedUnit.capacity * Number(rooms)) {
       setError(
         `This accommodation supports up to ${
           selectedUnit.capacity * Number(rooms)
@@ -252,13 +273,98 @@ export default function BookingPage() {
       return;
     }
 
-    const reference = `ZS${Date.now().toString().slice(-9)}`;
+    if (specialRequests.length > 2000) {
+      setError("Special requests cannot exceed 2000 characters.");
+      return;
+    }
 
-    setBookingReference(reference);
-    setConfirmed(true);
+    setSubmitting(true);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error("Please sign in before making a reservation.");
+      }
+
+      const payload = {
+        unit_id: selectedUnit.id,
+        check_in: checkIn,
+        check_out: checkOut,
+        quantity: Number(rooms),
+        guests: Number(guests),
+        guest_name: fullName.trim(),
+        guest_email: email.trim().toLowerCase(),
+        guest_phone: phone.trim(),
+        special_requests: specialRequests.trim() || null,
+      };
+
+      const fingerprint = JSON.stringify(payload);
+
+      if (idempotencyRef.current?.fingerprint !== fingerprint) {
+        idempotencyRef.current = {
+          fingerprint,
+          key: crypto.randomUUID(),
+        };
+      }
+
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          ...payload,
+          idempotency_key: idempotencyRef.current.key,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success || !result.booking) {
+        throw new Error(
+          result.error || "Unable to create your reservation."
+        );
+      }
+
+      const createdBooking = result.booking as BookingResult;
+
+      const holdExpiry = new Date(createdBooking.hold_expires_at);
+
+      if (
+        createdBooking.booking_status !== "pending" ||
+        createdBooking.payment_status !== "unpaid" ||
+        Number.isNaN(holdExpiry.getTime()) ||
+        holdExpiry.getTime() <= Date.now()
+      ) {
+        idempotencyRef.current = null;
+
+        throw new Error(
+          "This booking request has expired or is no longer active. Please submit a fresh reservation."
+        );
+      }
+
+      setBooking(createdBooking);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "An unexpected booking error occurred."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  if (confirmed) {
+  if (booking) {
+    const expiry = new Date(booking.hold_expires_at);
+
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-12">
         <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -267,48 +373,58 @@ export default function BookingPage() {
           </div>
 
           <h1 className="mt-6 text-3xl font-black text-blue-950">
-            Reservation details received!
+            Reservation held successfully!
           </h1>
 
           <p className="mt-3 text-slate-500">
-            Your reservation information has been prepared. Payment and accommodation availability have not yet been verified.
+            Your booking has been recorded. Your selected inventory is
+            temporarily held while payment is arranged.
           </p>
 
           <div className="mt-7 rounded-2xl bg-slate-50 p-6 text-left">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Booking reference
             </p>
+
             <p className="mt-2 text-2xl font-black text-orange-500">
-              {bookingReference}
+              {booking.booking_reference}
             </p>
 
             <div className="mt-5 space-y-3 text-sm text-slate-600">
               <p><strong>Property:</strong> {property.name}</p>
-              {selectedUnit && (
-                <p><strong>Accommodation:</strong> {selectedUnit.name}</p>
-              )}
+              <p><strong>Accommodation:</strong> {selectedUnit?.name}</p>
               <p><strong>Guest:</strong> {fullName}</p>
               <p><strong>Check-in:</strong> {checkIn}</p>
               <p><strong>Check-out:</strong> {checkOut}</p>
               <p><strong>Nights:</strong> {nights}</p>
               <p><strong>Guests:</strong> {guests}</p>
               <p><strong>Rooms:</strong> {rooms}</p>
-              <p><strong>Estimated total:</strong> {formatMoney(total, currency)}</p>
-              {specialRequests && (
-                <p><strong>Special requests:</strong> {specialRequests}</p>
-              )}
+              <p>
+                <strong>Total payable:</strong>{" "}
+                {formatMoney(Number(booking.total_amount), booking.currency)}
+              </p>
+              <p>
+                <strong>Booking status:</strong> {booking.booking_status}
+              </p>
+              <p>
+                <strong>Payment status:</strong> {booking.payment_status}
+              </p>
+              <p>
+                <strong>Hold expires:</strong> {expiry.toLocaleString()}
+              </p>
             </div>
           </div>
 
-          <p className="mt-5 text-xs text-slate-400">
-            This reference is currently generated in your browser only. It is not yet a confirmed or stored booking.
+          <p className="mt-5 text-xs text-slate-500">
+            Your room hold expires after 15 minutes unless payment is
+            successfully verified. Your reservation is not yet confirmed.
           </p>
 
           <Link
-            href="/"
+            href="/account"
             className="mt-7 inline-flex rounded-xl bg-blue-950 px-7 py-4 font-bold text-white transition hover:bg-blue-900"
           >
-            Return to homepage
+            View my account
           </Link>
         </div>
       </main>
@@ -367,21 +483,18 @@ export default function BookingPage() {
             >
               {allProperties.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} — {formatMoney(
-                    item.units.length > 0
-                      ? Math.min(...item.units.map((unit) => unit.customer_rate))
-                      : item.price,
-                    item.currency
-                  )} / night
+                  {item.name}
+                  {item.isLive ? " — Live listing" : " — Not bookable yet"}
                 </option>
               ))}
             </select>
 
-            {property.units.length > 0 && (
+            {property.isLive && property.units.length > 0 && (
               <>
                 <label className="mt-5 block text-sm font-bold text-slate-700">
                   Choose room or accommodation type
                 </label>
+
                 <select
                   value={selectedUnit?.id || ""}
                   onChange={(event) => setUnitId(event.target.value)}
@@ -396,7 +509,8 @@ export default function BookingPage() {
 
                 {selectedUnit && (
                   <p className="mt-3 text-xs text-slate-500">
-                    Capacity: {selectedUnit.capacity} guest(s) per room · Listed units: {selectedUnit.total_units}
+                    Capacity: {selectedUnit.capacity} guest(s) per room ·
+                    Listed units: {selectedUnit.total_units}
                   </p>
                 )}
               </>
@@ -411,23 +525,41 @@ export default function BookingPage() {
                     : undefined,
                 }}
               />
+
               <div>
                 <h3 className="font-bold text-blue-950">
                   {property.name}
                 </h3>
+
                 <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
                   <MapPin size={15} />
                   {property.location}
                 </p>
+
                 <p className="mt-2 font-bold text-orange-500">
                   {formatMoney(price, currency)} / night
                 </p>
               </div>
             </div>
 
+            {!property.isLive && (
+              <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+                This featured property is not yet connected to live room
+                inventory. Select an approved live listing to make a
+                reservation.
+              </p>
+            )}
+
             {loadingProperties && (
               <p className="mt-4 text-xs text-slate-400">
                 Checking for additional approved accommodation listings...
+              </p>
+            )}
+
+            {!loadingProperties && liveProperties.length === 0 && (
+              <p className="mt-4 text-sm text-slate-500">
+                No approved properties with room inventory are currently
+                available for live booking.
               </p>
             )}
           </div>
@@ -571,10 +703,11 @@ export default function BookingPage() {
 
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-5 font-bold text-white transition hover:bg-orange-600"
+            disabled={submitting || loadingProperties}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-5 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CheckCircle2 size={20} />
-            Review reservation
+            {submitting ? "Creating reservation..." : "Reserve accommodation"}
           </button>
         </form>
 
@@ -618,7 +751,7 @@ export default function BookingPage() {
 
               <div className="flex justify-between gap-3">
                 <span className="text-slate-500">Number of nights</span>
-                <strong>{nights}</strong>
+                <strong>{Math.max(0, nights)}</strong>
               </div>
 
               <div className="flex justify-between gap-3">
@@ -632,17 +765,19 @@ export default function BookingPage() {
             <div className="flex items-center justify-between gap-3">
               <span className="font-bold text-blue-950">Estimated total</span>
               <span className="text-2xl font-black text-orange-500">
-                {formatMoney(total, currency)}
+                {formatMoney(estimatedTotal, currency)}
               </span>
             </div>
 
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              This is an estimate only. Availability, final price, taxes and booking conditions must still be verified.
+              The final price is calculated from the live nightly rates and
+              confirmed inventory in ZuriStay.
             </p>
 
             <div className="mt-6 flex items-center gap-3 rounded-xl bg-green-50 p-4 text-sm text-green-800">
               <ShieldCheck size={23} className="shrink-0" />
-              Your contact information is collected for reservation processing.
+              Your reservation is processed through the secure booking
+              service.
             </div>
 
             <div className="mt-5 flex items-center gap-3 text-xs text-slate-400">
