@@ -4,10 +4,6 @@ import {
   ArrowLeft,
   MapPin,
   Star,
-  Wifi,
-  Waves,
-  Car,
-  Utensils,
   CheckCircle,
   ShieldCheck,
 } from "lucide-react";
@@ -152,7 +148,8 @@ export default async function PropertyDetailsPage({
         </div>
 
         <div className="mt-7 grid gap-3 overflow-hidden rounded-2xl md:grid-cols-2">
-          <div className="h-72 bg-cover bg-center md:h-[440px]"
+          <div
+            className="h-72 bg-cover bg-center md:h-[440px]"
             style={{ backgroundImage: `url("${property.image}")` }}
             role="img"
             aria-label={property.name}
@@ -234,7 +231,7 @@ export default async function PropertyDetailsPage({
               </p>
 
               <Link
-                href={`/search?destination=${encodeURIComponent(property.location)}`}
+                href={`/booking?propertyId=${property.id}`}
                 className="mt-6 block w-full rounded-xl bg-orange-500 px-5 py-4 text-center font-bold text-white transition hover:bg-orange-600"
               >
                 Check booking options
