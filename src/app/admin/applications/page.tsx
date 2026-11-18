@@ -37,6 +37,10 @@ type Application = {
 
 type Filter = "all" | "pending" | "approved" | "rejected";
 
+type AdminProfile = {
+  role: string;
+};
+
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-KE", {
     day: "numeric",
@@ -88,13 +92,18 @@ export default function AdminApplicationsPage() {
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const {
+        data: profileData,
+        error: profileError,
+      } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .maybeSingle();
 
       if (profileError) throw profileError;
+
+      const profile = profileData as unknown as AdminProfile | null;
 
       if (!profile || profile.role !== "admin") {
         setAccessDenied(true);
@@ -529,7 +538,7 @@ export default function AdminApplicationsPage() {
               </h3>
               <p className="mt-1 text-sm leading-6 text-blue-900/75">
                 Approving an application creates a partner account linked to
-                the applicant's verified ZuriStay login. It does not create,
+                the applicant&apos;s verified ZuriStay login. It does not create,
                 approve or publish a property listing. Property details,
                 ownership and accommodation information must be reviewed
                 separately.
