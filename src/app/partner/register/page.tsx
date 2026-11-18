@@ -41,10 +41,7 @@ export default function PartnerRegistrationPage() {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  function updateField(
-    field: keyof typeof form,
-    value: string
-  ) {
+  function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
     setError("");
   }
@@ -53,7 +50,6 @@ export default function PartnerRegistrationPage() {
     event.preventDefault();
     setError("");
 
-    // Honeypot field for basic automated-spam filtering.
     if (form.website.trim()) {
       setSubmitted(true);
       return;
@@ -66,18 +62,20 @@ export default function PartnerRegistrationPage() {
     try {
       const supabase = createSupabaseBrowserClient();
 
+      const application = {
+        business_name: form.businessName.trim(),
+        contact_person: form.contactPerson.trim(),
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(),
+        property_type: form.propertyType,
+        location: form.location.trim(),
+        message: form.message.trim() || null,
+        status: "pending",
+      };
+
       const { error: insertError } = await supabase
         .from("partner_applications")
-        .insert({
-          business_name: form.businessName.trim(),
-          contact_person: form.contactPerson.trim(),
-          email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
-          property_type: form.propertyType,
-          location: form.location.trim(),
-          message: form.message.trim() || null,
-          status: "pending",
-        });
+        .insert(application as never);
 
       if (insertError) {
         throw insertError;
