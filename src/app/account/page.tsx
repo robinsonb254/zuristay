@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   MapPin,
-  BedDouble,
   Clock,
   CheckCircle2,
   XCircle,
@@ -165,8 +164,12 @@ export default function AccountPage() {
 
         if (!mounted) return;
 
+        const profileName = (
+          profile as unknown as { full_name?: string | null } | null
+        )?.full_name;
+
         setFullName(
-          profile?.full_name ||
+          profileName ||
             user.user_metadata?.full_name ||
             user.email?.split("@")[0] ||
             "Customer"
