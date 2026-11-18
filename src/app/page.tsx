@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Search,
   MapPin,
@@ -18,7 +18,17 @@ import {
   X,
 } from "lucide-react";
 
-const destinations = [
+type DatabaseDestination = {
+  id: string;
+  name: string;
+  city: string;
+  county: string | null;
+  country: string;
+  country_code: string;
+  active: boolean;
+};
+
+const destinationHighlights = [
   {
     name: "Mombasa",
     description: "Coastal escapes and ocean views",
@@ -100,6 +110,40 @@ export default function Home() {
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [databaseDestinations, setDatabaseDestinations] = useState<
+    DatabaseDestination[]
+  >([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDestinations() {
+      try {
+        const response = await fetch("/api/destinations");
+
+        if (!response.ok) {
+          throw new Error("Unable to load destinations.");
+        }
+
+        const result = await response.json();
+
+        if (result.success && Array.isArray(result.destinations)) {
+          if (isMounted) {
+            setDatabaseDestinations(result.destinations);
+          }
+        }
+      } catch (error) {
+        console.error("Destination loading error:", error);
+      }
+    }
+
+    loadDestinations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const currentDate = new Date();
   const today = [
     currentDate.getFullYear(),
@@ -144,6 +188,19 @@ export default function Home() {
 
   const money = (amount: number) =>
     `KSh ${amount.toLocaleString("en-KE")}`;
+
+  const destinationSuggestions =
+    databaseDestinations.length > 0
+      ? databaseDestinations
+      : destinationHighlights.map((item, index) => ({
+          id: `fallback-${index}`,
+          name: item.name,
+          city: item.name,
+          county: null,
+          country: "Kenya",
+          country_code: "KE",
+          active: true,
+        }));
 
   return (
     <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
@@ -262,8 +319,8 @@ export default function Home() {
                   className="w-full bg-transparent text-sm text-gray-600 outline-none"
                 />
                 <datalist id="destinations-list">
-                  {destinations.map((item) => (
-                    <option key={item.name} value={item.name} />
+                  {destinationSuggestions.map((item) => (
+                    <option key={item.id} value={item.name} />
                   ))}
                 </datalist>
               </div>
@@ -409,7 +466,7 @@ export default function Home() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {destinations.map((item) => (
+          {destinationHighlights.map((item) => (
             <button
               type="button"
               key={item.name}
