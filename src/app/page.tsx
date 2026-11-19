@@ -243,16 +243,34 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2 lg:flex">
+            <a
+              href="/partner/dashboard"
+              className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
+            >
+              Already a partner
+            </a>
+            <a
+              href="/admin"
+              className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
+            >
+              Admin portal
+            </a>
+            <a
+              href="/partner/register"
+              className="rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#ae8540]"
+            >
+              Become a partner
+            </a>
             <a
               href="/login"
-              className="rounded-full px-5 py-3 text-sm font-semibold hover:bg-gray-100"
+              className="rounded-full px-3 py-2.5 text-xs font-semibold hover:bg-gray-100"
             >
               Sign in
             </a>
             <a
               href="/register"
-              className="rounded-full bg-[#173b30] px-6 py-3 text-sm font-semibold text-white hover:bg-[#245545]"
+              className="rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#245545]"
             >
               Register
             </a>
@@ -282,8 +300,11 @@ export default function Home() {
             <a href="#partners" onClick={() => setMenuOpen(false)}>
               List your property
             </a>
-            <a href="/login">Sign in</a>
-            <a href="/register">Register</a>
+            <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>
+            <a href="/admin" onClick={() => setMenuOpen(false)}>Admin portal</a>
+            <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay partner</a>
+            <a href="/login" onClick={() => setMenuOpen(false)}>Sign in</a>
+            <a href="/register" onClick={() => setMenuOpen(false)}>Register</a>
           </nav>
         )}
       </header>
