@@ -353,6 +353,15 @@ export default function PartnerDashboardPage() {
                         Live
                       </span>
                     )}
+                    {property.status === "approved" && (
+                      <Link
+                        href={`/partner/properties/${property.id}/rooms`}
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800"
+                      >
+                        <Hotel size={15} />
+                        Manage rooms
+                      </Link>
+                    )}
                   </div>
                 </article>
               ))}
