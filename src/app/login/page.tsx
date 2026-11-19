@@ -44,7 +44,13 @@ export default function LoginPage() {
 
       setSuccess("Login successful. Redirecting...");
 
-      router.push("/");
+      // Return users to the portal they originally requested.
+      const requestedPath = new URLSearchParams(window.location.search).get("next");
+      const safeNextPath =
+        requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//")
+          ? requestedPath
+          : "/";
+      router.replace(safeNextPath);
       router.refresh();
     } catch (err) {
       console.error("Login error:", err);
