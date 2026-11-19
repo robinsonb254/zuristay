@@ -1,0 +1,270 @@
+
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+export const dynamic = "force-dynamic";
+
+const PROPERTY_TYPES = [
+  "hotel",
+  "resort",
+  "apartment",
+  "villa",
+  "bnb",
+  "lodge",
+  "guesthouse",
+  "hostel",
+  "lounge",
+  "venue",
+  "other",
+] as const;
+
+function fail(message: string, status: number) {
+  return NextResponse.json(
+    { success: false, error: message },
+    {
+      status,
+      headers: { "Cache-Control": "no-store" },
+    }
+  );
+}
+
+async function authenticatePartner(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!url || !publishableKey || !secretKey) {
+    return { error: fail("Partner service configuration is incomplete.", 500) };
+  }
+
+  const authorization = request.headers.get("authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return { error: fail("Please sign in to continue.", 401) };
+  }
+
+  const token = authorization.slice(7).trim();
+
+  const authClient = createClient(url, publishableKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const {
+    data: { user },
+    error: authError,
+  } = await authClient.auth.getUser(token);
+
+  if (authError || !user) {
+    return { error: fail("Your session has expired. Please sign in again.", 401) };
+  }
+
+  const admin = createClient(url, secretKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const { data: partner, error: partnerError } = await admin
+    .from("property_partners")
+    .select("id, owner_user_id, business_name, contact_person, email, phone, status")
+    .eq("owner_user_id", user.id)
+    .eq("status", "approved")
+    .maybeSingle();
+
+  if (partnerError) {
+    console.error("Partner lookup failed:", partnerError);
+    return { error: fail("Unable to verify your partner account.", 500) };
+  }
+
+  if (!partner) {
+    return {
+      error: fail("No approved partner account is linked to this login.", 403),
+    };
+  }
+
+  return { admin, partner };
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const context = await authenticatePartner(request);
+
+    if ("error" in context) return context.error;
+
+    const { data: properties, error } = await context.admin
+      .from("properties")
+      .select(
+        "id, name, property_type, city, county, country, status, is_active, created_at"
+      )
+      .eq("partner_id", context.partner.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Partner properties lookup failed:", error);
+      return fail("Unable to load your property listings.", 500);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        partner: context.partner,
+        properties: properties ?? [],
+      },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
+  } catch (error) {
+    console.error("Partner dashboard error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const context = await authenticatePartner(request);
+
+    if ("error" in context) return context.error;
+
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return fail("Please provide valid property details.", 400);
+    }
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return fail("Invalid property details.", 400);
+    }
+
+    const input = body as Record<string, unknown>;
+
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const type =
+      typeof input.propertyType === "string"
+        ? input.propertyType.trim().toLowerCase()
+        : "";
+    const destinationId =
+      typeof input.destinationId === "string" ? input.destinationId.trim() : "";
+    const address =
+      typeof input.address === "string" ? input.address.trim() : "";
+    const description =
+      typeof input.description === "string" ? input.description.trim() : "";
+    const currency =
+      typeof input.currency === "string"
+        ? input.currency.trim().toUpperCase()
+        : "KES";
+    const phone =
+      typeof input.contactPhone === "string"
+        ? input.contactPhone.trim()
+        : context.partner.phone;
+    const email =
+      typeof input.contactEmail === "string"
+        ? input.contactEmail.trim().toLowerCase()
+        : context.partner.email;
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    if (name.length < 2 || name.length > 150) {
+      return fail("Property name must be between 2 and 150 characters.", 400);
+    }
+
+    if (!PROPERTY_TYPES.includes(type as (typeof PROPERTY_TYPES)[number])) {
+      return fail("Choose a valid property type.", 400);
+    }
+
+    if (!uuidPattern.test(destinationId)) {
+      return fail("Choose a valid destination.", 400);
+    }
+
+    if (address.length < 4 || address.length > 250) {
+      return fail("Enter a valid property address.", 400);
+    }
+
+    if (description.length > 5000) {
+      return fail("The property description is too long.", 400);
+    }
+
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      return fail("Enter a valid three-letter currency code.", 400);
+    }
+
+    if (phone.length < 5 || phone.length > 30) {
+      return fail("Enter a valid contact phone number.", 400);
+    }
+
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return fail("Enter a valid contact email address.", 400);
+    }
+
+    const { data: destination, error: destinationError } =
+      await context.admin
+        .from("destinations")
+        .select("id, city, county, country, country_code")
+        .eq("id", destinationId)
+        .eq("active", true)
+        .maybeSingle();
+
+    if (destinationError) {
+      console.error("Destination lookup failed:", destinationError);
+      return fail("Unable to verify the selected destination.", 500);
+    }
+
+    if (!destination) {
+      return fail("The selected destination is unavailable.", 400);
+    }
+
+    const { data: property, error: insertError } = await context.admin
+      .from("properties")
+      .insert({
+        partner_id: context.partner.id,
+        destination_id: destination.id,
+        name,
+        property_type: type,
+        description: description || null,
+        address,
+        city: destination.city,
+        county: destination.county,
+        country: destination.country,
+        country_code: destination.country_code,
+        currency,
+        contact_phone: phone,
+        contact_email: email,
+        status: "pending",
+        is_active: false,
+      })
+      .select(
+        "id, name, property_type, city, county, country, status, is_active, created_at"
+      )
+      .single();
+
+    if (insertError || !property) {
+      console.error("Property creation failed:", insertError);
+      return fail("Unable to save this property. Please check the details.", 500);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Property submitted successfully. It will remain unpublished until ZuriStay reviews it.",
+        property,
+      },
+      {
+        status: 201,
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
+  } catch (error) {
+    console.error("Partner property API error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
