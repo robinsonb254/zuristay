@@ -87,7 +87,7 @@ export default function PartnerDashboardPage() {
       const result = await response.json();
 
       if (response.status === 401) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fpartner%2Fdashboard");
         return;
       }
 
@@ -120,7 +120,7 @@ export default function PartnerDashboardPage() {
     try {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
-      router.replace("/login");
+      router.replace("/login?next=%2Fpartner%2Fdashboard");
       router.refresh();
     } catch {
       setError("Unable to sign out. Please try again.");
