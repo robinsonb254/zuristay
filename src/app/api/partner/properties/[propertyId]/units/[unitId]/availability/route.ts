@@ -1,0 +1,181 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+export const dynamic = "force-dynamic";
+
+function fail(message: string, status: number) {
+  return NextResponse.json(
+    { success: false, error: message },
+    { status, headers: { "Cache-Control": "no-store" } }
+  );
+}
+
+async function authenticatePartner(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!url || !publishableKey || !secretKey) {
+    return { error: fail("Partner service configuration is incomplete.", 500) };
+  }
+
+  const authorization = request.headers.get("authorization");
+  if (!authorization?.startsWith("Bearer ")) {
+    return { error: fail("Please sign in to continue.", 401) };
+  }
+
+  const token = authorization.slice(7).trim();
+  if (!token) return { error: fail("Invalid authentication token.", 401) };
+
+  const authClient = createClient(url, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+  if (authError || !user) {
+    return { error: fail("Your session has expired. Please sign in again.", 401) };
+  }
+
+  const admin = createClient(url, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data: partner, error: partnerError } = await admin
+    .from("property_partners")
+    .select("id")
+    .eq("owner_user_id", user.id)
+    .eq("status", "approved")
+    .maybeSingle();
+
+  if (partnerError) {
+    console.error("Partner verification failed:", partnerError);
+    return { error: fail("Unable to verify your partner account.", 500) };
+  }
+  if (!partner) return { error: fail("An approved partner account is required.", 403) };
+
+  return { admin, partner };
+}
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function isRealDate(value: string) {
+  if (!datePattern.test(value)) return false;
+  const date = new Date(value + "T00:00:00.000Z");
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ propertyId: string; unitId: string }> }
+) {
+  try {
+    const context = await authenticatePartner(request);
+    if ("error" in context) return context.error;
+
+    const { propertyId, unitId } = await params;
+    if (!uuidPattern.test(propertyId) || !uuidPattern.test(unitId)) {
+      return fail("Invalid property or room category ID.", 400);
+    }
+
+    const { data: property, error: propertyError } = await context.admin
+      .from("properties")
+      .select("id, status")
+      .eq("id", propertyId)
+      .eq("partner_id", context.partner.id)
+      .maybeSingle();
+
+    if (propertyError) {
+      console.error("Partner property lookup failed:", propertyError);
+      return fail("Unable to verify this property.", 500);
+    }
+    if (!property) return fail("Property not found in your partner account.", 404);
+    if (property.status !== "approved") {
+      return fail("Availability can only be managed after property approval.", 409);
+    }
+
+    const { data: unit, error: unitError } = await context.admin
+      .from("property_units")
+      .select("id, total_units, base_rate, currency")
+      .eq("id", unitId)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+
+    if (unitError) {
+      console.error("Room category lookup failed:", unitError);
+      return fail("Unable to verify this room category.", 500);
+    }
+    if (!unit) return fail("Room category not found for this property.", 404);
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return fail("Please provide valid availability details.", 400);
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return fail("Invalid availability details.", 400);
+    }
+
+    const input = body as Record<string, unknown>;
+    const startDate = typeof input.startDate === "string" ? input.startDate : "";
+    const endDate = typeof input.endDate === "string" ? input.endDate : "";
+    const availableUnits = Number(input.availableUnits);
+    const rateInput = input.partnerBaseRate;
+    const partnerBaseRate =
+      rateInput === "" || rateInput === null || rateInput === undefined
+        ? Number(unit.base_rate)
+        : Number(rateInput);
+
+    if (!isRealDate(startDate) || !isRealDate(endDate) || endDate < startDate) {
+      return fail("Choose a valid date range.", 400);
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (startDate < today) return fail("Availability dates cannot be in the past.", 400);
+
+    const start = new Date(startDate + "T00:00:00.000Z");
+    const end = new Date(endDate + "T00:00:00.000Z");
+    const dayCount = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+    if (dayCount > 366) return fail("Please update no more than 366 days at a time.", 400);
+
+    if (!Number.isInteger(availableUnits) || availableUnits < 0 || availableUnits > unit.total_units) {
+      return fail("Available rooms must be between 0 and the total number of rooms in this category.", 400);
+    }
+    if (!Number.isFinite(partnerBaseRate) || partnerBaseRate < 0 || partnerBaseRate > 100000000) {
+      return fail("Enter a valid nightly rate of zero or more.", 400);
+    }
+
+    const rows = Array.from({ length: dayCount }, (_, index) => {
+      const date = new Date(start.getTime() + index * 86400000);
+      return {
+        unit_id: unitId,
+        stay_date: date.toISOString().slice(0, 10),
+        available_units: availableUnits,
+        partner_base_rate: Number(partnerBaseRate.toFixed(2)),
+        currency: unit.currency || "KES",
+      };
+    });
+
+    const { error: upsertError } = await context.admin
+      .from("unit_availability")
+      .upsert(rows, { onConflict: "unit_id,stay_date" });
+
+    if (upsertError) {
+      console.error("Availability update failed:", upsertError);
+      return fail("Unable to save availability. Please try again.", 500);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: availableUnits === 0
+          ? `Room availability blocked for ${dayCount} date(s).`
+          : `Availability saved for ${dayCount} date(s).`,
+        updatedDates: dayCount,
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    console.error("Partner availability error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
