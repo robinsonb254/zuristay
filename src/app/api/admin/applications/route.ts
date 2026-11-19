@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the administrator's authenticated session.
     const authorization = request.headers.get("authorization");
 
     if (!authorization?.startsWith("Bearer ")) {
@@ -72,8 +71,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // The secret-key client bypasses RLS, so verify the admin role
-    // explicitly before performing any administrative operation.
     const admin = createClient(supabaseUrl, secretKey, {
       auth: {
         persistSession: false,
@@ -133,7 +130,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Load the application.
     const { data: application, error: applicationError } =
       await admin
         .from("partner_applications")
@@ -163,7 +159,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rejection does not create a partner account.
     if (action === "reject") {
       const { data: rejected, error: rejectError } = await admin
         .from("partner_applications")
@@ -197,8 +192,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Approval requires an existing registered account matching
-    // the applicant's application email.
     const email = String(application.email || "")
       .trim()
       .toLowerCase();
@@ -219,7 +212,6 @@ export async function POST(request: NextRequest) {
         }
       | undefined;
 
-    // Search registered Supabase Auth users in pages.
     for (let page = 1; page <= 20; page++) {
       const { data, error: usersError } =
         await admin.auth.admin.listUsers({
@@ -228,6 +220,8 @@ export async function POST(request: NextRequest) {
         });
 
       if (usersError) {
+        console.error("Applicant lookup error:", usersError);
+
         return respond(
           false,
           "Unable to verify the applicant's registered account.",
@@ -260,84 +254,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prevent duplicate partner accounts.
-    const { data: existingPartner, error: partnerLookupError } =
-      await admin
-        .from("property_partners")
-        .select("id, owner_user_id")
-        .ilike("email", email)
-        .limit(1)
-        .maybeSingle();
+    const { data: approvalResult, error: approvalError } =
+      await admin.rpc("approve_partner_application", {
+        p_application_id: applicationId,
+        p_owner_user_id: matchingUser.id,
+        p_admin_user_id: user.id,
+      });
 
-    if (partnerLookupError) {
-      return respond(
-        false,
-        "Unable to check existing partner accounts.",
-        500
+    if (approvalError) {
+      console.error(
+        "Partner approval transaction failed:",
+        approvalError
       );
-    }
 
-    if (existingPartner) {
       return respond(
         false,
-        "A partner account already exists for this email. Please review it before proceeding.",
+        "Approval could not be completed. Check the applicant's account, email verification and existing partner records.",
         409
-      );
-    }
-
-    // Claim the pending application first. This prevents two
-    // simultaneous approval requests from creating duplicate partners.
-    const { data: claimedApplication, error: claimError } =
-      await admin
-        .from("partner_applications")
-        .update({
-          status: "approved",
-          applicant_user_id: matchingUser.id,
-        })
-        .eq("id", applicationId)
-        .eq("status", "pending")
-        .select("id, business_name, status, applicant_user_id")
-        .maybeSingle();
-
-    if (claimError || !claimedApplication) {
-      return respond(
-        false,
-        "The application could not be approved. It may already have been reviewed.",
-        409
-      );
-    }
-
-    // Create the partner account linked to the applicant's own
-    // verified account. The existing administrator role is untouched.
-    const { data: partner, error: createPartnerError } = await admin
-      .from("property_partners")
-      .insert({
-        owner_user_id: matchingUser.id,
-        business_name: application.business_name,
-        contact_person: application.contact_person,
-        email,
-        phone: application.phone,
-        status: "approved",
-      })
-      .select("id, business_name, owner_user_id, status")
-      .single();
-
-    if (createPartnerError || !partner) {
-      // Restore the application to pending if partner creation fails.
-      await admin
-        .from("partner_applications")
-        .update({
-          status: "pending",
-          applicant_user_id: application.applicant_user_id,
-        })
-        .eq("id", applicationId)
-        .eq("status", "approved")
-        .eq("applicant_user_id", matchingUser.id);
-
-      return respond(
-        false,
-        "Partner account creation failed. The application has been returned to pending review.",
-        500
       );
     }
 
@@ -345,10 +278,7 @@ export async function POST(request: NextRequest) {
       true,
       "Application approved and partner account created successfully.",
       200,
-      {
-        application: claimedApplication,
-        partner,
-      }
+      { result: approvalResult }
     );
   } catch (error) {
     console.error("Admin application API error:", error);
