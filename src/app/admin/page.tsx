@@ -667,16 +667,25 @@ export default function AdminPage() {
             id="properties"
             className="mt-8 scroll-mt-28 rounded-2xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <div className="flex items-center gap-2">
-                <Building2 className="text-orange-500" size={20} />
-                <h3 className="text-lg font-black text-blue-950">
-                  Accommodation properties
-                </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:px-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="text-orange-500" size={20} />
+                  <h3 className="text-lg font-black text-blue-950">
+                    Accommodation properties
+                  </h3>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Recently added properties and their publication status.
+                </p>
               </div>
-              <p className="mt-1 text-sm text-slate-500">
-                Recently added properties and their publication status.
-              </p>
+              <Link
+                href="/admin/properties"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-900"
+              >
+                <Building2 size={16} />
+                Manage property submissions
+              </Link>
             </div>
 
             {loading ? (
