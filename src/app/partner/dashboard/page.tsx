@@ -72,7 +72,7 @@ export default function PartnerDashboardPage() {
       } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fpartner%2Fdashboard");
         return;
       }
 
