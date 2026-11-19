@@ -154,7 +154,7 @@ export default function AdminPage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fadmin");
         return;
       }
 
@@ -310,7 +310,7 @@ export default function AdminPage() {
     try {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
-      router.replace("/login");
+      router.replace("/login?next=%2Fadmin");
       router.refresh();
     } catch (err) {
       console.error("Admin sign-out error:", err);
