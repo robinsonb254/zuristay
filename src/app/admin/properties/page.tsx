@@ -98,7 +98,7 @@ export default function AdminPropertiesPage() {
       } = await supabase.auth.getSession();
 
       if (sessionError || !session?.access_token) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fadmin%2Fproperties");
         return;
       }
 
@@ -110,7 +110,7 @@ export default function AdminPropertiesPage() {
       const result = await response.json();
 
       if (response.status === 401) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fadmin%2Fproperties");
         return;
       }
       if (response.status === 403) {
@@ -167,7 +167,7 @@ export default function AdminPropertiesPage() {
       const result = await response.json();
 
       if (response.status === 401) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fadmin%2Fproperties");
         return;
       }
       if (!response.ok || !result.success) {
