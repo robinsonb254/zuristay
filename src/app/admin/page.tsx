@@ -42,6 +42,8 @@ type Property = {
   id: string;
   name: string;
   city: string;
+  county?: string | null;
+  sub_county?: string | null;
   country: string;
   status: string;
   is_active: boolean;
@@ -232,7 +234,7 @@ export default function AdminPage() {
         supabase
           .from("properties")
           .select(
-            "id, name, city, country, status, is_active, created_at"
+            "id, name, city, county, sub_county, country, status, is_active, created_at"
           )
           .order("created_at", { ascending: false })
           .limit(6),
@@ -714,7 +716,7 @@ export default function AdminPage() {
                         {property.name}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        {property.city}, {property.country}
+                        {[property.city, property.sub_county, property.county, property.country].filter(Boolean).join(", ")}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
                         Added {formatDate(property.created_at)}
