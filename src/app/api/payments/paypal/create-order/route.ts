@@ -27,9 +27,18 @@ export async function POST(request: NextRequest) {
     if (!supabaseUrl || !secretKey) return fail("Payment service configuration is incomplete.", 500);
     db = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const { data: booking, error } = await db.from("bookings")
+    const { data: bookingData, error } = await db.from("bookings")
       .select("id, booking_reference, total_amount, currency, booking_status, payment_status, guest_access_token_hash")
       .eq("id", bookingId).maybeSingle();
+    const booking = bookingData as {
+      id: string;
+      booking_reference: string;
+      total_amount: number | string;
+      currency: string;
+      booking_status: string;
+      payment_status: string;
+      guest_access_token_hash: string;
+    } | null;
     if (error || !booking) return fail("Booking could not be found.", 404);
     if (!verifyBookingAccessToken(request.headers.get("x-booking-access-token"), booking.guest_access_token_hash)) {
       return fail("Secure booking access is required before payment can be started.", 401);
