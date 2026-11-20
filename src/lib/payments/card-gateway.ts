@@ -116,8 +116,15 @@ class FlutterwaveCardProvider implements CardPaymentProvider {
   readonly name = "flutterwave";
 
   async createCheckoutSession(input: CardCheckoutRequest): Promise<CardCheckoutSession> {
-    if (!Number.isFinite(input.amount) || input.amount <= 0 || !Number.isInteger(input.amount)) {
-      throw new Error("Flutterwave checkout requires a positive whole-number amount.");
+    // Flutterwave accepts decimal amounts. Keep two decimal places for
+    // currencies used by the booking engine instead of rejecting valid
+    // fractional room totals.
+    if (
+      !Number.isFinite(input.amount) ||
+      input.amount <= 0 ||
+      Math.abs(input.amount * 100 - Math.round(input.amount * 100)) > 1e-8
+    ) {
+      throw new Error("Flutterwave checkout requires a positive amount with no more than two decimal places.");
     }
     if (!/^[A-Z]{3}$/.test(input.currency)) throw new Error("Invalid checkout currency.");
     if (!input.customerEmail || !input.idempotencyKey) throw new Error("Missing checkout customer or reference.");
