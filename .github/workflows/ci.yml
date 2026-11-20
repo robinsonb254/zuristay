@@ -1,9 +1,9 @@
 name: ZuriStay CI
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - feature/admin-property-approval-v2
 
 permissions:
   contents: read
