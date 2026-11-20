@@ -13,7 +13,6 @@ import {
   Globe2,
   ShieldCheck,
   Headphones,
-  Star,
   BedDouble,
   SlidersHorizontal,
   X,
@@ -36,39 +35,6 @@ const destinationHighlights = [
   { name: "Tsavo", searchDestination: "Tsavo", description: "Vast wilderness and unforgettable safari stays", image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1000" },
   { name: "Mount Kenya", searchDestination: "Mount Kenya", description: "Mountain escapes, highlands and adventure", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000" },
   { name: "Samburu", searchDestination: "Samburu", description: "Northern landscapes and unique wildlife", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
-];
-
-const stays = [
-  {
-    name: "Ocean View Resort",
-    location: "Diani Beach, Kenya",
-    type: "Resort",
-    price: 12500,
-    rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=900",
-    facilities: "Pool · Wi-Fi · Beach access",
-  },
-  {
-    name: "The City Garden Hotel",
-    location: "Nairobi, Kenya",
-    type: "Hotel",
-    price: 8500,
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900",
-    facilities: "Restaurant · Wi-Fi · Parking",
-  },
-  {
-    name: "Palm Breeze Villas",
-    location: "Watamu, Kenya",
-    type: "Villa",
-    price: 18000,
-    rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=900",
-    facilities: "Private pool · Kitchen · Wi-Fi",
-  },
 ];
 
 export default function Home() {
@@ -510,66 +476,31 @@ export default function Home() {
         <div className="container">
           <div className="mb-10">
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              HANDPICKED FOR YOU
+              ACCOMMODATION PARTNERS
             </p>
             <h2 className="text-3xl font-bold md:text-4xl">
-              Featured stays
+              Find your next stay with ZuriStay
             </h2>
-            <p className="mt-3 text-gray-500">
-              Explore some of our featured accommodation.
+            <p className="mt-3 max-w-2xl text-gray-500">
+              We are onboarding accommodation partners across Kenya. New properties will appear here as owners complete their listings, room details, rates and availability.
             </p>
           </div>
 
-          <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
-            {stays.map((stay) => (
-              <article
-                key={stay.name}
-                className="overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white shadow-[0_8px_28px_rgba(23,59,48,0.07)] transition hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="relative h-60">
-                  <img
-                    src={stay.image}
-                    alt={stay.name}
-                    className="h-full w-full object-cover"
-                  />
-                  <span className="absolute right-4 top-4 rounded-full bg-white px-3 py-2 text-sm font-bold">
-                    <Star
-                      size={14}
-                      className="mr-1 inline fill-[#c49a52] text-[#c49a52]"
-                    />
-                    {stay.rating}
-                  </span>
-                </div>
-
-                <div className="p-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
-                    {stay.type}
-                  </p>
-                  <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight">{stay.name}</h3>
-                  <p className="mt-2 flex items-center gap-1 text-sm text-gray-500">
-                    <MapPin size={15} /> {stay.location}
-                  </p>
-                  <p className="mt-3 text-xs text-gray-500">
-                    {stay.facilities}
-                  </p>
-
-                  <div className="mt-5 flex items-center justify-between border-t pt-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Starting from</p>
-                      <p className="text-lg font-bold">
-                        {money(stay.price)}{" "}
-                        <span className="text-xs font-normal text-gray-500">
-                          / night
-                        </span>
-                      </p>
-                    </div>
-                    <span className="text-xs font-semibold text-[#173b30]">
-                      Featured
-                    </span>
-                  </div>
-                </div>
-              </article>
-            ))}
+          <div className="rounded-[1.5rem] border border-[#e8dfcf] bg-[#f8f5ee] px-7 py-12 text-center md:px-14">
+            <h3 className="font-serif text-2xl font-semibold text-[#173b30] md:text-3xl">
+              Are you an accommodation owner?
+            </h3>
+            <p className="mx-auto mt-4 max-w-2xl leading-7 text-gray-600">
+              Join ZuriStay and submit your hotel, resort, apartment, villa, lodge or guesthouse. You can complete your property profile and make it ready for bookings through your partner dashboard.
+            </p>
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <a href="/partner/register" className="inline-flex items-center gap-2 rounded-full bg-[#c49a52] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#ae8540]">
+                List your property <ArrowRight size={17} />
+              </a>
+              <a href="/destinations" className="inline-flex items-center gap-2 rounded-full border border-[#173b30]/20 bg-white px-7 py-3.5 text-sm font-bold text-[#173b30] transition hover:bg-[#f4eee2]">
+                Explore destinations
+              </a>
+            </div>
           </div>
         </div>
       </section>
