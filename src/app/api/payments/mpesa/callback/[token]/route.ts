@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   getMpesaAccessToken,
   getMpesaConfig,
+  normalizeKenyanPhone,
   queryMpesaStk,
   safeTokenMatch,
 } from "@/lib/payments/mpesa";
@@ -53,6 +54,17 @@ export async function POST(
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Already processed" });
     }
 
+    const { data: booking, error: bookingError } = await db
+      .from("bookings")
+      .select("guest_phone, currency")
+      .eq("id", pendingPayment.booking_id)
+      .maybeSingle();
+
+    if (bookingError || !booking || String(booking.currency).toUpperCase() !== "KES") {
+      console.error("M-Pesa callback booking validation failed:", bookingError);
+      return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for review" });
+    }
+
     if (Number(callback.ResultCode) !== 0) {
       await db.from("payments").update({ status: "failed" }).eq("id", pendingPayment.id).eq("status", "pending");
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
@@ -74,7 +86,8 @@ export async function POST(
 
     if (typeof receipt !== "string" || !receipt ||
         !Number.isFinite(amount) || amount !== Number(pendingPayment.amount) ||
-        !transactionPhone || !transactionDate) {
+        !transactionPhone || !transactionDate ||
+        normalizeKenyanPhone(transactionPhone) !== normalizeKenyanPhone(booking.guest_phone)) {
       console.error("M-Pesa callback details failed validation:", { checkoutId, amount });
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for review" });
     }
