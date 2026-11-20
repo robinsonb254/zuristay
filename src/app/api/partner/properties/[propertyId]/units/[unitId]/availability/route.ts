@@ -203,24 +203,27 @@ export async function POST(
       return fail("Enter a valid positive nightly rate.", 400);
     }
 
-    const rows = Array.from({ length: dayCount }, (_, index) => {
-      const date = new Date(start.getTime() + index * 86400000);
-      return {
-        unit_id: unitId,
-        stay_date: date.toISOString().slice(0, 10),
-        available_units: availableUnits,
-        partner_base_rate: Number(partnerBaseRate.toFixed(2)),
-        currency: unit.currency || "KES",
-      };
-    });
+    // Update each date under a database row lock. The RPC caps sellable
+    // inventory at total rooms minus active holds and confirmed reservations.
+    const { data: updatedDates, error: availabilityError } = await context.admin.rpc(
+      "partner_set_unit_availability",
+      {
+        p_partner_id: context.partner.id,
+        p_unit_id: unitId,
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_available_units: availableUnits,
+        p_partner_base_rate: Number(partnerBaseRate.toFixed(2)),
+      }
+    );
 
-    const { error: upsertError } = await context.admin
-      .from("unit_availability")
-      .upsert(rows, { onConflict: "unit_id,stay_date" });
-
-    if (upsertError) {
-      console.error("Availability update failed:", upsertError);
-      return fail("Unable to save availability. Please try again.", 500);
+    if (availabilityError) {
+      console.error("Availability update failed:", availabilityError);
+      const message = availabilityError.message || "";
+      const safeMessage = /reserved|booked|hold|inventory/i.test(message)
+        ? message.replace(/[<>]/g, "").slice(0, 220)
+        : "Unable to save availability. Please try again.";
+      return fail(safeMessage, 409);
     }
 
     return NextResponse.json(
@@ -229,7 +232,7 @@ export async function POST(
         message: availableUnits === 0
           ? `Room availability blocked for ${dayCount} date(s).`
           : `Availability saved for ${dayCount} date(s).`,
-        updatedDates: dayCount,
+        updatedDates: typeof updatedDates === "number" ? updatedDates : dayCount,
       },
       { headers: { "Cache-Control": "no-store" } }
     );
