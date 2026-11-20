@@ -112,6 +112,15 @@ export async function POST(request: NextRequest) {
         returnUrl: `${siteUrl.replace(/\/$/, "")}/booking/payment/return?booking_id=${encodeURIComponent(booking.id)}&reference=${encodeURIComponent(booking.booking_reference)}`,
       });
 
+      if (
+        typeof session.providerSessionId !== "string" ||
+        !session.providerSessionId.trim() ||
+        typeof session.checkoutUrl !== "string" ||
+        !session.checkoutUrl.startsWith("https://")
+      ) {
+        throw new Error("Card provider returned an invalid hosted checkout session.");
+      }
+
       const { error: sessionError } = await db.from("card_payment_sessions").insert({
         payment_id: payment.id,
         provider: provider.name,
