@@ -135,7 +135,7 @@ export default function BrandedCheckout({
                   </span>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Card checkout will be activated after ZuriStay's acquiring partner enables live card processing.
+                  Card checkout will be activated after ZuriStay&apos;s acquiring partner enables live card processing.
                 </p>
               </button>
             </div>
@@ -149,7 +149,7 @@ export default function BrandedCheckout({
                   <div>
                     <h3 className="font-bold text-[#102b52]">Pay with M-Pesa</h3>
                     <p className="mt-1 text-sm leading-6 text-slate-600">
-                      Enter the guest's M-Pesa number. ZuriStay will request payment and confirm the booking only after the payment is verified.
+                      Enter the guest&apos;s M-Pesa number. ZuriStay will request payment and confirm the booking only after the payment is verified.
                     </p>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function BrandedCheckout({
                   Card payments are being prepared
                 </div>
                 <p className="mt-2 text-sm leading-6 text-amber-900">
-                  Visa and Mastercard checkout will appear here once ZuriStay's acquiring partner has enabled live processing. This page does not collect or store card numbers or security codes.
+                  Visa and Mastercard checkout will appear here once ZuriStay&apos;s acquiring partner has enabled live processing. This page does not collect or store card numbers or security codes.
                 </p>
               </div>
             )}
