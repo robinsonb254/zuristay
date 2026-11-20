@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyBookingAccessToken } from "@/lib/bookings/access";
 import {
   darajaPassword,
   darajaTimestamp,
@@ -36,11 +37,14 @@ export async function POST(request: NextRequest) {
 
     const { data: booking, error: bookingError } = await db
       .from("bookings")
-      .select("id, booking_reference, guest_phone, total_amount, currency, booking_status, payment_status")
+      .select("id, booking_reference, guest_phone, total_amount, currency, booking_status, payment_status, guest_access_token_hash")
       .eq("id", bookingId)
       .maybeSingle();
 
     if (bookingError || !booking) return reply("Booking could not be found.", 404);
+    if (!verifyBookingAccessToken(request.headers.get("x-booking-access-token"), booking.guest_access_token_hash)) {
+      return reply("Secure booking access is required before payment can be started.", 401);
+    }
     if (booking.booking_status !== "pending" || !["unpaid", "pending"].includes(booking.payment_status)) {
       return reply("This booking is no longer awaiting payment.", 409);
     }
