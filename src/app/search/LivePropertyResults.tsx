@@ -119,12 +119,12 @@ export default function LivePropertyResults({
       ]
         .join(" ")
         .toLowerCase()
-        .replace(/[^\\p{L}\\p{N}]+/gu, " ")
-        .replace(/\\s+/g, " ")
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .replace(/\s+/g, " ")
         .trim();
       const searchTokens = searchTerm
         .toLowerCase()
-        .split(/[,\\s]+/)
+        .split(/[,\s]+/)
         .map((token) => token.trim())
         .filter(Boolean);
       const matchesDestination =
