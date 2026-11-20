@@ -43,6 +43,21 @@ type Props = {
   budget: string;
 };
 
+const destinationAliases: Record<string, string[]> = {
+  "maasai mara": ["maasai mara", "mara", "narok"],
+  "diani beach": ["diani", "ukunda", "kwale"],
+  amboseli: ["amboseli", "kimana", "loitoktok", "kajiado"],
+  watamu: ["watamu"],
+  "lake naivasha": ["naivasha"],
+  malindi: ["malindi"],
+  lamu: ["lamu"],
+  tsavo: ["tsavo", "voi", "taveta"],
+  "mount kenya": ["mount kenya", "nanyuki", "nyeri", "meru"],
+  samburu: ["samburu", "maralal"],
+  mombasa: ["mombasa"],
+  nairobi: ["nairobi"],
+};
+
 function formatMoney(amount: number, currency: string) {
   try {
     return new Intl.NumberFormat("en-KE", {
@@ -127,8 +142,10 @@ export default function LivePropertyResults({
         .split(/[,\s]+/)
         .map((token) => token.trim())
         .filter((token) => token && !["beach", "city", "town", "county"].includes(token));
+      const aliases = destinationAliases[searchTerm] || [];
       const matchesDestination =
         !searchTerm ||
+        aliases.some((alias) => locationText.includes(alias)) ||
         (searchTokens.length > 0 &&
           searchTokens.every((token) => locationText.includes(token)));
 
