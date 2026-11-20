@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       // Log database details server-side; expose only a safe booking message.
       console.error("Booking hold creation failed:", error);
       const message = error.message || "";
-      const safeMessage = /availability|available|capacity|dates|guest|room quantity|commission rule/i.test(message)
+      const safeMessage = /availability|available|capacity|dates|guest|room quantity|commission rule|reserved|booked|hold|inventory/i.test(message)
         ? message.replace(/[<>]/g, "").slice(0, 220)
         : "We could not complete this reservation. Please review your details and try again.";
       return errorResponse(safeMessage, 400);
