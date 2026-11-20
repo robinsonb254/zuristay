@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         customerName: booking.guest_name,
         customerEmail: booking.guest_email,
         idempotencyKey: payment.id,
-        returnUrl: `${siteUrl.replace(/\/$/, "")}/booking/payment/return?reference=${encodeURIComponent(booking.booking_reference)}`,
+        returnUrl: `${siteUrl.replace(/\/$/, "")}/booking/payment/return?booking_id=${encodeURIComponent(booking.id)}&reference=${encodeURIComponent(booking.booking_reference)}`,
       });
 
       const { error: sessionError } = await db.from("card_payment_sessions").insert({
