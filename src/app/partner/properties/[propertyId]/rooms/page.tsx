@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, BedDouble, Loader2, Plus, RefreshCw, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, CheckCircle2, Circle, Loader2, Plus, RefreshCw, Users } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Unit = {
@@ -496,6 +496,73 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
   );
 }
 
+
+function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: string; status: string; onPublished: () => void }) {
+  const [checks, setChecks] = useState<{ key: string; label: string; complete: boolean }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const ready = status === "approved" && checks.length > 0 && checks.every((check) => check.complete);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch("/api/partner/properties/" + propertyId + "/readiness", {
+        headers: { Authorization: "Bearer " + session.access_token }, cache: "no-store",
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to check setup progress.");
+      setChecks(result.checks || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to check setup progress.");
+    } finally { setLoading(false); }
+  }, [propertyId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function publish() {
+    setPublishing(true); setError(""); setMessage("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again.");
+      const response = await fetch("/api/partner/properties/" + propertyId + "/readiness", {
+        method: "POST", headers: { Authorization: "Bearer " + session.access_token },
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        if (result.checks) setChecks(result.checks);
+        throw new Error(result.error || "Unable to publish property.");
+      }
+      setMessage(result.message || "Property published.");
+      await load();
+      onPublished();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to publish property.");
+    } finally { setPublishing(false); }
+  }
+
+  return (
+    <section className="mb-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 className="text-lg font-bold text-slate-900">Listing readiness</h2><p className="mt-1 text-sm text-slate-500">Complete these steps before your approved property can go live.</p></div>
+        <button type="button" onClick={load} disabled={loading} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50">{loading ? "Checking..." : "Refresh checklist"}</button>
+      </div>
+      {status !== "approved" && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your property must first be approved by the ZuriStay admin team.</p>}
+      {loading ? <p className="mt-4 text-sm text-slate-500">Checking your listing setup...</p> :
+        <ul className="mt-4 space-y-3">{checks.map((check) => <li key={check.key} className="flex items-start gap-2 text-sm">{check.complete ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-700" /> : <Circle size={18} className="mt-0.5 shrink-0 text-slate-400" />}<span className={check.complete ? "text-slate-700" : "text-slate-600"}>{check.label}</span></li>)}</ul>}
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
+      {status === "approved" && <button type="button" onClick={publish} disabled={!ready || publishing || loading} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{publishing ? <Loader2 size={17} className="animate-spin" /> : <CheckCircle2 size={17} />}{publishing ? "Publishing..." : "Publish my property"}</button>}
+      {status === "approved" && !ready && !loading && <p className="mt-2 text-xs text-slate-500">Finish all outstanding checklist items to enable publishing.</p>}
+    </section>
+  );
+}
+
 export default function PartnerPropertyRoomsPage() {
   const params = useParams<{ propertyId: string }>();
   const propertyId = params.propertyId;
@@ -627,6 +694,7 @@ export default function PartnerPropertyRoomsPage() {
         )}
         {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
         {success && <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{success}</div>}
+        {property && <PropertyReadiness propertyId={propertyId} status={property.status} onPublished={loadRooms} />}
 
         <div className="grid gap-7 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
