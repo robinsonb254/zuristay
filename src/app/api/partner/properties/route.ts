@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     const { data: properties, error } = await context.admin
       .from("properties")
       .select(
-        "id, name, property_type, city, county, country, status, is_active, created_at"
+        "id, name, property_type, city, county, sub_county, country, status, is_active, created_at"
       )
       .eq("partner_id", context.partner.id)
       .order("created_at", { ascending: false });
@@ -153,6 +153,9 @@ export async function POST(request: NextRequest) {
         : "";
     const destinationId =
       typeof input.destinationId === "string" ? input.destinationId.trim() : "";
+    const countyCode = Number(input.countyCode);
+    const subCountyCode =
+      typeof input.subCountyCode === "string" ? input.subCountyCode.trim() : "";
     const address =
       typeof input.address === "string" ? input.address.trim() : "";
     const description =
@@ -183,6 +186,9 @@ export async function POST(request: NextRequest) {
 
     if (!uuidPattern.test(destinationId)) {
       return fail("Choose a valid destination.", 400);
+    }
+    if (!Number.isInteger(countyCode) || countyCode < 1 || countyCode > 47 || !subCountyCode) {
+      return fail("Choose a county and sub-county for this property.", 400);
     }
 
     if (address.length < 4 || address.length > 250) {
@@ -222,6 +228,20 @@ export async function POST(request: NextRequest) {
       return fail("The selected destination is unavailable.", 400);
     }
 
+    const [{ data: county, error: countyError }, { data: subCounty, error: subCountyError }] =
+      await Promise.all([
+        context.admin.from("kenya_counties").select("county_code,name").eq("county_code", countyCode).maybeSingle(),
+        context.admin.from("kenya_subcounties").select("subcounty_code,county_code,name").eq("subcounty_code", subCountyCode).maybeSingle(),
+      ]);
+
+    if (countyError || subCountyError) {
+      console.error("Kenya location lookup failed:", countyError || subCountyError);
+      return fail("Unable to verify the selected county and sub-county.", 500);
+    }
+    if (!county || !subCounty || subCounty.county_code !== county.county_code) {
+      return fail("The selected sub-county does not belong to the selected county.", 400);
+    }
+
     const { data: property, error: insertError } = await context.admin
       .from("properties")
       .insert({
@@ -232,7 +252,8 @@ export async function POST(request: NextRequest) {
         description: description || null,
         address,
         city: destination.city,
-        county: destination.county,
+        county: county.name,
+        sub_county: subCounty.name,
         country: destination.country,
         country_code: destination.country_code,
         currency,
@@ -242,7 +263,7 @@ export async function POST(request: NextRequest) {
         is_active: false,
       })
       .select(
-        "id, name, property_type, city, county, country, status, is_active, created_at"
+        "id, name, property_type, city, county, sub_county, country, status, is_active, created_at"
       )
       .single();
 
