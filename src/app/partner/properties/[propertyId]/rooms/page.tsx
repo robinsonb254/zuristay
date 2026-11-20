@@ -136,7 +136,7 @@ function RoomAvailabilityForm({
         </label>
         <label className="text-xs font-semibold text-slate-600">
           Partner nightly rate ({unit.currency})
-          <input type="number" min="0" max="100000000" step="0.01" required value={partnerBaseRate} onChange={(event) => setPartnerBaseRate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+          <input type="number" min="0.01" max="100000000" step="0.01" required value={partnerBaseRate} onChange={(event) => setPartnerBaseRate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
         </label>
       </div>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
