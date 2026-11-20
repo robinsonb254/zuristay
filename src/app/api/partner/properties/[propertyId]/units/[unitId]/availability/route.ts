@@ -63,6 +63,65 @@ function isRealDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ propertyId: string; unitId: string }> }
+) {
+  try {
+    const context = await authenticatePartner(request);
+    if ("error" in context) return context.error;
+    const { propertyId, unitId } = await params;
+    if (!uuidPattern.test(propertyId) || !uuidPattern.test(unitId)) {
+      return fail("Invalid property or room category ID.", 400);
+    }
+    const { data: property, error: propertyError } = await context.admin
+      .from("properties").select("id, status")
+      .eq("id", propertyId).eq("partner_id", context.partner.id).maybeSingle();
+    if (propertyError) {
+      console.error("Partner property lookup failed:", propertyError);
+      return fail("Unable to verify this property.", 500);
+    }
+    if (!property) return fail("Property not found in your partner account.", 404);
+    if (property.status !== "approved") return fail("Availability can only be viewed after property approval.", 409);
+
+    const { data: unit, error: unitError } = await context.admin
+      .from("property_units").select("id")
+      .eq("id", unitId).eq("property_id", propertyId).maybeSingle();
+    if (unitError) return fail("Unable to verify this room category.", 500);
+    if (!unit) return fail("Room category not found for this property.", 404);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const query = request.nextUrl.searchParams;
+    const startDate = query.get("startDate") || today;
+    const defaultEnd = new Date(Date.now() + 29 * 86400000).toISOString().slice(0, 10);
+    const endDate = query.get("endDate") || defaultEnd;
+    if (!isRealDate(startDate) || !isRealDate(endDate) || endDate < startDate) {
+      return fail("Choose a valid date range.", 400);
+    }
+    const dayCount = Math.round((new Date(endDate + "T00:00:00Z").getTime() - new Date(startDate + "T00:00:00Z").getTime()) / 86400000) + 1;
+    if (dayCount > 366) return fail("Please request no more than 366 days at a time.", 400);
+
+    const { data: availability, error } = await context.admin
+      .from("unit_availability")
+      .select("id, stay_date, available_units, partner_base_rate, currency")
+      .eq("unit_id", unitId)
+      .gte("stay_date", startDate)
+      .lte("stay_date", endDate)
+      .order("stay_date", { ascending: true });
+    if (error) {
+      console.error("Partner availability calendar query failed:", error);
+      return fail("Unable to load room availability.", 500);
+    }
+    return NextResponse.json({ success: true, startDate, endDate, availability: availability ?? [] }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    console.error("Partner availability calendar error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ propertyId: string; unitId: string }> }
