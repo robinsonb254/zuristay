@@ -20,7 +20,7 @@ type KenyaCounty = {
 };
 
 function normalizeCountyName(value: string) {
-  return value.toLowerCase().replace(/\\s+city$/, "").trim();
+  return value.toLowerCase().replace(/\s+city$/, "").trim();
 }
 
 type Destination = {
@@ -107,7 +107,7 @@ export default function NewPartnerPropertyPage() {
           const firstCounty = countyRows[0];
           setCountyCode(String(firstCounty.county_code));
           const firstDestination = rows.find((destination) =>
-            (destination.county || "").split(/[\\/,]/).some(
+            (destination.county || "").split(/[\/,]/).some(
               (part) => normalizeCountyName(part) === normalizeCountyName(firstCounty.name)
             )
           );
@@ -206,7 +206,7 @@ export default function NewPartnerPropertyPage() {
   const selectedCounty = counties.find((county) => String(county.county_code) === countyCode);
   const subcountyOptions = selectedCounty?.subcounties || [];
   const countyDestinations = destinations.filter((destination) =>
-    (destination.county || "").split(/[\\/,]/).some(
+    (destination.county || "").split(/[\/,]/).some(
       (part) => normalizeCountyName(part) === normalizeCountyName(selectedCounty?.name || "")
     )
   );
@@ -341,7 +341,7 @@ export default function NewPartnerPropertyPage() {
                       setCountyCode(nextCode);
                       setSubCountyCode("");
                       const firstDestination = destinations.find((destination) =>
-                        (destination.county || "").split(/[\\/,]/).some(
+                        (destination.county || "").split(/[\/,]/).some(
                           (part) => normalizeCountyName(part) === normalizeCountyName(nextCounty?.name || "")
                         )
                       );
