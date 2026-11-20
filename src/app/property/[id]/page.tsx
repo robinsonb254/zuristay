@@ -174,7 +174,8 @@ export default async function PropertyDetailsPage({
   if (query.checkOut) bookingQuery.set("checkOut", query.checkOut);
   if (query.guests) bookingQuery.set("guests", query.guests);
   if (query.rooms) bookingQuery.set("rooms", query.rooms);
-  const bookingHref = `/booking?propertyId=${property.id}${bookingQuery.size ? `&${bookingQuery.toString()}` : ""}`;
+  const bookingQueryString = bookingQuery.toString();
+  const bookingHref = `/booking?propertyId=${property.id}${bookingQueryString ? `&${bookingQueryString}` : ""}`;
 
   const location = isLiveProperty
     ? [
