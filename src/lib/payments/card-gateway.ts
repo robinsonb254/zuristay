@@ -32,6 +32,7 @@ export interface CardPaymentProvider {
     rawBody: string,
     headers: Record<string, string>
   ): Promise<VerifiedCardWebhook>;
+  verifyTransactionReference(reference: string): Promise<VerifiedCardWebhook>;
 }
 
 type FlutterwaveEnvelope<T> = {
@@ -163,27 +164,19 @@ class FlutterwaveCardProvider implements CardPaymentProvider {
     };
   }
 
-  async verifyWebhook(rawBody: string, headers: Record<string, string>): Promise<VerifiedCardWebhook> {
-    if (!verifyFlutterwaveSignature(headers["verif-hash"])) {
-      throw new Error("Invalid Flutterwave webhook signature.");
+  async verifyTransactionReference(reference: string): Promise<VerifiedCardWebhook> {
+    if (typeof reference !== "string" || !reference.trim()) {
+      throw new Error("A Flutterwave transaction reference is required.");
     }
 
-    const payload = JSON.parse(rawBody) as FlutterwaveWebhookPayload;
-    const transactionReference = payload.data?.tx_ref;
-    if (typeof transactionReference !== "string" || !transactionReference.trim()) {
-      throw new Error("Flutterwave webhook is missing its merchant transaction reference.");
-    }
-
-    // Verify the merchant-generated tx_ref against Flutterwave's API. Never
-    // use the webhook's status or amount as the authoritative payment result.
-    const query = new URLSearchParams({ tx_ref: transactionReference });
+    const query = new URLSearchParams({ tx_ref: reference });
     const verified = await flutterwaveRequest<FlutterwaveVerifiedTransaction>(
       `/transactions/verify_by_reference?${query.toString()}`,
       { method: "GET" }
     );
 
     if (
-      verified.tx_ref !== transactionReference ||
+      verified.tx_ref !== reference ||
       !verified.flw_ref ||
       !Number.isFinite(Number(verified.amount)) ||
       !verified.currency
@@ -206,6 +199,21 @@ class FlutterwaveCardProvider implements CardPaymentProvider {
       amount: Number(verified.amount),
       currency: String(verified.currency).toUpperCase(),
     };
+  }
+
+  async verifyWebhook(rawBody: string, headers: Record<string, string>): Promise<VerifiedCardWebhook> {
+    if (!verifyFlutterwaveSignature(headers["verif-hash"])) {
+      throw new Error("Invalid Flutterwave webhook signature.");
+    }
+
+    const payload = JSON.parse(rawBody) as FlutterwaveWebhookPayload;
+    const transactionReference = payload.data?.tx_ref;
+    if (typeof transactionReference !== "string" || !transactionReference.trim()) {
+      throw new Error("Flutterwave webhook is missing its merchant transaction reference.");
+    }
+
+    // The same server-side verification is used for webhooks and customer returns.
+    return this.verifyTransactionReference(transactionReference);
   }
 }
 
