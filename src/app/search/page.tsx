@@ -186,6 +186,10 @@ export default async function SearchPage({
         <LivePropertyResults
           destination={destination}
           budget={budget}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          guests={guests}
+          rooms={rooms}
         />
 
       </section>
