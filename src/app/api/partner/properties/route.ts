@@ -19,14 +19,14 @@ const PROPERTY_TYPES = [
 ] as const;
 
 function normalizeCountyName(value: string) {
-  return value.toLowerCase().replace(/\\s+city$/i, "").trim();
+  return value.toLowerCase().replace(/\s+city$/i, "").trim();
 }
 
 function destinationBelongsToCounty(destinationCounty: string | null, countyName: string) {
   if (!destinationCounty) return false;
   const target = normalizeCountyName(countyName);
   return normalizeCountyName(destinationCounty) === target ||
-    destinationCounty.split(/[\\/,]/).some((part) => normalizeCountyName(part) === target);
+    destinationCounty.split(/[\/,]/).some((part) => normalizeCountyName(part) === target);
 }
 
 function fail(message: string, status: number) {
@@ -252,10 +252,7 @@ export async function POST(request: NextRequest) {
     if (!county || !subCounty || subCounty.county_code !== county.county_code) {
       return fail("The selected sub-county does not belong to the selected county.", 400);
     }
-    const destinationCounties = (destination.county || "")
-      .split(/[\/,]/)
-      .map(normalizeCountyName);
-    if (!destinationCounties.includes(normalizeCountyName(county.name))) {
+    if (!destinationBelongsToCounty(destination.county, county.name)) {
       return fail("Choose a town or urban centre within the selected county.", 400);
     }
 
