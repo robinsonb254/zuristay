@@ -28,7 +28,7 @@ The adapter refuses to start unless both secrets are present and the secret-key 
 1. The guest's existing secure booking access token authorizes checkout initiation.
 2. ZuriStay creates a pending card-attempt row and sends a server-side request to Flutterwave Standard with the unique payment-attempt ID as `tx_ref`.
 3. The guest is redirected to the HTTPS hosted checkout link returned by Flutterwave.
-4. The webhook signature is verified, then ZuriStay calls Flutterwave's transaction verification endpoint using the transaction ID from the webhook.
+4. The webhook signature is verified, then ZuriStay asks Flutterwave to verify the transaction using the webhook's transaction reference.
 5. ZuriStay correlates the verified `tx_ref`, checks the amount and currency against the pending booking attempt, and calls the existing idempotent booking-payment confirmation function.
 6. The browser return page only displays the server-confirmed booking status; a redirect query parameter never marks a booking as paid.
 
