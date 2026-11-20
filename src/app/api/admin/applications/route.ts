@@ -212,30 +212,70 @@ export async function POST(request: NextRequest) {
         }
       | undefined;
 
-    for (let page = 1; page <= 20; page++) {
-      const { data, error: usersError } =
-        await admin.auth.admin.listUsers({
-          page,
-          perPage: 1000,
-        });
+    // Prefer the account explicitly linked to the application. This avoids
+    // paging through the entire Auth user directory for normal applications.
+    if (application.applicant_user_id) {
+      const { data, error: applicantLookupError } =
+        await admin.auth.admin.getUserById(application.applicant_user_id);
 
-      if (usersError) {
-        console.error("Applicant lookup error:", usersError);
-
+      if (applicantLookupError) {
+        console.error("Linked applicant lookup error:", applicantLookupError);
         return respond(
           false,
-          "Unable to verify the applicant's registered account.",
+          "Unable to verify the account linked to this application.",
           500
         );
       }
 
-      matchingUser = data.users.find(
-        (candidate) =>
-          candidate.email?.trim().toLowerCase() === email
-      );
+      matchingUser = data.user
+        ? {
+            id: data.user.id,
+            email: data.user.email,
+            email_confirmed_at: data.user.email_confirmed_at,
+          }
+        : undefined;
 
-      if (matchingUser) break;
-      if (data.users.length < 1000) break;
+      if (!matchingUser) {
+        return respond(
+          false,
+          "The account linked to this application no longer exists. Ask the applicant to submit a new application after registering.",
+          409
+        );
+      }
+
+      if (matchingUser.email?.trim().toLowerCase() !== email) {
+        return respond(
+          false,
+          "The application email does not match the linked ZuriStay account. Ask the applicant to correct and resubmit the application.",
+          409
+        );
+      }
+    } else {
+      // Legacy or guest-submitted applications may not have an account ID.
+      // Retain email matching for these records until they are resubmitted.
+      for (let page = 1; page <= 20; page++) {
+        const { data, error: usersError } =
+          await admin.auth.admin.listUsers({
+            page,
+            perPage: 1000,
+          });
+
+        if (usersError) {
+          console.error("Applicant lookup error:", usersError);
+          return respond(
+            false,
+            "Unable to verify the applicant's registered account.",
+            500
+          );
+        }
+
+        matchingUser = data.users.find(
+          (candidate) => candidate.email?.trim().toLowerCase() === email
+        );
+
+        if (matchingUser) break;
+        if (data.users.length < 1000) break;
+      }
     }
 
     if (!matchingUser) {
