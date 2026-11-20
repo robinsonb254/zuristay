@@ -30,9 +30,9 @@ The adapter refuses to start unless both secrets are present and the secret-key 
 2. ZuriStay creates a pending card-attempt row and sends a server-side request to Flutterwave Standard with the unique payment-attempt ID as `tx_ref`.
 3. The guest is redirected to the HTTPS hosted checkout link returned by Flutterwave.
 4. The webhook's `data.tx_ref` is read only after the `verif-hash` check passes. ZuriStay then asks Flutterwave to verify the transaction using that merchant reference.
-5. When the guest returns from hosted checkout, the return page also calls a token-protected server endpoint. That endpoint looks up the stored checkout reference and independently verifies it with Flutterwave; it does not trust redirect query parameters.
+5. When the guest returns from hosted checkout, the return page calls a token-protected server endpoint. Flutterwave's returned `tx_ref` is used only to select the matching attempt belonging to that booking; the server still checks the booking access token, loads the stored session, and independently verifies the transaction with Flutterwave. If no `tx_ref` is present, it falls back to the latest stored attempt.
 6. Both webhook and customer-return verification use the same provider verification method and the existing idempotent booking-payment confirmation function. ZuriStay checks the verified reference, amount, currency and status before confirming the booking.
-7. The browser return page displays the database-confirmed booking status. A redirect query parameter never marks a booking as paid, and a delayed webhook does not prevent the server from reconciling a verified customer return.
+7. The browser return page displays the database-confirmed booking status. A redirect query parameter never marks a booking as paid. The hosted checkout duration is capped by the remaining inventory-hold time, and abandoned attempts without a durable provider session are released after a safety window so they cannot block retries forever. A delayed webhook does not prevent the server from reconciling a verified customer return.
 
 ## Activation and release checklist
 
