@@ -96,7 +96,7 @@ export async function initiateDarajaB2BPayout(input: {
     throw new Error("M-Pesa business payouts must be a whole KES amount.");
   }
   const merchantNumber = input.merchantNumber.trim();
-  if (!/^\\d{5,8}$/.test(merchantNumber)) {
+  if (!/^\d{5,8}$/.test(merchantNumber)) {
     throw new Error("The Till or Paybill number is invalid.");
   }
   const accountReference = (input.paybillAccount || input.reference).trim().slice(0, 20);
