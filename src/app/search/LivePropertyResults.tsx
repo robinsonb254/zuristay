@@ -41,6 +41,10 @@ type ApiResponse = {
 type Props = {
   destination: string;
   budget: string;
+  checkIn: string;
+  checkOut: string;
+  guests: string;
+  rooms: string;
 };
 
 const destinationAliases: Record<string, string[]> = {
@@ -73,6 +77,10 @@ function formatMoney(amount: number, currency: string) {
 export default function LivePropertyResults({
   destination,
   budget,
+  checkIn,
+  checkOut,
+  guests,
+  rooms,
 }: Props) {
   const [properties, setProperties] = useState<LiveProperty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -300,7 +308,7 @@ export default function LivePropertyResults({
                     </div>
 
                     <Link
-                      href={`/property/${property.id}`}
+                      href={`/property/${property.id}?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&guests=${encodeURIComponent(guests)}&rooms=${encodeURIComponent(rooms)}`}
                       className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-orange-600"
                     >
                       View details
