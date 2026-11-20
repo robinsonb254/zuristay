@@ -41,7 +41,7 @@ async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId
     admin.from("property_images").select("id", { count: "exact", head: true }).eq("property_id", propertyId),
     admin.from("property_amenities").select("amenity_id", { count: "exact", head: true }).eq("property_id", propertyId),
   ]);
-  if (unitsResult.error || imagesResult.error || amenitiesResult.error || availabilityResult.error) {
+  if (unitsResult.error || imagesResult.error || amenitiesResult.error) {
     console.error("Readiness check query failed:", unitsResult.error || imagesResult.error || amenitiesResult.error || availabilityResult.error);
     throw new Error("Unable to check property setup. Please try again.");
   }
