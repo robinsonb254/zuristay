@@ -117,6 +117,7 @@ export default function BookingPage() {
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState<BookingResult | null>(null);
+  const [bookingAccessToken, setBookingAccessToken] = useState("");
   const [paymentPhone, setPaymentPhone] = useState("");
   const [startingPayment, setStartingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
@@ -349,6 +350,11 @@ export default function BookingPage() {
         );
       }
 
+      if (typeof result.booking_access_token !== "string" || !/^[a-f0-9]{64}$/i.test(result.booking_access_token)) {
+        throw new Error("Secure booking access could not be established. Please contact support.");
+      }
+      setBookingAccessToken(result.booking_access_token);
+      try { sessionStorage.setItem(`zuristay:booking-access:${createdBooking.booking_id}`, result.booking_access_token); } catch { /* Session storage may be unavailable; in-memory access remains active. */ }
       setBooking(createdBooking);
     } catch (submitError) {
       setError(
@@ -372,7 +378,7 @@ export default function BookingPage() {
       try {
         const response = await fetch(
           `/api/bookings/status?booking_id=${encodeURIComponent(booking!.booking_id)}`,
-          { cache: "no-store" }
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking!.booking_id}`) || ""; } catch { return ""; } })() } }
         );
         const result = await response.json();
         if (cancelled || !response.ok || !result.success) return;
@@ -414,7 +420,7 @@ export default function BookingPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [booking?.booking_id, paymentState]);
+  }, [booking?.booking_id, bookingAccessToken, paymentState]);
 
   async function startMpesaPayment() {
     if (!booking) return;
@@ -424,7 +430,7 @@ export default function BookingPage() {
     try {
       const response = await fetch("/api/payments/mpesa/stk", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })() },
         body: JSON.stringify({
           booking_id: booking.booking_id,
           phone: paymentPhone.trim() || phone.trim(),
