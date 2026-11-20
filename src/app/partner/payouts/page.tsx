@@ -20,6 +20,7 @@ type Payout = {
   bank_account_name?: string | null;
   bank_account_number?: string | null;
   verification_status: string;
+  provider_account_name?: string | null;
 };
 
 type BankOption = { bank_name: string; bank_code: string };
@@ -33,6 +34,8 @@ export default function PartnerPayoutSettingsPage() {
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [hasSavedPayout, setHasSavedPayout] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -63,7 +66,10 @@ export default function PartnerPayoutSettingsPage() {
         }
         if (active) {
           setToken(session.access_token);
-          if (result.payout) setPayout({ ...blank, ...result.payout });
+          if (result.payout) {
+            setPayout({ ...blank, ...result.payout });
+            setHasSavedPayout(true);
+          }
         }
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : "Unable to load payout details.");
@@ -93,11 +99,35 @@ export default function PartnerPayoutSettingsPage() {
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Unable to save payout details.");
       setPayout({ ...blank, ...result.payout });
+      setHasSavedPayout(true);
       setNotice(result.message || "Payout preference saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save payout details.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function verify() {
+    setVerifying(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/partner/payout-preference/verify", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.provider_account_name) {
+        setPayout(current => ({ ...current, provider_account_name: result.provider_account_name }));
+      }
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to verify payout destination.");
+      setPayout(current => ({ ...current, ...result.payout }));
+      setNotice(result.message || "Payout destination verified.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to verify payout destination.");
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -161,9 +191,10 @@ export default function PartnerPayoutSettingsPage() {
             <div><label className={labelClass} htmlFor="bank_account_number">Bank account number</label><input id="bank_account_number" className={inputClass} value={payout.bank_account_number || ""} onChange={e => update("bank_account_number", e.target.value)} required inputMode="numeric" placeholder="Account number"/></div>
           </div>}
 
-          {payout.verification_status === "verified" ? <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-800">Your payout destination is verified.</p> : <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your details will be verified before automatic payouts are activated. Saving these details does not initiate a transfer.</p>}
+          {payout.verification_status === "verified" ? <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-800">Your payout destination is verified{payout.provider_account_name ? ` as ${payout.provider_account_name}` : ""}.</p> : <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your details must be verified before automatic payouts are activated. Saving these details does not initiate a transfer.{payout.provider_account_name ? ` Provider account name returned: ${payout.provider_account_name}.` : ""}</p>}
 
-          <button type="submit" disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? <><Loader2 size={18} className="animate-spin"/> Saving...</> : "Save payout preference"}</button>
+          <button type="submit" disabled={saving || verifying} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? <><Loader2 size={18} className="animate-spin"/> Saving...</> : "Save payout preference"}</button>
+          {hasSavedPayout && <button type="button" onClick={verify} disabled={saving || verifying} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60">{verifying ? <><Loader2 size={18} className="animate-spin"/> Verifying...</> : "Verify payout account"}</button>}
         </form>
       </div>
     </main>
