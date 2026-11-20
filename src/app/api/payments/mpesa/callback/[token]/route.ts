@@ -92,10 +92,22 @@ export async function POST(
     }
 
     const markForReview = async (reason: string) => {
-      await db.from("mpesa_callback_events").update({
+      const { error } = await db.from("mpesa_callback_events").update({
         processing_status: "needs_review",
+        processing_started_at: null,
         last_error: reason.slice(0, 1000),
       }).eq("id", callbackEvent.id);
+      if (error) throw new Error("Unable to record callback review status.");
+    };
+
+    const markProcessed = async () => {
+      const { error } = await db.from("mpesa_callback_events").update({
+        processing_status: "processed",
+        processing_started_at: null,
+        processed_at: new Date().toISOString(),
+        last_error: null,
+      }).eq("id", callbackEvent.id);
+      if (error) throw new Error("Unable to record completed callback status.");
     };
 
     const { data: pendingPayment, error: paymentLookupError } = await db
@@ -112,6 +124,7 @@ export async function POST(
     }
 
     if (pendingPayment.status !== "pending") {
+      await markProcessed();
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Already processed" });
     }
 
@@ -128,12 +141,13 @@ export async function POST(
     }
 
     if (Number(callback.ResultCode) !== 0) {
-      await db.from("payments").update({ status: "failed" }).eq("id", pendingPayment.id).eq("status", "pending");
-      await db.from("mpesa_callback_events").update({
-        processing_status: "processed",
-        processed_at: new Date().toISOString(),
-        last_error: null,
-      }).eq("id", callbackEvent.id);
+      const { error: paymentFailureError } = await db
+        .from("payments")
+        .update({ status: "failed" })
+        .eq("id", pendingPayment.id)
+        .eq("status", "pending");
+      if (paymentFailureError) throw new Error("Unable to record failed M-Pesa attempt.");
+      await markProcessed();
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
     }
 
@@ -188,11 +202,7 @@ export async function POST(
       console.error("Verified M-Pesa payment recorded, but temporary row cleanup failed:", cleanupError);
     }
 
-    await db.from("mpesa_callback_events").update({
-      processing_status: "processed",
-      processed_at: new Date().toISOString(),
-      last_error: null,
-    }).eq("id", callbackEvent.id);
+    await markProcessed();
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (error) {
