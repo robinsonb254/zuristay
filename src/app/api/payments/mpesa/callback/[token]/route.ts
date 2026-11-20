@@ -67,15 +67,29 @@ export async function POST(
       return NextResponse.json({ ResultCode: 1, ResultDesc: "Callback event unavailable" }, { status: 500 });
     }
 
-    if (callbackEvent.processing_status === "processed") {
-      return NextResponse.json({ ResultCode: 0, ResultDesc: "Already processed" });
+    // Atomically claim the event. Concurrent Safaricom retries cannot
+    // process the same checkout simultaneously; stale claims can be recovered.
+    const { data: claimed, error: claimError } = await db.rpc(
+      "claim_mpesa_callback_event",
+      { p_event_id: callbackEvent.id }
+    );
+
+    if (claimError) {
+      console.error("Unable to claim M-Pesa callback event:", claimError);
+      return NextResponse.json(
+        { ResultCode: 1, ResultDesc: "Callback processing is temporarily unavailable" },
+        { status: 500 }
+      );
     }
 
-    await db.from("mpesa_callback_events").update({
-      processing_status: "processing",
-      processing_attempts: Number(callbackEvent.processing_attempts || 0) + 1,
-      last_error: null,
-    }).eq("id", callbackEvent.id);
+    if (claimed !== true) {
+      return NextResponse.json({
+        ResultCode: 0,
+        ResultDesc: callbackEvent.processing_status === "processed"
+          ? "Already processed"
+          : "Callback is already being processed",
+      });
+    }
 
     const markForReview = async (reason: string) => {
       await db.from("mpesa_callback_events").update({
