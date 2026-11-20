@@ -126,9 +126,11 @@ export default function LivePropertyResults({
         .toLowerCase()
         .split(/[,\s]+/)
         .map((token) => token.trim())
-        .filter(Boolean);
+        .filter((token) => token && !["beach", "city", "town", "county"].includes(token));
       const matchesDestination =
-        !searchTerm || searchTokens.every((token) => locationText.includes(token));
+        !searchTerm ||
+        (searchTokens.length > 0 &&
+          searchTokens.every((token) => locationText.includes(token)));
 
       const matchesBudget =
         budget === "any" ||
