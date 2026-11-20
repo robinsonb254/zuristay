@@ -38,7 +38,7 @@ async function authenticatePartner(request: NextRequest) {
 
 async function ownedProperty(request: NextRequest, propertyId: string) {
   const context = await authenticatePartner(request);
-  if ("error" in context) return context;
+  if (context.error) return { error: context.error };
   if (!uuidPattern.test(propertyId)) return { error: fail("Invalid property ID.", 400) };
   const { data: property, error } = await context.admin.from("properties")
     .select("id, partner_id, destination_id, name, property_type, description, address, city, county, country, country_code, currency, contact_phone, contact_email, status, is_active")
