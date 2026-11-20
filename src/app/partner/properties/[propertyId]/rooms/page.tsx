@@ -124,6 +124,154 @@ function RoomAvailabilityForm({
   );
 }
 
+
+type PropertyImage = {
+  id: string;
+  image_url: string;
+  caption: string | null;
+  is_cover: boolean;
+  display_order: number;
+};
+
+function PropertyPhotos({ propertyId }: { propertyId: string }) {
+  const [images, setImages] = useState<PropertyImage[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [caption, setCaption] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const endpoint = "/api/partner/properties/" + propertyId + "/images";
+
+  const loadImages = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again to manage property photos.");
+      const response = await fetch(endpoint, {
+        headers: { Authorization: "Bearer " + session.access_token },
+        cache: "no-store",
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to load photos.");
+      setImages(result.images || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load photos.");
+    } finally {
+      setLoading(false);
+    }
+  }, [endpoint]);
+
+  useEffect(() => { loadImages(); }, [loadImages]);
+
+  async function uploadPhoto(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!file) return;
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again to upload photos.");
+      const form = new FormData();
+      form.append("image", file);
+      form.append("caption", caption);
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + session.access_token },
+        body: form,
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Photo upload failed.");
+      setMessage(result.message || "Photo uploaded.");
+      setFile(null);
+      setCaption("");
+      const input = document.getElementById("propertyPhotoFile") as HTMLInputElement | null;
+      if (input) input.value = "";
+      await loadImages();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Photo upload failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removePhoto(imageId: string) {
+    if (!window.confirm("Remove this property photo?")) return;
+    setError("");
+    setMessage("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again to manage photos.");
+      const response = await fetch(endpoint, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ imageId }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to remove photo.");
+      setMessage(result.message || "Photo removed.");
+      await loadImages();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to remove photo.");
+    }
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <div className="mb-5">
+        <h2 className="text-xl font-bold text-slate-900">Property photographs</h2>
+        <p className="mt-1 text-sm text-slate-500">Upload up to 30 clear JPG, PNG or WebP photos. Maximum 8 MB each. Your first photo becomes the cover image.</p>
+      </div>
+      <form onSubmit={uploadPhoto} className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <label className="text-xs font-semibold text-slate-600">
+          Choose photo
+          <input id="propertyPhotoFile" type="file" accept="image/jpeg,image/png,image/webp" required
+            onChange={(event) => setFile(event.target.files?.[0] || null)}
+            className="mt-1 block w-full text-sm font-normal text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:font-semibold file:text-blue-900" />
+        </label>
+        <label className="text-xs font-semibold text-slate-600">
+          Caption (optional)
+          <input value={caption} maxLength={160} onChange={(event) => setCaption(event.target.value)}
+            placeholder="e.g. Ocean-view balcony" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+        </label>
+        <button type="submit" disabled={!file || saving || images.length >= 30}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+          {saving ? "Uploading..." : "Upload photo"}
+        </button>
+      </form>
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
+      {loading ? <p className="py-8 text-center text-sm text-slate-500">Loading property photos...</p> :
+        images.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">No property photos uploaded yet.</p> :
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {images.map((image) => (
+            <article key={image.id} className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="relative aspect-[4/3] bg-slate-100">
+                <img src={image.image_url} alt={image.caption || "Property photograph"} className="h-full w-full object-cover" />
+                {image.is_cover && <span className="absolute left-2 top-2 rounded-full bg-blue-950 px-2 py-1 text-[10px] font-bold text-white">COVER</span>}
+              </div>
+              <div className="p-3">
+                <p className="truncate text-xs text-slate-600">{image.caption || "Property photo"}</p>
+                <button type="button" onClick={() => removePhoto(image.id)} className="mt-2 text-xs font-semibold text-red-700 hover:text-red-900">Remove photo</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      }
+    </section>
+  );
+}
+
 export default function PartnerPropertyRoomsPage() {
   const params = useParams<{ propertyId: string }>();
   const propertyId = params.propertyId;
@@ -278,7 +426,7 @@ export default function PartnerPropertyRoomsPage() {
             {units.length === 0 ? <div className="px-6 py-12 text-center"><BedDouble className="mx-auto mb-3 text-slate-400" size={34} /><h3 className="font-semibold text-slate-900">No room categories yet</h3><p className="mt-2 text-sm text-slate-500">Add your first room category using the form.</p></div> : <div className="divide-y divide-slate-100">{units.map((unit) => <article key={unit.id} className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{unit.name}</h3><p className="mt-1 text-sm text-slate-500">{unit.unit_type || "Room"} · {unit.total_units} room(s)</p></div><span className={unit.active ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"}>{unit.active ? "Active" : "Inactive"}</span></div><div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600"><span className="inline-flex items-center gap-1"><Users size={15} />Up to {unit.capacity} guests</span><span className="font-semibold text-slate-900">{unit.currency} {Number(unit.base_rate).toLocaleString()} / night</span></div>{unit.description && <p className="mt-3 text-sm leading-6 text-slate-600">{unit.description}</p>}<RoomAvailabilityForm propertyId={propertyId} unit={unit} /></article>)}</div>}
           </section>
         </div>
-        <p className="mt-8 text-center text-xs text-slate-400">ZuriStay Partner Portal · Your World. Your Stay.</p>
+        {property?.status === "approved" && <PropertyPhotos propertyId={propertyId} />}\n        <p className="mt-8 text-center text-xs text-slate-400">ZuriStay Partner Portal · Your World. Your Stay.</p>
       </div>
     </main>
   );
