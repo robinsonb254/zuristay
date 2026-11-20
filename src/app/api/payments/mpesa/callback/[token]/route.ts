@@ -19,7 +19,7 @@ export async function POST(
   try {
     const { token: providedToken } = await context.params;
     const config = getMpesaConfig();
-    if (!safeTokenMatch(decodeURIComponent(providedToken), config.callbackToken)) {
+    if (!safeTokenMatch(providedToken, config.callbackToken)) {
       return NextResponse.json({ ResultCode: 1, ResultDesc: "Rejected" }, { status: 404 });
     }
 
@@ -105,10 +105,18 @@ export async function POST(
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for reconciliation" });
     }
 
-    await db.from("payments")
-      .update({ status: "successful", verified_at: new Date().toISOString() })
+    // confirm_booking_payment records the verified receipt as the successful
+    // payment row. Remove the temporary CheckoutRequestID row to avoid
+    // counting the same transaction twice.
+    const { error: cleanupError } = await db
+      .from("payments")
+      .delete()
       .eq("id", pendingPayment.id)
       .eq("status", "pending");
+
+    if (cleanupError) {
+      console.error("Verified M-Pesa payment recorded, but temporary row cleanup failed:", cleanupError);
+    }
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (error) {
