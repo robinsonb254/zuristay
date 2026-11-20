@@ -11,6 +11,7 @@ type LiveProperty = {
   property_type: string;
   city: string;
   county: string | null;
+  sub_county: string | null;
   country: string;
   currency: string;
   units: {
@@ -112,14 +113,22 @@ export default function LivePropertyResults({
       const locationText = [
         property.name,
         property.city,
+        property.sub_county || "",
         property.county || "",
         property.country,
       ]
         .join(" ")
-        .toLowerCase();
-
+        .toLowerCase()
+        .replace(/[^\\p{L}\\p{N}]+/gu, " ")
+        .replace(/\\s+/g, " ")
+        .trim();
+      const searchTokens = searchTerm
+        .toLowerCase()
+        .split(/[,\\s]+/)
+        .map((token) => token.trim())
+        .filter(Boolean);
       const matchesDestination =
-        !searchTerm || locationText.includes(searchTerm);
+        !searchTerm || searchTokens.every((token) => locationText.includes(token));
 
       const matchesBudget =
         budget === "any" ||
@@ -210,7 +219,7 @@ export default function LivePropertyResults({
 
                       <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
                         <MapPin size={13} />
-                        {[property.city, property.county, property.country]
+                        {[property.city, property.sub_county, property.county, property.country]
                           .filter(Boolean)
                           .join(", ")}
                       </span>
