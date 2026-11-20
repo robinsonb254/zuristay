@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     const { data: latestPayment, error: paymentError } = await db
       .from("payments")
-      .select("status")
+      .select("status, provider_reference")
       .eq("booking_id", bookingId)
       .eq("payment_method", "mpesa")
       .order("created_at", { ascending: false })
@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
       booking_status: booking.booking_status,
       payment_status: booking.payment_status,
       mpesa_status: latestPayment?.status ?? null,
+      payment_reference: latestPayment?.status === "successful" ? latestPayment.provider_reference : null,
       total_amount: booking.total_amount,
       currency: booking.currency,
       hold_active: Boolean(holds?.length),
