@@ -503,9 +503,18 @@ export default async function PropertyDetailsPage({
               </p>
 
               {isLiveProperty ? (
-                <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-                  Booking options for this property will be enabled after the booking page is connected to live listings.
-                </div>
+                property.units.length > 0 ? (
+                  <Link
+                    href={`/booking?propertyId=${property.id}`}
+                    className="mt-6 block w-full rounded-xl bg-orange-500 px-5 py-4 text-center font-bold text-white transition hover:bg-orange-600"
+                  >
+                    Check availability and reserve
+                  </Link>
+                ) : (
+                  <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">
+                    Room options are being updated. Please check back shortly.
+                  </div>
+                )
               ) : (
                 <Link
                   href={`/booking?propertyId=${property.id}`}
