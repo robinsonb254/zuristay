@@ -562,7 +562,7 @@ export default function Home() {
             Explore all 47 counties
           </h2>
           <p className="mt-3 max-w-2xl text-gray-500">
-            Browse counties and their sub-counties. Select an area to search for accommodation.
+            Browse all 47 counties and 334 census sub-counties. Select an area to search for accommodation.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -614,7 +614,7 @@ export default function Home() {
               Major towns and urban centres
             </h2>
             <p className="mt-3 max-w-2xl text-gray-500">
-              Browse urban centres ranked by their 2019 census population. Search results show actual approved accommodation listings.
+              Browse 148 urban centres with populations of 10,000 or more, ranked from largest to smallest using KNBS 2019 census figures. Search results show actual approved accommodation listings.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
