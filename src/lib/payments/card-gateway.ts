@@ -17,7 +17,7 @@ export type CardCheckoutSession = {
 
 export type VerifiedCardWebhook = {
   providerSessionId: string;
-  providerReference: string;
+  providerReference?: string;
   status: "succeeded" | "failed" | "pending";
   amount: number;
   currency: string;
