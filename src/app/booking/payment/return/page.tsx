@@ -19,6 +19,7 @@ type BookingStatus = {
 export default function CardPaymentReturnPage() {
   const [bookingId, setBookingId] = useState("");
   const [reference, setReference] = useState("");
+  const [transactionReference, setTransactionReference] = useState("");
   const [status, setStatus] = useState<BookingStatus | null>(null);
   const [message, setMessage] = useState("Checking your booking payment...");
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,7 @@ export default function CardPaymentReturnPage() {
     const transactionReference = params.get("tx_ref") || "";
     setBookingId(id);
     setReference(bookingReference);
+    setTransactionReference(transactionReference);
     void checkStatus(id, bookingReference, transactionReference);
   }, [checkStatus]);
 
@@ -147,7 +149,7 @@ export default function CardPaymentReturnPage() {
         {!paid && (
           <button
             type="button"
-            onClick={() => void checkStatus(bookingId, reference)}
+            onClick={() => void checkStatus(bookingId, reference, transactionReference)}
             disabled={loading}
             className="mt-6 w-full rounded-xl bg-[#102b52] px-5 py-3.5 font-bold text-white transition hover:bg-[#173b6d] disabled:cursor-not-allowed disabled:opacity-60"
           >
