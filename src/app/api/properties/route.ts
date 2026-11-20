@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
       .select("unit_id")
       .in("unit_id", unitIds)
       .gte("stay_date", getKenyaDate())
-      .gt("available_units", 0)
+      .gte("available_units", rooms)
       .limit(5000);
 
     if (futureAvailabilityError) {
