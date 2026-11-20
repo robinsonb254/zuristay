@@ -282,15 +282,8 @@ export default function BookingPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
-        throw new Error("Please sign in before making a reservation.");
-      }
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw new Error("Unable to verify your account session. Please try again.");
 
       const payload = {
         unit_id: selectedUnit.id,
@@ -317,7 +310,7 @@ export default function BookingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
           ...payload,
