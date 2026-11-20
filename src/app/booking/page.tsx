@@ -36,6 +36,34 @@ type Property = {
   isLive: boolean;
 };
 
+type PropertyImage = { image_url?: string | null; is_cover?: boolean };
+type ApiUnit = {
+  id: string;
+  name: string;
+  unit_type?: string | null;
+  capacity: number | string;
+  total_units: number | string;
+  customer_rate: number | string;
+  currency?: string | null;
+};
+type ApiProperty = {
+  id: string;
+  name: string;
+  address?: string | null;
+  city?: string | null;
+  county?: string | null;
+  country?: string | null;
+  starting_rate?: number | string | null;
+  currency?: string | null;
+  images?: PropertyImage[] | null;
+  units?: ApiUnit[] | null;
+};
+type PropertiesApiResponse = {
+  success: boolean;
+  properties?: ApiProperty[];
+  error?: string;
+};
+
 type BookingResult = {
   booking_id: string;
   booking_reference: string;
@@ -48,42 +76,6 @@ type BookingResult = {
   payment_status: string;
   idempotent_replay?: boolean;
 };
-
-const featuredProperties: Property[] = [
-  {
-    id: "1",
-    name: "Ocean View Resort",
-    location: "Diani Beach, Kwale",
-    price: 12500,
-    currency: "KSh",
-    image:
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000",
-    units: [],
-    isLive: false,
-  },
-  {
-    id: "2",
-    name: "The City Garden Hotel",
-    location: "Nairobi, Kenya",
-    price: 8500,
-    currency: "KSh",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-    units: [],
-    isLive: false,
-  },
-  {
-    id: "3",
-    name: "Palm Breeze Villas",
-    location: "Watamu, Kilifi",
-    price: 18000,
-    currency: "KSh",
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000",
-    units: [],
-    isLive: false,
-  },
-];
 
 function getToday() {
   const date = new Date();
@@ -103,7 +95,11 @@ function formatMoney(amount: number, currency: string) {
 
 export default function BookingPage() {
   const [liveProperties, setLiveProperties] = useState<Property[]>([]);
-  const [propertyId, setPropertyId] = useState("1");
+  const [dateQuotes, setDateQuotes] = useState<Record<string, { nightlyRate: number; stayTotal: number }>>({});
+  const [availabilityChecking, setAvailabilityChecking] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [propertyId, setPropertyId] = useState("");
   const [unitId, setUnitId] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -117,6 +113,13 @@ export default function BookingPage() {
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState<BookingResult | null>(null);
+  const [bookingAccessToken, setBookingAccessToken] = useState("");
+  const [paymentPhone, setPaymentPhone] = useState("");
+  const [startingPayment, setStartingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
+  const [paymentReference, setPaymentReference] = useState("");
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -126,53 +129,61 @@ export default function BookingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const selectedId = params.get("propertyId");
+    const queryCheckIn = params.get("checkIn");
+    const queryCheckOut = params.get("checkOut");
+    const queryGuests = params.get("guests");
+    const queryRooms = params.get("rooms");
 
-    if (selectedId) {
-      setPropertyId(selectedId);
-    }
+    if (queryCheckIn) setCheckIn(queryCheckIn);
+    if (queryCheckOut) setCheckOut(queryCheckOut);
+    if (queryGuests && /^\d+$/.test(queryGuests)) setGuests(queryGuests);
+    if (queryRooms && /^\d+$/.test(queryRooms)) setRooms(queryRooms);
 
     async function loadProperties() {
       try {
         const response = await fetch("/api/properties");
-        const result = await response.json();
+        const result = (await response.json()) as PropertiesApiResponse;
 
         if (!response.ok || !result.success) {
-          throw new Error("Unable to load accommodation listings.");
+          throw new Error(result.error || "Unable to load accommodation listings.");
         }
 
         const listings: Property[] = (result.properties ?? [])
-          .filter(
-            (item: any) =>
-              Array.isArray(item.units) && item.units.length > 0
-          )
-          .map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            location: [
-              item.address,
-              item.city,
-              item.county,
-              item.country,
-            ]
-              .filter(Boolean)
-              .join(", "),
-            price: Number(item.starting_rate ?? 0),
-            currency: item.currency || "KES",
-            image:
-              item.images?.find((image: any) => image.is_cover)
-                ?.image_url ||
-              item.images?.[0]?.image_url ||
-              "",
-            units: item.units.map((unit: any) => ({
-              ...unit,
-              customer_rate: Number(unit.customer_rate),
-              capacity: Number(unit.capacity),
-              total_units: Number(unit.total_units),
-            })),
-            isLive: true,
-          }));
+          .filter((item) => Array.isArray(item.units) && item.units.length > 0)
+          .map((item) => {
+            const images = item.images ?? [];
+            const units = item.units ?? [];
+            return {
+              id: item.id,
+              name: item.name,
+              location: [
+                item.address,
+                item.city,
+                item.county,
+                item.country,
+              ]
+                .filter(Boolean)
+                .join(", "),
+              price: Number(item.starting_rate ?? 0),
+              currency: item.currency || "KES",
+              image:
+                images.find((image) => image.is_cover)?.image_url ||
+                images[0]?.image_url ||
+                "",
+              units: units.map((unit) => ({
+                ...unit,
+                customer_rate: Number(unit.customer_rate),
+                capacity: Number(unit.capacity),
+                total_units: Number(unit.total_units),
+                currency: unit.currency || item.currency || "KES",
+              })),
+              isLive: true,
+            };
+          });
 
         setLiveProperties(listings);
+        const preferred = listings.find((item) => item.id === selectedId) || listings[0];
+        setPropertyId(preferred?.id || "");
       } catch (loadError) {
         console.error("Property loading error:", loadError);
         setError("Unable to load live accommodation listings.");
@@ -184,20 +195,30 @@ export default function BookingPage() {
     loadProperties();
   }, []);
 
-  const allProperties = [...featuredProperties, ...liveProperties];
+  const allProperties = liveProperties;
 
   const property =
     allProperties.find((item) => item.id === propertyId) ||
-    featuredProperties[0];
+    allProperties[0] || {
+      id: "",
+      name: "No live accommodation available",
+      location: "Approved partner listings will appear here",
+      price: 0,
+      currency: "KES",
+      image: "",
+      units: [],
+      isLive: false,
+    };
 
   const selectedUnit =
     property.units.find((unit) => unit.id === unitId) ||
     property.units[0] ||
     null;
 
-  const price = selectedUnit
+  const selectedDateQuote = selectedUnit ? dateQuotes[selectedUnit.id] : undefined;
+  const price = selectedDateQuote?.nightlyRate ?? (selectedUnit
     ? selectedUnit.customer_rate
-    : property.price;
+    : property.price);
 
   const currency = selectedUnit
     ? selectedUnit.currency || property.currency
@@ -212,11 +233,79 @@ export default function BookingPage() {
         )
       : 0;
 
-  const estimatedTotal = price * Math.max(0, nights) * Number(rooms || 1);
+  const estimatedTotal = selectedDateQuote?.stayTotal ?? price * Math.max(0, nights) * Number(rooms || 1);
 
   useEffect(() => {
-    setUnitId(property.units[0]?.id || "");
-  }, [propertyId, liveProperties]);
+    if (!checkIn || !checkOut || checkOut <= checkIn) {
+      setDateQuotes({});
+      setAvailabilityChecked(false);
+      setAvailabilityError("");
+      setAvailabilityChecking(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDateQuotes({});
+    setAvailabilityChecked(false);
+    setAvailabilityError("");
+    setAvailabilityChecking(true);
+
+    const params = new URLSearchParams({
+      checkIn,
+      checkOut,
+      guests,
+      rooms,
+    });
+
+    async function checkDateAvailability() {
+      try {
+        const response = await fetch(`/api/properties?${params.toString()}`, { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Unable to verify availability for these dates.");
+        }
+
+        const quotes: Record<string, { nightlyRate: number; stayTotal: number }> = {};
+        for (const item of result.properties ?? []) {
+          for (const unit of item.units ?? []) {
+            if (typeof unit.quoted_stay_total === "number" && Number.isFinite(Number(unit.customer_rate))) {
+              quotes[unit.id] = {
+                nightlyRate: Number(unit.customer_rate),
+                stayTotal: Number(unit.quoted_stay_total),
+              };
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setDateQuotes(quotes);
+          setAvailabilityChecked(true);
+        }
+      } catch (availabilityCheckError) {
+        if (!cancelled) {
+          setDateQuotes({});
+          setAvailabilityError(
+            availabilityCheckError instanceof Error
+              ? availabilityCheckError.message
+              : "Unable to verify availability for these dates."
+          );
+        }
+      } finally {
+        if (!cancelled) setAvailabilityChecking(false);
+      }
+    }
+
+    void checkDateAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, [checkIn, checkOut, guests, rooms, liveProperties.length]);
+
+  useEffect(() => {
+    const selectedProperty =
+      allProperties.find((item) => item.id === propertyId) || allProperties[0];
+    setUnitId(selectedProperty?.units[0]?.id || "");
+  }, [propertyId, allProperties]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -227,6 +316,21 @@ export default function BookingPage() {
         "This property is not connected to live room inventory yet. Please select an approved live accommodation listing."
       );
       return;
+    }
+
+    if (checkIn && checkOut) {
+      if (availabilityChecking) {
+        setError("Please wait while ZuriStay checks availability for your dates.");
+        return;
+      }
+      if (availabilityError) {
+        setError(availabilityError);
+        return;
+      }
+      if (!availabilityChecked || !selectedDateQuote) {
+        setError("This room category does not have enough available rooms for the selected dates and guest count.");
+        return;
+      }
     }
 
     if (!checkIn || !checkOut) {
@@ -282,15 +386,8 @@ export default function BookingPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
-        throw new Error("Please sign in before making a reservation.");
-      }
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw new Error("Unable to verify your account session. Please try again.");
 
       const payload = {
         unit_id: selectedUnit.id,
@@ -317,7 +414,7 @@ export default function BookingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
           ...payload,
@@ -350,6 +447,11 @@ export default function BookingPage() {
         );
       }
 
+      if (typeof result.booking_access_token !== "string" || !/^[a-f0-9]{64}$/i.test(result.booking_access_token)) {
+        throw new Error("Secure booking access could not be established. Please contact support.");
+      }
+      setBookingAccessToken(result.booking_access_token);
+      try { sessionStorage.setItem(`zuristay:booking-access:${createdBooking.booking_id}`, result.booking_access_token); } catch { /* Session storage may be unavailable; in-memory access remains active. */ }
       setBooking(createdBooking);
     } catch (submitError) {
       setError(
@@ -362,18 +464,103 @@ export default function BookingPage() {
     }
   }
 
+  const activeBookingId = booking?.booking_id;
+
+  useEffect(() => {
+    const pollingBookingId = activeBookingId;
+    if (!pollingBookingId || paymentState !== "waiting") return;
+
+    let attempts = 0;
+    let cancelled = false;
+
+    async function checkStatus() {
+      attempts += 1;
+      try {
+        const response = await fetch(
+          `/api/bookings/status?booking_id=${encodeURIComponent(pollingBookingId!)}`,
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${pollingBookingId!}`) || ""; } catch { return ""; } })() } }
+        );
+        const result = await response.json();
+        if (cancelled || !response.ok || !result.success) return;
+
+        if (result.payment_status === "paid" && result.booking_status === "confirmed") {
+          setPaymentState("paid");
+          setPaymentReference(result.payment_reference || "");
+          setPaymentMessage("Payment received and verified. Your reservation is confirmed.");
+          return;
+        }
+
+        if (result.mpesa_status === "failed") {
+          setPaymentState("failed");
+          setPaymentError("The M-Pesa request was not completed. You can try again while your room hold is active.");
+          return;
+        }
+
+        if (!result.hold_active) {
+          setPaymentState("expired");
+          setPaymentError("Your 15-minute room hold has expired before payment was confirmed. Please contact ZuriStay support before making another payment.");
+          return;
+        }
+      } catch (statusError) {
+        console.error("Payment status check failed:", statusError);
+      }
+
+      if (attempts >= 18 && !cancelled) {
+        setPaymentState("timeout");
+        setPaymentMessage("We are still waiting for M-Pesa confirmation. Check the status again before leaving this page.");
+      }
+    }
+
+    void checkStatus();
+    const timer = window.setInterval(() => {
+      if (attempts < 18 && !cancelled) void checkStatus();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [activeBookingId, bookingAccessToken, paymentState]);
+
+  async function startMpesaPayment() {
+    if (!booking) return;
+    setStartingPayment(true);
+    setPaymentError("");
+    setPaymentMessage("");
+    try {
+      const response = await fetch("/api/payments/mpesa/stk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })() },
+        body: JSON.stringify({
+          booking_id: booking.booking_id,
+          phone: paymentPhone.trim() || phone.trim(),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Unable to start M-Pesa payment.");
+      }
+      setPaymentMessage(result.message || "M-Pesa prompt sent. Check your phone and enter your PIN.");
+      setPaymentState("waiting");
+    } catch (paymentStartError) {
+      setPaymentError(paymentStartError instanceof Error ? paymentStartError.message : "M-Pesa payment could not be started.");
+    } finally {
+      setStartingPayment(false);
+    }
+  }
+
   if (booking) {
     const expiry = new Date(booking.hold_expires_at);
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-12">
-        <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-12 print:bg-white print:py-0">
+        <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm print:max-w-none print:border-0 print:p-0 print:shadow-none">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
             <CheckCircle2 size={42} className="text-green-600" />
           </div>
 
           <h1 className="mt-6 text-3xl font-black text-blue-950">
-            Reservation held successfully!
+            {paymentState === "paid" ? "Booking confirmed!" : "Reservation held successfully!"}
           </h1>
 
           <p className="mt-3 text-slate-500">
@@ -404,10 +591,10 @@ export default function BookingPage() {
                 {formatMoney(Number(booking.total_amount), booking.currency)}
               </p>
               <p>
-                <strong>Booking status:</strong> {booking.booking_status}
+                <strong>Booking status:</strong> {paymentState === "paid" ? "confirmed" : booking.booking_status}
               </p>
               <p>
-                <strong>Payment status:</strong> {booking.payment_status}
+                <strong>Payment status:</strong> {paymentState === "paid" ? "paid" : booking.payment_status}
               </p>
               <p>
                 <strong>Hold expires:</strong> {expiry.toLocaleString()}
@@ -415,14 +602,92 @@ export default function BookingPage() {
             </div>
           </div>
 
-          <p className="mt-5 text-xs text-slate-500">
-            Your room hold expires after 15 minutes unless payment is
-            successfully verified. Your reservation is not yet confirmed.
-          </p>
+          {paymentState === "paid" && (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left print:break-inside-avoid">
+              <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-300 pb-5">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.18em] text-orange-500">ZuriStay</p>
+                  <h2 className="mt-2 text-xl font-black text-blue-950">Payment receipt</h2>
+                  <p className="mt-1 text-xs text-slate-500">Your World. Your Stay.</p>
+                </div>
+                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase text-green-800">Paid</span>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+                <div><p className="text-xs text-slate-500">Booking reference</p><p className="mt-1 font-bold text-blue-950">{booking.booking_reference}</p></div>
+                <div><p className="text-xs text-slate-500">M-Pesa receipt</p><p className="mt-1 break-all font-bold text-blue-950">{paymentReference || "Verified by ZuriStay"}</p></div>
+                <div><p className="text-xs text-slate-500">Guest</p><p className="mt-1 font-semibold text-slate-800">{fullName}</p></div>
+                <div><p className="text-xs text-slate-500">Property</p><p className="mt-1 font-semibold text-slate-800">{property.name}</p></div>
+                <div><p className="text-xs text-slate-500">Accommodation</p><p className="mt-1 font-semibold text-slate-800">{selectedUnit?.name}</p></div>
+                <div><p className="text-xs text-slate-500">Travel dates</p><p className="mt-1 font-semibold text-slate-800">{checkIn} – {checkOut}</p></div>
+                <div><p className="text-xs text-slate-500">Guests / rooms</p><p className="mt-1 font-semibold text-slate-800">{guests} guests · {rooms} room(s)</p></div>
+                <div><p className="text-xs text-slate-500">Payment method</p><p className="mt-1 font-semibold text-slate-800">M-Pesa</p></div>
+              </div>
+              <div className="mt-5 flex items-center justify-between border-t border-dashed border-slate-300 pt-5">
+                <span className="font-bold text-blue-950">Amount paid</span>
+                <span className="text-xl font-black text-green-700">{formatMoney(Number(booking.total_amount), booking.currency)}</span>
+              </div>
+              <p className="mt-4 text-center text-xs text-slate-500">Thank you for booking with ZuriStay.</p>
+              <button type="button" onClick={() => window.print()} className="mt-5 w-full rounded-xl bg-blue-950 px-5 py-3 font-bold text-white hover:bg-blue-900 print:hidden">
+                Print / Save receipt
+              </button>
+            </section>
+          )}
+
+          <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-left print:hidden">
+            <h2 className="font-bold text-blue-950">
+              {paymentState === "paid" ? "M-Pesa payment confirmed" : "Pay securely with M-Pesa"}
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              {paymentState === "paid"
+                ? "Your payment was received and verified by ZuriStay."
+                : "We will send an STK Push to the guest phone number entered for this booking."}
+            </p>
+            {paymentState !== "paid" && <label className="mt-4 block text-sm font-semibold text-slate-700">
+              M-Pesa phone number
+              <input
+                type="tel"
+                value={paymentPhone}
+                onChange={(event) => setPaymentPhone(event.target.value)}
+                placeholder="+254 7XX XXX XXX"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-orange-500"
+              />
+            </label>}
+            {paymentError && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{paymentError}</p>}
+            {paymentMessage && <p role="status" className="mt-3 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">{paymentMessage}</p>}
+            {(paymentState === "idle" || paymentState === "failed") && (
+              <button
+                type="button"
+                onClick={startMpesaPayment}
+                disabled={startingPayment}
+                className="mt-4 w-full rounded-xl bg-green-600 px-5 py-4 font-bold text-white transition hover:bg-green-700 disabled:opacity-60"
+              >
+                {startingPayment ? "Sending M-Pesa prompt..." : paymentState === "failed" ? "Try M-Pesa again" : "Pay with M-Pesa"}
+              </button>
+            )}
+            {paymentState === "waiting" && (
+              <p className="mt-4 text-sm font-semibold text-blue-900">Waiting for secure payment confirmation…</p>
+            )}
+            {paymentState === "timeout" && (
+              <button
+                type="button"
+                onClick={() => setPaymentState("waiting")}
+                className="mt-4 w-full rounded-xl border border-blue-900 px-5 py-3 font-bold text-blue-950"
+              >
+                Check payment status again
+              </button>
+            )}
+          </div>
+
+          {paymentState !== "paid" && (
+            <p className="mt-5 text-xs text-slate-500">
+              Your room hold expires after 15 minutes unless payment is
+              successfully verified. Your reservation is not yet confirmed.
+            </p>
+          )}
 
           <Link
             href="/account"
-            className="mt-7 inline-flex rounded-xl bg-blue-950 px-7 py-4 font-bold text-white transition hover:bg-blue-900"
+            className="mt-7 inline-flex rounded-xl bg-blue-950 px-7 py-4 font-bold text-white transition hover:bg-blue-900 print:hidden"
           >
             View my account
           </Link>
@@ -479,14 +744,18 @@ export default function BookingPage() {
             <select
               value={propertyId}
               onChange={(event) => setPropertyId(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-orange-500"
+              disabled={allProperties.length === 0}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-orange-500 disabled:bg-slate-100"
             >
-              {allProperties.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {item.isLive ? " — Live listing" : " — Not bookable yet"}
-                </option>
-              ))}
+              {allProperties.length === 0 ? (
+                <option value="">No approved live listings yet</option>
+              ) : (
+                allProperties.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} — Live listing
+                  </option>
+                ))
+              )}
             </select>
 
             {property.isLive && property.units.length > 0 && (
@@ -703,7 +972,7 @@ export default function BookingPage() {
 
           <button
             type="submit"
-            disabled={submitting || loadingProperties}
+            disabled={submitting || loadingProperties || availabilityChecking}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-5 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CheckCircle2 size={20} />
@@ -769,9 +1038,19 @@ export default function BookingPage() {
               </span>
             </div>
 
+            {checkIn && checkOut && availabilityChecking && (
+              <p className="mt-3 text-xs text-blue-700">Checking live room availability and date-specific rates…</p>
+            )}
+            {availabilityError && (
+              <p role="alert" className="mt-3 text-xs text-red-700">{availabilityError}</p>
+            )}
+            {availabilityChecked && !selectedDateQuote && (
+              <p className="mt-3 text-xs text-amber-700">No matching room inventory is available for these dates, rooms and guests.</p>
+            )}
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              The final price is calculated from the live nightly rates and
-              confirmed inventory in ZuriStay.
+              {selectedDateQuote
+                ? "This estimate uses the live nightly rates for your selected dates. The final amount is locked when your reservation is created."
+                : "Indicative estimate only. Select travel dates to check live availability and date-specific rates; the final amount is confirmed when your reservation is created."}
             </p>
 
             <div className="mt-6 flex items-center gap-3 rounded-xl bg-green-50 p-4 text-sm text-green-800">
@@ -782,7 +1061,7 @@ export default function BookingPage() {
 
             <div className="mt-5 flex items-center gap-3 text-xs text-slate-400">
               <CreditCard size={17} />
-              Payment integration will follow in the next development phase.
+              Payment is arranged securely after your room inventory is held.
             </div>
           </div>
         </aside>

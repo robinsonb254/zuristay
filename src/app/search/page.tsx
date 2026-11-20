@@ -6,56 +6,9 @@ import {
   MapPin,
   CalendarDays,
   Users,
-  SlidersHorizontal,
-  Star,
-  Wifi,
-  Waves,
-  Car,
-  Utensils,
-  ArrowUpDown,
 } from "lucide-react";
 
-const properties = [
-  {
-    id: 1,
-    name: "Ocean View Resort",
-    location: "Diani Beach, Kwale",
-    type: "Resort",
-    price: 12500,
-    rating: 4.9,
-    reviews: 128,
-    facilities: ["Pool", "Wi-Fi", "Beach access"],
-    image:
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000",
-  },
-  {
-    id: 2,
-    name: "The City Garden Hotel",
-    location: "Nairobi, Kenya",
-    type: "Hotel",
-    price: 8500,
-    rating: 4.8,
-    reviews: 96,
-    facilities: ["Restaurant", "Wi-Fi", "Parking"],
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-  },
-  {
-    id: 3,
-    name: "Palm Breeze Villas",
-    location: "Watamu, Kilifi",
-    type: "Villa",
-    price: 18000,
-    rating: 4.9,
-    reviews: 74,
-    facilities: ["Private pool", "Kitchen", "Wi-Fi"],
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000",
-  },
-];
 
-const money = (amount: number) =>
-  `KSh ${amount.toLocaleString("en-KE")}`;
 
 type SearchParams = {
   destination?: string;
@@ -79,20 +32,6 @@ export default async function SearchPage({
   const guests = params.guests || "2";
   const rooms = params.rooms || "1";
   const budget = params.budget || "any";
-
-  const budgetLimit =
-    budget === "any" ? Infinity : Number(budget);
-
-  const filteredProperties = properties.filter((property) => {
-    const matchesDestination =
-      !destination ||
-      property.location.toLowerCase().includes(destination.toLowerCase()) ||
-      property.name.toLowerCase().includes(destination.toLowerCase());
-
-    const matchesBudget = property.price <= budgetLimit;
-
-    return matchesDestination && matchesBudget;
-  });
 
   const hasSearch = Boolean(destination || checkIn || checkOut);
 
@@ -242,138 +181,17 @@ export default async function SearchPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold"
-            >
-              <SlidersHorizontal size={17} />
-              Filters
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold"
-            >
-              <ArrowUpDown size={17} />
-              Recommended
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-8 grid gap-7">
-          {filteredProperties.length > 0 ? (
-            filteredProperties.map((property) => (
-              <article
-                key={property.id}
-                className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg md:grid-cols-[280px_1fr]"
-              >
-                <div
-                  className="min-h-64 bg-cover bg-center md:min-h-full"
-                  style={{
-                    backgroundImage: `url("${property.image}")`,
-                  }}
-                  role="img"
-                  aria-label={property.name}
-                />
-
-                <div className="flex flex-col justify-between gap-5 p-5 md:flex-row md:p-7">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-900">
-                        {property.type}
-                      </span>
-
-                      <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
-                        <MapPin size={13} />
-                        {property.location}
-                      </span>
-                    </div>
-
-                    <h3 className="mt-3 text-xl font-black text-blue-950">
-                      {property.name}
-                    </h3>
-
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="flex items-center gap-1 rounded-md bg-green-700 px-2 py-1 text-sm font-bold text-white">
-                        <Star size={13} fill="currentColor" />
-                        {property.rating}
-                      </span>
-
-                      <span className="text-sm text-slate-500">
-                        {property.reviews} reviews
-                      </span>
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap gap-4 text-sm text-slate-500">
-                      {property.facilities.map((facility) => (
-                        <span
-                          key={facility}
-                          className="flex items-center gap-2"
-                        >
-                          {facility.toLowerCase().includes("pool") ||
-                          facility.toLowerCase().includes("beach") ? (
-                            <Waves size={16} />
-                          ) : facility.toLowerCase().includes("parking") ? (
-                            <Car size={16} />
-                          ) : facility.toLowerCase().includes("restaurant") ? (
-                            <Utensils size={16} />
-                          ) : (
-                            <Wifi size={16} />
-                          )}
-                          {facility}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex min-w-40 flex-row items-end justify-between gap-4 border-t border-slate-100 pt-5 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-6 md:pt-0">
-                    <div className="text-left md:text-right">
-                      <p className="text-xs text-slate-500">
-                        Starting from
-                      </p>
-
-                      <p className="mt-1 text-2xl font-black text-blue-950">
-                        {money(property.price)}
-                      </p>
-
-                      <p className="text-xs text-slate-500">
-                        per night
-                      </p>
-                    </div>
-
-                    <Link
-                      href={`/property/${property.id}`}
-                      className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-orange-600"
-                    >
-                      View details
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
-              <MapPin
-                className="mx-auto text-orange-500"
-                size={36}
-              />
-
-              <h3 className="mt-4 text-xl font-bold text-blue-950">
-                No matching featured stays found
-              </h3>
-
-              <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500">
-                You can still explore live partner listings below.
-              </p>
-            </div>
-          )}
         </div>
 
         <LivePropertyResults
           destination={destination}
           budget={budget}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          guests={guests}
+          rooms={rooms}
         />
+
       </section>
 
       <footer className="mt-12 bg-blue-950 px-5 py-8 text-center text-sm text-blue-100">

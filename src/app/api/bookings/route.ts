@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { randomBytes } from "node:crypto";
+import { hashBookingAccessToken } from "@/lib/bookings/access";
 
 export const dynamic = "force-dynamic";
 
@@ -33,40 +35,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Guest checkout is supported. If a bearer token is supplied, verify it
+    // and attach the authenticated customer; never trust a client-supplied user ID.
+    let customerUserId: string | null = null;
     const authorization = request.headers.get("authorization");
-
-    if (!authorization?.startsWith("Bearer ")) {
-      return errorResponse("Please sign in to make a booking.", 401);
-    }
-
-    const accessToken = authorization.slice(7).trim();
-
-    if (!accessToken) {
-      return errorResponse("Invalid authentication token.", 401);
-    }
-
-    const authClient = createClient(
-      supabaseUrl,
-      publishableKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
+    if (authorization) {
+      if (!authorization.startsWith("Bearer ")) {
+        return errorResponse("Invalid authentication token.", 401);
       }
-    );
+      const accessToken = authorization.slice(7).trim();
+      if (!accessToken) return errorResponse("Invalid authentication token.", 401);
 
-    const {
-      data: { user },
-      error: authError,
-    } = await authClient.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return errorResponse(
-        "Your session is invalid or expired. Please sign in again.",
-        401
-      );
+      const authClient = createClient(supabaseUrl, publishableKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const { data: { user }, error: authError } = await authClient.auth.getUser(accessToken);
+      if (authError || !user) {
+        return errorResponse("Your session is invalid or expired. Please sign in again.", 401);
+      }
+      customerUserId = user.id;
     }
 
     let body: unknown;
@@ -176,8 +163,11 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // Generate the guest capability before creating the hold. The secure
+    // database wrapper stores its hash in the same transaction as the booking.
+    const bookingAccessToken = randomBytes(32).toString("hex");
     const { data, error } = await supabaseAdmin.rpc(
-      "create_booking_hold",
+      "create_booking_hold_secure",
       {
         p_unit_id: unit_id,
         p_check_in: check_in,
@@ -188,16 +178,23 @@ export async function POST(request: NextRequest) {
         p_guest_email: guest_email.trim().toLowerCase(),
         p_guest_phone: guest_phone.trim(),
         p_idempotency_key: idempotency_key,
-        p_customer_user_id: user.id,
+        p_customer_user_id: customerUserId,
         p_special_requests:
           typeof special_requests === "string"
             ? special_requests.trim() || null
             : null,
+        p_guest_access_token_hash: hashBookingAccessToken(bookingAccessToken),
       }
     );
 
     if (error) {
-      return errorResponse(error.message, 400);
+      // Log database details server-side; expose only a safe booking message.
+      console.error("Booking hold creation failed:", error);
+      const message = error.message || "";
+      const safeMessage = /availability|available|capacity|dates|guest|room quantity|commission rule|reserved|booked|hold|inventory/i.test(message)
+        ? message.replace(/[<>]/g, "").slice(0, 220)
+        : "We could not complete this reservation. Please review your details and try again.";
+      return errorResponse(safeMessage, 400);
     }
 
     const booking = data as Record<string, unknown> | null;
@@ -210,11 +207,19 @@ export async function POST(request: NextRequest) {
     }
 
     const replay = booking.idempotent_replay === true;
+    const bookingId = typeof booking.booking_id === "string" ? booking.booking_id : "";
+    if (!bookingId) {
+      console.error("Booking RPC returned no booking identifier.");
+      return errorResponse("The booking could not be secured. Please contact support before retrying.", 500);
+    }
+
+    // The raw capability is returned once; only its hash was stored atomically.
 
     return NextResponse.json(
       {
         success: true,
         booking,
+        booking_access_token: bookingAccessToken,
       },
       {
         status: replay ? 200 : 201,

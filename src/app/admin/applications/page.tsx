@@ -540,7 +540,7 @@ export default function AdminApplicationsPage() {
               </h3>
               <p className="mt-1 text-sm leading-6 text-blue-900/75">
                 Approving an application creates a partner account linked to
-                the applicant's verified ZuriStay login. It does not create,
+                the applicant&apos;s verified ZuriStay login. It does not create,
                 approve or publish a property listing. Property details,
                 ownership and accommodation information must be reviewed
                 separately.

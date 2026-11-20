@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2,
+  Banknote,
   Plus,
   RefreshCw,
   LogOut,
@@ -23,6 +24,7 @@ type Property = {
   property_type: string;
   city: string;
   county: string | null;
+  sub_county?: string | null;
   country: string;
   status: string;
   is_active: boolean;
@@ -72,7 +74,7 @@ export default function PartnerDashboardPage() {
       } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fpartner%2Fdashboard");
         return;
       }
 
@@ -87,7 +89,7 @@ export default function PartnerDashboardPage() {
       const result = await response.json();
 
       if (response.status === 401) {
-        router.replace("/login");
+        router.replace("/login?next=%2Fpartner%2Fdashboard");
         return;
       }
 
@@ -120,7 +122,7 @@ export default function PartnerDashboardPage() {
     try {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
-      router.replace("/login");
+      router.replace("/login?next=%2Fpartner%2Fdashboard");
       router.refresh();
     } catch {
       setError("Unable to sign out. Please try again.");
@@ -194,6 +196,14 @@ export default function PartnerDashboardPage() {
           >
             <Plus size={19} />
             Add a property
+          </Link>
+
+          <Link
+            href="/partner/payouts"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
+          >
+            <Banknote size={18} />
+            Payout preferences
           </Link>
         </div>
 
@@ -330,7 +340,7 @@ export default function PartnerDashboardPage() {
                     </p>
                     <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                       <MapPin size={14} />
-                      {[property.city, property.county, property.country]
+                      {[property.city, property.sub_county, property.county, property.country]
                         .filter(Boolean)
                         .join(", ")}
                     </p>
@@ -352,6 +362,21 @@ export default function PartnerDashboardPage() {
                       <span className="text-xs font-semibold text-green-700">
                         Live
                       </span>
+                    )}
+                    <Link
+                      href={`/partner/properties/${property.id}/edit`}
+                      className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Edit details
+                    </Link>
+                    {property.status === "approved" && (
+                      <Link
+                        href={`/partner/properties/${property.id}/rooms`}
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800"
+                      >
+                        <Hotel size={15} />
+                        Manage rooms
+                      </Link>
                     )}
                   </div>
                 </article>

@@ -11,6 +11,7 @@ type LiveProperty = {
   property_type: string;
   city: string;
   county: string | null;
+  sub_county: string | null;
   country: string;
   currency: string;
   units: {
@@ -40,6 +41,25 @@ type ApiResponse = {
 type Props = {
   destination: string;
   budget: string;
+  checkIn: string;
+  checkOut: string;
+  guests: string;
+  rooms: string;
+};
+
+const destinationAliases: Record<string, string[]> = {
+  "maasai mara": ["maasai mara", "mara", "narok"],
+  "diani beach": ["diani", "ukunda", "kwale"],
+  amboseli: ["amboseli", "kimana", "loitoktok", "kajiado"],
+  watamu: ["watamu"],
+  "lake naivasha": ["naivasha"],
+  malindi: ["malindi"],
+  lamu: ["lamu"],
+  tsavo: ["tsavo", "voi", "taveta"],
+  "mount kenya": ["mount kenya", "nanyuki", "nyeri", "meru"],
+  samburu: ["samburu", "maralal"],
+  mombasa: ["mombasa"],
+  nairobi: ["nairobi"],
 };
 
 function formatMoney(amount: number, currency: string) {
@@ -57,6 +77,10 @@ function formatMoney(amount: number, currency: string) {
 export default function LivePropertyResults({
   destination,
   budget,
+  checkIn,
+  checkOut,
+  guests,
+  rooms,
 }: Props) {
   const [properties, setProperties] = useState<LiveProperty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +91,12 @@ export default function LivePropertyResults({
 
     async function loadProperties() {
       try {
-        const response = await fetch("/api/properties", {
+        const query = new URLSearchParams({ guests, rooms });
+        if (checkIn && checkOut) {
+          query.set("checkIn", checkIn);
+          query.set("checkOut", checkOut);
+        }
+        const response = await fetch("/api/properties?" + query.toString(), {
           cache: "no-store",
         });
 
@@ -101,7 +130,7 @@ export default function LivePropertyResults({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [checkIn, checkOut, guests, rooms]);
 
   const filteredProperties = useMemo(() => {
     const searchTerm = destination.trim().toLowerCase();
@@ -112,14 +141,26 @@ export default function LivePropertyResults({
       const locationText = [
         property.name,
         property.city,
+        property.sub_county || "",
         property.county || "",
         property.country,
       ]
         .join(" ")
-        .toLowerCase();
-
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const searchTokens = searchTerm
+        .toLowerCase()
+        .split(/[,\s]+/)
+        .map((token) => token.trim())
+        .filter((token) => token && !["beach", "city", "town", "county"].includes(token));
+      const aliases = destinationAliases[searchTerm] || [];
       const matchesDestination =
-        !searchTerm || locationText.includes(searchTerm);
+        !searchTerm ||
+        aliases.some((alias) => locationText.includes(alias)) ||
+        (searchTokens.length > 0 &&
+          searchTokens.every((token) => locationText.includes(token)));
 
       const matchesBudget =
         budget === "any" ||
@@ -169,10 +210,17 @@ export default function LivePropertyResults({
           <h3 className="mt-3 font-bold text-blue-950">
             No additional live listings found
           </h3>
-          <p className="mt-2 text-sm text-slate-500">
-            New approved properties will appear here once partners add
-            accommodation units and rates.
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+            {destination
+              ? "There are no approved, bookable properties matching this destination yet. Try another nearby area or explore the full Kenya directory."
+              : "New approved properties will appear here once partners add accommodation units and rates."}
           </p>
+          <Link
+            href="/destinations"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-900"
+          >
+            Browse all destinations
+          </Link>
         </div>
       )}
 
@@ -210,7 +258,7 @@ export default function LivePropertyResults({
 
                       <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
                         <MapPin size={13} />
-                        {[property.city, property.county, property.country]
+                        {[property.city, property.sub_county, property.county, property.country]
                           .filter(Boolean)
                           .join(", ")}
                       </span>
@@ -265,7 +313,7 @@ export default function LivePropertyResults({
                     </div>
 
                     <Link
-                      href={`/property/${property.id}`}
+                      href={`/property/${property.id}?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&guests=${encodeURIComponent(guests)}&rooms=${encodeURIComponent(rooms)}`}
                       className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-orange-600"
                     >
                       View details

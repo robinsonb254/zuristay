@@ -1,10 +1,32 @@
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+function isRealDate(value: string) {
+  if (!datePattern.test(value)) return false;
+  const date = new Date(value + "T00:00:00.000Z");
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+export async function GET(request: NextRequest) {
+  const params = request.nextUrl.searchParams;
+  const checkIn = params.get("checkIn") || "";
+  const checkOut = params.get("checkOut") || "";
+  const guests = Number(params.get("guests") || 2);
+  const rooms = Number(params.get("rooms") || 1);
+  const hasDateFilter = Boolean(checkIn || checkOut);
+  if (!Number.isInteger(guests) || guests < 1 || guests > 20 || !Number.isInteger(rooms) || rooms < 1 || rooms > 10) {
+    return NextResponse.json({ success: false, error: "Choose a valid number of guests and rooms." }, { status: 400 });
+  }
+  if (hasDateFilter && (!isRealDate(checkIn) || !isRealDate(checkOut) || checkOut <= checkIn)) {
+    return NextResponse.json({ success: false, error: "Choose valid check-in and check-out dates." }, { status: 400 });
+  }
+  if (hasDateFilter && (new Date(checkOut + "T00:00:00Z").getTime() - new Date(checkIn + "T00:00:00Z").getTime()) / 86400000 > 30) {
+    return NextResponse.json({ success: false, error: "Search dates cannot exceed 30 nights." }, { status: 400 });
+  }
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -20,7 +42,7 @@ export async function GET() {
   const { data: properties, error: propertiesError } = await supabase
     .from("properties")
     .select(
-      "id, name, property_type, description, address, city, county, country, country_code, currency, latitude, longitude"
+      "id, name, property_type, description, address, city, county, sub_county, country, country_code, currency, latitude, longitude"
     )
     .eq("status", "approved")
     .eq("is_active", true)
@@ -85,6 +107,31 @@ export async function GET() {
     );
   }
 
+  const availableByUnit = new Map<string, { nights: number; totalRate: number }>();
+  const nights = hasDateFilter ? (new Date(checkOut + "T00:00:00Z").getTime() - new Date(checkIn + "T00:00:00Z").getTime()) / 86400000 : 0;
+  if (hasDateFilter && (unitsResult.data ?? []).length > 0) {
+    const unitIds = (unitsResult.data ?? []).map((unit) => unit.id);
+    const { data: availabilityRows, error: availabilityError } = await supabase
+      .from("unit_availability")
+      .select("unit_id, stay_date, available_units, partner_base_rate, currency")
+      .in("unit_id", unitIds)
+      .gte("stay_date", checkIn)
+      .lt("stay_date", checkOut);
+    if (availabilityError) {
+      return NextResponse.json({ success: false, error: "Unable to verify room availability for these dates." }, { status: 500 });
+    }
+    const grouped = new Map<string, NonNullable<typeof availabilityRows>>();
+    for (const row of availabilityRows ?? []) {
+      const current = grouped.get(row.unit_id) ?? [];
+      current.push(row);
+      grouped.set(row.unit_id, current);
+    }
+    for (const [unitId, rows] of grouped) {
+      if (rows.length === nights && rows.every((row) => Number(row.available_units) >= rooms)) {
+        availableByUnit.set(unitId, { nights: rows.length, totalRate: rows.reduce((sum, row) => sum + Number(row.partner_base_rate), 0) });
+      }
+    }
+  }
   const amenityIds = [
     ...new Set(
       (propertyAmenitiesResult.data ?? []).map((item) => item.amenity_id)
@@ -114,15 +161,20 @@ export async function GET() {
 
   const propertiesWithDetails = (properties ?? []).map((property) => {
     const propertyUnits = (unitsResult.data ?? [])
-      .filter((unit) => unit.property_id === property.id)
+      .filter((unit) => {
+        if (unit.property_id !== property.id || Number(unit.capacity) * rooms < guests) return false;
+        return !hasDateFilter || availableByUnit.has(unit.id);
+      })
       .map((unit) => {
         const baseRate = Number(unit.base_rate);
-
+        const quote = availableByUnit.get(unit.id);
+        const guestRate = quote && quote.nights > 0 ? quote.totalRate / quote.nights * 1.3 : baseRate * 1.3;
         return {
           ...unit,
           base_rate: baseRate,
-          customer_rate: Number((baseRate * 1.3).toFixed(2)),
+          customer_rate: Number(guestRate.toFixed(2)),
           markup_percentage: 30,
+          ...(quote ? { quoted_stay_total: Number((quote.totalRate * 1.3 * rooms).toFixed(2)) } : {}),
         };
       });
 
@@ -162,6 +214,7 @@ export async function GET() {
     success: true,
     count: propertiesWithDetails.length,
     markupPercentage: 30,
+    search: { checkIn: checkIn || null, checkOut: checkOut || null, guests, rooms, availabilityChecked: hasDateFilter },
     properties: propertiesWithDetails,
   });
 }

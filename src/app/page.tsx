@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import {
   Search,
   MapPin,
@@ -18,71 +19,23 @@ import {
   X,
 } from "lucide-react";
 
-type DatabaseDestination = {
-  id: string;
-  name: string;
-  city: string;
-  county: string | null;
-  country: string;
-  country_code: string;
-  active: boolean;
-};
+
+
+
 
 const destinationHighlights = [
-  {
-    name: "Mombasa",
-    description: "Coastal escapes and ocean views",
-    image:
-      "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=900",
-  },
-  {
-    name: "Diani Beach",
-    description: "White sands and tropical luxury",
-    image:
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
-  },
-  {
-    name: "Nairobi",
-    description: "City stays and urban experiences",
-    image:
-      "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=900",
-  },
-  {
-    name: "Watamu",
-    description: "Beautiful beaches and relaxation",
-    image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900",
-  },
-  {
-    name: "Malindi",
-    description: "Discover Kenya's beautiful coast",
-    image:
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
-  },
-  {
-    name: "Naivasha",
-    description: "Nature, lakes and peaceful retreats",
-    image:
-      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900",
-  },
-  {
-    name: "Kisumu",
-    description: "Lakeside stays and western Kenya experiences",
-    image:
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
-  },
-  {
-    name: "Bungoma",
-    description: "Discover stays in western Kenya",
-    image:
-      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900",
-  },
-  {
-    name: "Eldoret",
-    description: "City comfort and highland escapes",
-    image:
-      "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=900",
-  },
+  { name: "Maasai Mara", searchDestination: "Maasai Mara", description: "Iconic safari country and the Great Migration", image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1000" },
+  { name: "Diani Beach", searchDestination: "Diani Beach", description: "White-sand beaches and Indian Ocean escapes", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
+  { name: "Amboseli", searchDestination: "Amboseli", description: "Elephant country beneath Mount Kilimanjaro", image: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?w=1000" },
+  { name: "Mombasa", searchDestination: "Mombasa", description: "Swahili heritage, beaches and coastal city life", image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=1000" },
+  { name: "Watamu", searchDestination: "Watamu", description: "Marine parks, coral reefs and quiet beaches", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1000" },
+  { name: "Nairobi", searchDestination: "Nairobi", description: "The city, culture and safari capital", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
+  { name: "Lake Naivasha", searchDestination: "Lake Naivasha", description: "Lakeside retreats and Great Rift Valley scenery", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1000" },
+  { name: "Malindi", searchDestination: "Malindi", description: "Coastal charm, marine life and beach stays", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
+  { name: "Lamu", searchDestination: "Lamu", description: "Historic Swahili town and island life", image: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1000" },
+  { name: "Tsavo", searchDestination: "Tsavo", description: "Vast wilderness and unforgettable safari stays", image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1000" },
+  { name: "Mount Kenya", searchDestination: "Mount Kenya", description: "Mountain escapes, highlands and adventure", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000" },
+  { name: "Samburu", searchDestination: "Samburu", description: "Northern landscapes and unique wildlife", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
 ];
 
 const stays = [
@@ -127,40 +80,6 @@ export default function Home() {
   const [budget, setBudget] = useState("any");
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const [databaseDestinations, setDatabaseDestinations] = useState<
-    DatabaseDestination[]
-  >([]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadDestinations() {
-      try {
-        const response = await fetch("/api/destinations");
-
-        if (!response.ok) {
-          throw new Error("Unable to load destinations.");
-        }
-
-        const result = await response.json();
-
-        if (result.success && Array.isArray(result.destinations)) {
-          if (isMounted) {
-            setDatabaseDestinations(result.destinations);
-          }
-        }
-      } catch (error) {
-        console.error("Destination loading error:", error);
-      }
-    }
-
-    loadDestinations();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const currentDate = new Date();
   const today = [
@@ -207,31 +126,24 @@ export default function Home() {
   const money = (amount: number) =>
     `KSh ${amount.toLocaleString("en-KE")}`;
 
-  const destinationSuggestions =
-    databaseDestinations.length > 0
-      ? databaseDestinations
-      : destinationHighlights.map((item, index) => ({
-          id: `fallback-${index}`,
-          name: item.name,
-          city: item.name,
-          county: null,
-          country: "Kenya",
-          country_code: "KE",
-          active: true,
-        }));
+  const destinationSuggestions = destinationHighlights.map((item, index) => ({
+    id: `popular-${index}`,
+    name: item.name,
+  }));
 
   return (
     <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur">
         <div className="container flex h-20 items-center justify-between">
-          <a href="/" className="text-3xl font-bold tracking-tight">
+          <Link href="/" className="text-3xl font-bold tracking-tight">
             Zuri<span className="text-[#c49a52]">Stay</span>
-          </a>
+          </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
             <a href="#destinations" className="hover:text-[#c49a52]">
               Explore
             </a>
+            <a href="/destinations" className="hover:text-[#c49a52]">All destinations</a>
             <a href="#featured" className="hover:text-[#c49a52]">
               Featured stays
             </a>
@@ -243,16 +155,34 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2 lg:flex">
+            <a
+              href="/partner/dashboard"
+              className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
+            >
+              Already a partner
+            </a>
+            <a
+              href="/admin"
+              className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
+            >
+              Admin portal
+            </a>
+            <a
+              href="/partner/register"
+              className="rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#ae8540]"
+            >
+              Become a partner
+            </a>
             <a
               href="/login"
-              className="rounded-full px-5 py-3 text-sm font-semibold hover:bg-gray-100"
+              className="rounded-full px-3 py-2.5 text-xs font-semibold hover:bg-gray-100"
             >
               Sign in
             </a>
             <a
               href="/register"
-              className="rounded-full bg-[#173b30] px-6 py-3 text-sm font-semibold text-white hover:bg-[#245545]"
+              className="rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#245545]"
             >
               Register
             </a>
@@ -273,6 +203,7 @@ export default function Home() {
             <a href="#destinations" onClick={() => setMenuOpen(false)}>
               Explore
             </a>
+            <a href="/destinations" onClick={() => setMenuOpen(false)}>All destinations</a>
             <a href="#featured" onClick={() => setMenuOpen(false)}>
               Featured stays
             </a>
@@ -282,8 +213,11 @@ export default function Home() {
             <a href="#partners" onClick={() => setMenuOpen(false)}>
               List your property
             </a>
-            <a href="/login">Sign in</a>
-            <a href="/register">Register</a>
+            <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>
+            <a href="/admin" onClick={() => setMenuOpen(false)}>Admin portal</a>
+            <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay partner</a>
+            <a href="/login" onClick={() => setMenuOpen(false)}>Sign in</a>
+            <a href="/register" onClick={() => setMenuOpen(false)}>Register</a>
           </nav>
         )}
       </header>
@@ -469,13 +403,13 @@ export default function Home() {
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              EXPLORE THE WORLD
+              EXPLORE KENYA
             </p>
             <h2 className="text-3xl font-bold md:text-4xl">
-              Popular destinations
+              Kenya&apos;s top tourist destinations
             </h2>
             <p className="mt-3 text-gray-500">
-              Find inspiration for your next getaway.
+              From world-famous safari landscapes to the Indian Ocean coast and highland retreats.
             </p>
           </div>
           <a href="#featured" className="flex items-center gap-2 text-sm font-bold">
@@ -489,9 +423,15 @@ export default function Home() {
               type="button"
               key={item.name}
               onClick={() => {
-                setDestination(item.name);
-                setSearchMessage("");
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                const params = new URLSearchParams({
+                  destination: item.searchDestination,
+                  checkIn,
+                  checkOut,
+                  guests,
+                  rooms,
+                  budget,
+                });
+                window.location.href = `/search?${params.toString()}`;
               }}
               className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
             >
@@ -513,6 +453,15 @@ export default function Home() {
               </div>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="container pb-20">
+        <div className="rounded-3xl border border-[#e8dfcf] bg-[#f4eee2] px-7 py-10 text-center md:px-14">
+          <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#9a7439]">FIND YOUR PLACE IN KENYA</p>
+          <h2 className="text-3xl font-bold md:text-4xl">Looking for somewhere else?</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-gray-600">Explore all 47 counties, 334 sub-counties and 148 major urban centres in our nationwide destination directory.</p>
+          <a href="/destinations" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#173b30] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#245545]">Browse all Kenya destinations <ArrowRight size={17} /></a>
         </div>
       </section>
 

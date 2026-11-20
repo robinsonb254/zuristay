@@ -11,84 +11,33 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const featuredProperties = [
-  {
-    id: "1",
-    name: "Ocean View Resort",
-    location: "Diani Beach, Kwale",
-    type: "Resort",
-    price: 12500,
-    rating: 4.9,
-    reviews: 128,
-    facilities: ["Swimming pool", "Free Wi-Fi", "Beach access"],
-    description:
-      "Enjoy a relaxing coastal escape at Ocean View Resort. Experience beautiful surroundings, comfortable accommodation and convenient access to the beach.",
-    image:
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1400",
-    gallery: [
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000",
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-      "https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?w=1000",
-    ],
-  },
-  {
-    id: "2",
-    name: "The City Garden Hotel",
-    location: "Nairobi, Kenya",
-    type: "Hotel",
-    price: 8500,
-    rating: 4.8,
-    reviews: 96,
-    facilities: ["Restaurant", "Free Wi-Fi", "Parking"],
-    description:
-      "Discover comfortable city accommodation at The City Garden Hotel. Conveniently positioned for guests visiting Nairobi for business, leisure or family trips.",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400",
-    gallery: [
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-      "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=1000",
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1000",
-    ],
-  },
-  {
-    id: "3",
-    name: "Palm Breeze Villas",
-    location: "Watamu, Kilifi",
-    type: "Villa",
-    price: 18000,
-    rating: 4.9,
-    reviews: 74,
-    facilities: ["Private pool", "Kitchen", "Free Wi-Fi"],
-    description:
-      "Relax in the comfort of Palm Breeze Villas in Watamu. Enjoy a private villa experience with convenient facilities and a peaceful coastal atmosphere.",
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1400",
-    gallery: [
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000",
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1000",
-      "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1000",
-    ],
-  },
-];
-
 const money = (amount: number, currency = "KSh") =>
   `${currency} ${amount.toLocaleString("en-KE")}`;
 
+type LiveUnit = { id: string; name: string; unit_type: string | null; description: string | null; capacity: number; total_units: number; base_rate: number; customer_rate: number; currency: string; };
+type LiveImage = { id: string; image_url: string; caption: string | null; is_cover: boolean; display_order: number; };
+type LiveAmenity = { id: string; name: string; category: string | null; };
+type LiveProperty = {
+  id: string; name: string; property_type: string; description: string | null;
+  address: string | null; city: string; sub_county: string | null; county: string | null;
+  country: string; currency: string; units: LiveUnit[]; images: LiveImage[]; amenities: LiveAmenity[];
+  location?: string; facilities?: string[]; gallery?: string[]; image?: string; price?: number;
+  type?: string; rating?: number; reviews?: number;
+};
+
 export default async function PropertyDetailsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ checkIn?: string; checkOut?: string; guests?: string; rooms?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
 
-  const featuredProperty = featuredProperties.find(
-    (item) => item.id === id
-  );
-
-  let liveProperty: any = null;
+  let liveProperty: LiveProperty | null = null;
   let loadingError = false;
 
-  if (!featuredProperty) {
+  {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -98,7 +47,7 @@ export default async function PropertyDetailsPage({
       const { data: property, error: propertyError } = await supabase
         .from("properties")
         .select(
-          "id, name, property_type, description, address, city, county, country, currency"
+          "id, name, property_type, description, address, city, sub_county, county, country, currency"
         )
         .eq("id", id)
         .eq("status", "approved")
@@ -204,7 +153,7 @@ export default async function PropertyDetailsPage({
     }
   }
 
-  const property = featuredProperty || liveProperty;
+  const property = liveProperty;
 
   if (!property || loadingError) {
     return (
@@ -232,11 +181,19 @@ export default async function PropertyDetailsPage({
   }
 
   const isLiveProperty = Boolean(liveProperty);
+  const bookingQuery = new URLSearchParams();
+  if (query.checkIn) bookingQuery.set("checkIn", query.checkIn);
+  if (query.checkOut) bookingQuery.set("checkOut", query.checkOut);
+  if (query.guests) bookingQuery.set("guests", query.guests);
+  if (query.rooms) bookingQuery.set("rooms", query.rooms);
+  const bookingQueryString = bookingQuery.toString();
+  const bookingHref = `/booking?propertyId=${property.id}${bookingQueryString ? `&${bookingQueryString}` : ""}`;
 
   const location = isLiveProperty
     ? [
         property.address,
         property.city,
+        property.sub_county,
         property.county,
         property.country,
       ]
@@ -245,18 +202,18 @@ export default async function PropertyDetailsPage({
     : property.location;
 
   const facilities = isLiveProperty
-    ? property.amenities.map((item: any) => item.name)
-    : property.facilities;
+    ? property.amenities.map((item) => item.name)
+    : property.facilities ?? [];
 
   const gallery = isLiveProperty
-    ? property.images.map((item: any) => item.image_url)
-    : property.gallery;
+    ? property.images.map((item) => item.image_url)
+    : property.gallery ?? [];
 
   const coverImage = isLiveProperty
-    ? property.images.find((item: any) => item.is_cover)?.image_url ||
+    ? property.images.find((item) => item.is_cover)?.image_url ||
       property.images[0]?.image_url ||
       ""
-    : property.image;
+    : property.image ?? "";
 
   const currency = isLiveProperty
     ? property.currency
@@ -265,10 +222,10 @@ export default async function PropertyDetailsPage({
   const startingRate = isLiveProperty
     ? property.units.length > 0
       ? Math.min(
-          ...property.units.map((unit: any) => unit.customer_rate)
+          ...property.units.map((unit) => unit.customer_rate)
         )
       : null
-    : property.price;
+    : property.price ?? null;
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
@@ -420,7 +377,7 @@ export default async function PropertyDetailsPage({
 
                 <div className="mt-5 space-y-4">
                   {property.units.length > 0 ? (
-                    property.units.map((unit: any) => (
+                    property.units.map((unit) => (
                       <div
                         key={unit.id}
                         className="rounded-2xl border border-slate-200 bg-white p-5"
@@ -503,12 +460,21 @@ export default async function PropertyDetailsPage({
               </p>
 
               {isLiveProperty ? (
-                <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-                  Booking options for this property will be enabled after the booking page is connected to live listings.
-                </div>
+                property.units.length > 0 ? (
+                  <Link
+                    href={bookingHref}
+                    className="mt-6 block w-full rounded-xl bg-orange-500 px-5 py-4 text-center font-bold text-white transition hover:bg-orange-600"
+                  >
+                    Check availability and reserve
+                  </Link>
+                ) : (
+                  <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">
+                    Room options are being updated. Please check back shortly.
+                  </div>
+                )
               ) : (
                 <Link
-                  href={`/booking?propertyId=${property.id}`}
+                  href={bookingHref}
                   className="mt-6 block w-full rounded-xl bg-orange-500 px-5 py-4 text-center font-bold text-white transition hover:bg-orange-600"
                 >
                   Check booking options

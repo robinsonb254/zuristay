@@ -13,6 +13,23 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+type KenyaCounty = {
+  county_code: number;
+  name: string;
+  subcounties: { subcounty_code: string; name: string; county_code: number }[];
+};
+
+function normalizeCountyName(value: string) {
+  return value.toLowerCase().replace(/\s+city$/, "").trim();
+}
+
+function destinationBelongsToCounty(destinationCounty: string | null, countyName: string) {
+  if (!destinationCounty) return false;
+  const target = normalizeCountyName(countyName);
+  return normalizeCountyName(destinationCounty) === target ||
+    destinationCounty.split(/[\/,]/).some((part) => normalizeCountyName(part) === target);
+}
+
 type Destination = {
   id: string;
   name: string;
@@ -40,6 +57,9 @@ export default function NewPartnerPropertyPage() {
   const router = useRouter();
 
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [counties, setCounties] = useState<KenyaCounty[]>([]);
+  const [countyCode, setCountyCode] = useState("");
+  const [subCountyCode, setSubCountyCode] = useState("");
   const [loadingDestinations, setLoadingDestinations] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pageError, setPageError] = useState("");
@@ -83,8 +103,20 @@ export default function NewPartnerPropertyPage() {
 
         setDestinations(rows);
 
-        if (rows.length > 0) {
-          setDestinationId(rows[0].id);
+        const locationsResponse = await fetch("/api/kenya-locations", { cache: "no-store" });
+        const locationsResult = await locationsResponse.json();
+        if (!locationsResponse.ok || !locationsResult.success) {
+          throw new Error(locationsResult.error || "Unable to load Kenya counties and sub-counties.");
+        }
+        const countyRows: KenyaCounty[] = locationsResult.counties || [];
+        setCounties(countyRows);
+        if (countyRows.length > 0) {
+          const firstCounty = countyRows[0];
+          setCountyCode(String(firstCounty.county_code));
+          const firstDestination = rows.find((destination) =>
+            destinationBelongsToCounty(destination.county, firstCounty.name)
+          );
+          if (firstDestination) setDestinationId(firstDestination.id);
         }
       } catch (error) {
         setPageError(
@@ -134,6 +166,8 @@ export default function NewPartnerPropertyPage() {
           name,
           propertyType,
           destinationId,
+          countyCode: Number(countyCode),
+          subCountyCode,
           address,
           description,
           currency,
@@ -173,6 +207,12 @@ export default function NewPartnerPropertyPage() {
       setSubmitting(false);
     }
   }
+
+  const selectedCounty = counties.find((county) => String(county.county_code) === countyCode);
+  const subcountyOptions = selectedCounty?.subcounties || [];
+  const countyDestinations = destinations.filter((destination) =>
+    destinationBelongsToCounty(destination.county, selectedCounty?.name || "")
+  );
 
   const fieldClass =
     "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100";
@@ -291,6 +331,56 @@ export default function NewPartnerPropertyPage() {
                 </div>
 
                 <div>
+                  <label className={labelClass} htmlFor="county">
+                    County *
+                  </label>
+                  <select
+                    id="county"
+                    className={fieldClass}
+                    value={countyCode}
+                    onChange={(e) => {
+                      const nextCode = e.target.value;
+                      const nextCounty = counties.find((county) => String(county.county_code) === nextCode);
+                      setCountyCode(nextCode);
+                      setSubCountyCode("");
+                      const firstDestination = destinations.find((destination) =>
+                        destinationBelongsToCounty(destination.county, nextCounty?.name || "")
+                      );
+                      setDestinationId(firstDestination?.id || "");
+                    }}
+                    required
+                  >
+                    <option value="">Choose a county</option>
+                    {counties.map((county) => (
+                      <option key={county.county_code} value={county.county_code}>
+                        {county.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass} htmlFor="subCounty">
+                    Sub-county *
+                  </label>
+                  <select
+                    id="subCounty"
+                    className={fieldClass}
+                    value={subCountyCode}
+                    onChange={(e) => setSubCountyCode(e.target.value)}
+                    required
+                    disabled={!countyCode}
+                  >
+                    <option value="">Choose a sub-county</option>
+                    {subcountyOptions.map((subcounty) => (
+                      <option key={subcounty.subcounty_code} value={subcounty.subcounty_code}>
+                        {subcounty.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className={labelClass} htmlFor="destination">
                     Destination *
                   </label>
@@ -302,7 +392,7 @@ export default function NewPartnerPropertyPage() {
                     required
                   >
                     <option value="">Choose a destination</option>
-                    {destinations.map((destination) => (
+                    {countyDestinations.map((destination) => (
                       <option key={destination.id} value={destination.id}>
                         {destination.name}
                         {destination.county
@@ -314,7 +404,7 @@ export default function NewPartnerPropertyPage() {
                       </option>
                     ))}
                   </select>
-                  {destinations.length === 0 && (
+                  {countyDestinations.length === 0 && (
                     <p className="mt-2 text-sm text-red-600">
                       No active destinations were returned. Please try again later.
                     </p>

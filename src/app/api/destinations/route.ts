@@ -19,8 +19,9 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("destinations")
-    .select("id, name, city, county, country, country_code, active")
+    .select("id, name, city, county, country, country_code, active, destination_type, population_2019, sort_order")
     .eq("active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("city", { ascending: true });
 
   if (error) {
