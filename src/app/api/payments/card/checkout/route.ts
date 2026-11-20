@@ -196,17 +196,22 @@ export async function POST(request: NextRequest) {
         throw new Error("Card provider returned an invalid hosted checkout session.");
       }
 
+      const providerExpiry = session.expiresAt ? new Date(session.expiresAt).getTime() : Number.NaN;
+      const durableSessionExpiry = Number.isFinite(providerExpiry)
+        ? Math.min(providerExpiry, holdExpiry)
+        : Math.min(Date.now() + sessionDurationMinutes * 60_000, holdExpiry);
+
+      if (durableSessionExpiry <= Date.now()) {
+        throw new Error("Card provider returned an already-expired checkout session.");
+      }
+
       const { error: sessionError } = await db.from("card_payment_sessions").insert({
         payment_id: payment.id,
         provider: provider.name,
         provider_session_id: session.providerSessionId,
         checkout_url: session.checkoutUrl,
         status: "created",
-        // Keep a durable expiry even if the provider omits one. The value
-        // is capped at the inventory hold so a stale attempt can be released.
-        expires_at: session.expiresAt
-          ? new Date(Math.min(new Date(session.expiresAt).getTime(), holdExpiry)).toISOString()
-          : new Date(Math.min(Date.now() + sessionDurationMinutes * 60_000, holdExpiry)).toISOString(),
+        expires_at: new Date(durableSessionExpiry).toISOString(),
         metadata: session.metadata ?? {},
       });
 
