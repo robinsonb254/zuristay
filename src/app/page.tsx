@@ -402,7 +402,7 @@ export default function Home() {
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              EXPLORE THE WORLD
+              EXPLORE KENYA
             </p>
             <h2 className="text-3xl font-bold md:text-4xl">
               Kenya's top tourist destinations
