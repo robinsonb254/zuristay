@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -80,6 +80,66 @@ export default function Home() {
   const [budget, setBudget] = useState("any");
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>(
+    destinationHighlights.map((item) => item.name)
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadKenyaLocations() {
+      try {
+        const [destinationResponse, countyResponse] = await Promise.all([
+          fetch("/api/destinations"),
+          fetch("/api/kenya-locations"),
+        ]);
+        const [destinationData, countyData] = await Promise.all([
+          destinationResponse.json(),
+          countyResponse.json(),
+        ]);
+
+        const towns: string[] =
+          destinationResponse.ok && destinationData.success
+            ? (destinationData.destinations || [])
+                .map((item: { city?: string | null }) => item.city || "")
+                .filter(Boolean)
+            : [];
+        const administrativeAreas: string[] =
+          countyResponse.ok && countyData.success
+            ? (countyData.counties || []).flatMap(
+                (county: {
+                  name: string;
+                  subcounties?: { name: string }[];
+                }) => [
+                  county.name,
+                  ...(county.subcounties || []).map(
+                    (subcounty) => `${subcounty.name}, ${county.name}`
+                  ),
+                ]
+              )
+            : [];
+
+        if (active) {
+          setLocationSuggestions(
+            Array.from(
+              new Set([
+                ...destinationHighlights.map((item) => item.name),
+                ...towns,
+                ...administrativeAreas,
+              ])
+            ).sort((a, b) => a.localeCompare(b))
+          );
+        }
+      } catch (error) {
+        console.error("Kenya destination suggestions could not be loaded:", error);
+      }
+    }
+
+    loadKenyaLocations();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const currentDate = new Date();
   const today = [
@@ -126,10 +186,6 @@ export default function Home() {
   const money = (amount: number) =>
     `KSh ${amount.toLocaleString("en-KE")}`;
 
-  const destinationSuggestions = destinationHighlights.map((item, index) => ({
-    id: `popular-${index}`,
-    name: item.name,
-  }));
 
   return (
     <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
@@ -271,8 +327,8 @@ export default function Home() {
                   className="w-full bg-transparent text-sm text-gray-600 outline-none"
                 />
                 <datalist id="destinations-list">
-                  {destinationSuggestions.map((item) => (
-                    <option key={item.id} value={item.name} />
+                  {locationSuggestions.map((item) => (
+                    <option key={item} value={item} />
                   ))}
                 </datalist>
               </div>
