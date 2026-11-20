@@ -107,7 +107,7 @@ export async function PUT(request: NextRequest) {
     };
 
     if (method === "mpesa") {
-      const raw = typeof body.mpesa_phone === "string" ? body.mpesa_phone.replace(/\\s+/g, "") : "";
+      const raw = typeof body.mpesa_phone === "string" ? body.mpesa_phone.replace(/\s+/g, "") : "";
       const digits = raw.replace(/[^0-9]/g, "");
       const normalized = /^0[17][0-9]{8}$/.test(digits) ? "254" + digits.slice(1)
         : /^254[17][0-9]{8}$/.test(digits) ? digits
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
       const type = body.merchant_type;
       const number = typeof body.merchant_number === "string" ? body.merchant_number.trim() : "";
       const account = typeof body.merchant_account_number === "string" ? body.merchant_account_number.trim() : "";
-      if (!["till", "paybill"].includes(type) || !/^\\d{5,8}$/.test(number)) {
+      if (!["till", "paybill"].includes(type) || !/^\d{5,8}$/.test(number)) {
         return fail("Choose Till or Paybill and enter a valid business number.", 400);
       }
       if (type === "paybill" && (account.length < 1 || account.length > 40)) {
@@ -130,7 +130,7 @@ export async function PUT(request: NextRequest) {
     } else {
       const bank = typeof body.bank_name === "string" ? body.bank_name.trim() : "";
       const accountName = typeof body.bank_account_name === "string" ? body.bank_account_name.trim() : "";
-      const accountNumber = typeof body.bank_account_number === "string" ? body.bank_account_number.trim().replace(/\\s+/g, "") : "";
+      const accountNumber = typeof body.bank_account_number === "string" ? body.bank_account_number.trim().replace(/\s+/g, "") : "";
       const branch = typeof body.bank_branch === "string" ? body.bank_branch.trim() : "";
       if (bank.length < 2 || bank.length > 100 || accountName.length < 2 || accountName.length > 120 || !/^[A-Za-z0-9-]{4,34}$/.test(accountNumber) || branch.length > 100) {
         return fail("Enter valid bank, account name and account number details.", 400);
