@@ -133,7 +133,18 @@ export async function POST(request: NextRequest) {
 
       if (sessionError) {
         console.error("Card provider created a session but it could not be recorded:", sessionError);
-        return reply("The secure checkout session could not be recorded. Contact ZuriStay support before retrying.", 503);
+        // The checkout URL is not returned to the browser unless its session
+        // reference is durable. Release the pending-attempt constraint so the
+        // guest is not permanently blocked by an unreachable provider session.
+        const { error: releaseError } = await db
+          .from("payments")
+          .update({ status: "failed" })
+          .eq("id", payment.id)
+          .eq("status", "pending");
+        if (releaseError) {
+          console.error("Unable to release unrecorded card payment attempt:", releaseError);
+        }
+        return reply("The secure checkout session could not be recorded. Please try again or use M-Pesa.", 503);
       }
 
       return NextResponse.json({
