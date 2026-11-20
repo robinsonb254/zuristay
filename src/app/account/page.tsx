@@ -721,6 +721,18 @@ export default function AccountPage() {
                           <p className="font-semibold text-slate-800">{booking.guest_name}</p>
                         </div>
                         <div>
+                          <p className="text-xs text-slate-500">Accommodation</p>
+                          <p className="font-semibold text-slate-800">
+                            {details?.propertyNames.join(", ") || "ZuriStay accommodation"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Stay dates</p>
+                          <p className="font-semibold text-slate-800">
+                            {formatDate(booking.check_in)} – {formatDate(booking.check_out)}
+                          </p>
+                        </div>
+                        <div>
                           <p className="text-xs text-slate-500">Payment date</p>
                           <p className="font-semibold text-slate-800">
                             {formatDate(
