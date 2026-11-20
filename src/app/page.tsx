@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import {
   Search,
   MapPin,
@@ -134,9 +135,9 @@ export default function Home() {
     <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur">
         <div className="container flex h-20 items-center justify-between">
-          <a href="/" className="text-3xl font-bold tracking-tight">
+          <Link href="/" className="text-3xl font-bold tracking-tight">
             Zuri<span className="text-[#c49a52]">Stay</span>
-          </a>
+          </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
             <a href="#destinations" className="hover:text-[#c49a52]">
