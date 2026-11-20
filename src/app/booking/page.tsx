@@ -14,6 +14,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import BrandedCheckout from "@/components/payments/branded-checkout";
 
 type Unit = {
   id: string;
@@ -633,50 +634,20 @@ export default function BookingPage() {
             </section>
           )}
 
-          <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-left print:hidden">
-            <h2 className="font-bold text-blue-950">
-              {paymentState === "paid" ? "M-Pesa payment confirmed" : "Pay securely with M-Pesa"}
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              {paymentState === "paid"
-                ? "Your payment was received and verified by ZuriStay."
-                : "We will send an STK Push to the guest phone number entered for this booking."}
-            </p>
-            {paymentState !== "paid" && <label className="mt-4 block text-sm font-semibold text-slate-700">
-              M-Pesa phone number
-              <input
-                type="tel"
-                value={paymentPhone}
-                onChange={(event) => setPaymentPhone(event.target.value)}
-                placeholder="+254 7XX XXX XXX"
-                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-orange-500"
-              />
-            </label>}
-            {paymentError && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{paymentError}</p>}
-            {paymentMessage && <p role="status" className="mt-3 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">{paymentMessage}</p>}
-            {(paymentState === "idle" || paymentState === "failed") && (
-              <button
-                type="button"
-                onClick={startMpesaPayment}
-                disabled={startingPayment}
-                className="mt-4 w-full rounded-xl bg-green-600 px-5 py-4 font-bold text-white transition hover:bg-green-700 disabled:opacity-60"
-              >
-                {startingPayment ? "Sending M-Pesa prompt..." : paymentState === "failed" ? "Try M-Pesa again" : "Pay with M-Pesa"}
-              </button>
-            )}
-            {paymentState === "waiting" && (
-              <p className="mt-4 text-sm font-semibold text-blue-900">Waiting for secure payment confirmation…</p>
-            )}
-            {paymentState === "timeout" && (
-              <button
-                type="button"
-                onClick={() => setPaymentState("waiting")}
-                className="mt-4 w-full rounded-xl border border-blue-900 px-5 py-3 font-bold text-blue-950"
-              >
-                Check payment status again
-              </button>
-            )}
-          </div>
+          <BrandedCheckout
+            bookingReference={booking.booking_reference}
+            amount={Number(booking.total_amount)}
+            currency={booking.currency}
+            paymentState={paymentState}
+            paymentPhone={paymentPhone}
+            onPaymentPhoneChange={setPaymentPhone}
+            onStartMpesaPayment={startMpesaPayment}
+            onCheckStatus={() => setPaymentState("waiting")}
+            startingPayment={startingPayment}
+            paymentError={paymentError}
+            paymentMessage={paymentMessage}
+            paymentReference={paymentReference}
+          />
 
           {paymentState !== "paid" && (
             <p className="mt-5 text-xs text-slate-500">
