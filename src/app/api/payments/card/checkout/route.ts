@@ -46,24 +46,88 @@ export async function POST(request: NextRequest) {
       return reply("This booking is no longer awaiting payment.", 409);
     }
 
+    const now = Date.now();
+    const { data: pendingAttempts, error: pendingAttemptError } = await db
+      .from("payments")
+      .select("id")
+      .eq("booking_id", bookingId)
+      .eq("payment_method", "card")
+      .eq("status", "pending");
+
+    if (pendingAttemptError) {
+      console.error("Unable to inspect pending card attempts:", pendingAttemptError);
+      return reply("Unable to check the previous card checkout. Please try again shortly.", 500);
+    }
+
+    const pendingPaymentIds = (pendingAttempts ?? []).map((attempt) => attempt.id);
+    const { data: pendingSessions, error: pendingSessionError } = pendingPaymentIds.length
+      ? await db
+          .from("card_payment_sessions")
+          .select("id, payment_id, expires_at")
+          .in("payment_id", pendingPaymentIds)
+      : { data: [], error: null };
+
+    if (pendingSessionError) {
+      console.error("Unable to inspect pending card sessions:", pendingSessionError);
+      return reply("Unable to check the previous card checkout. Please try again shortly.", 500);
+    }
+
     const { data: activeHolds, error: holdError } = await db
       .from("booking_holds")
       .select("expires_at")
       .eq("booking_id", bookingId)
       .eq("status", "active")
-      .gt("expires_at", new Date().toISOString())
       .limit(1);
 
-    if (holdError || !activeHolds?.length) {
+    if (holdError) {
+      console.error("Unable to inspect booking hold:", holdError);
+      return reply("Unable to verify your room hold. Please try again shortly.", 500);
+    }
+
+    const holdExpiry = activeHolds?.[0]?.expires_at
+      ? new Date(activeHolds[0].expires_at).getTime()
+      : Number.NaN;
+    const holdIsExpired = !Number.isFinite(holdExpiry) || holdExpiry <= now;
+    const expiredSessions = (pendingSessions ?? []).filter((session) =>
+      holdIsExpired || (session.expires_at && new Date(session.expires_at).getTime() <= now)
+    );
+
+    if (expiredSessions.length) {
+      const expiredSessionIds = expiredSessions.map((session) => session.id);
+      const expiredPaymentIds = expiredSessions.map((session) => session.payment_id);
+      const [{ error: expirePaymentError }, { error: expireSessionError }] = await Promise.all([
+        db.from("payments").update({ status: "failed" }).in("id", expiredPaymentIds).eq("status", "pending"),
+        db.from("card_payment_sessions").update({ status: "expired" }).in("id", expiredSessionIds).neq("status", "completed"),
+      ]);
+      if (expirePaymentError || expireSessionError) {
+        console.error("Unable to release expired card checkout attempts:", { expirePaymentError, expireSessionError });
+        return reply("An expired card checkout needs reconciliation. Please try again shortly.", 500);
+      }
+    }
+
+    if (holdIsExpired) {
+      // A booking without a live inventory hold cannot be paid. Release any
+      // pending initiation rows, including attempts whose provider session
+      // could not be recorded, so they do not leave a stale uniqueness lock.
+      if (pendingPaymentIds.length) {
+        const { error: releaseError } = await db
+          .from("payments")
+          .update({ status: "failed" })
+          .in("id", pendingPaymentIds)
+          .eq("status", "pending");
+        if (releaseError) {
+          console.error("Unable to release card attempts after hold expiry:", releaseError);
+          return reply("The expired card checkout needs reconciliation. Please try again shortly.", 500);
+        }
+      }
       return reply("Your room hold has expired. Please create a new booking.", 409);
     }
 
     // Never create a provider checkout that can outlive the inventory hold.
     // Flutterwave accepts a duration in minutes, so round down and reject a
     // hold with less than one full minute remaining.
-    const holdExpiry = new Date(activeHolds[0].expires_at).getTime();
-    const remainingHoldSeconds = Math.floor((holdExpiry - Date.now()) / 1000);
-    if (!Number.isFinite(holdExpiry) || remainingHoldSeconds < 60) {
+    const remainingHoldSeconds = Math.floor((holdExpiry - now) / 1000);
+    if (remainingHoldSeconds < 60) {
       return reply("Your room hold is almost over. Please create a new booking before paying.", 409);
     }
     const sessionDurationMinutes = Math.min(30, Math.floor(remainingHoldSeconds / 60));
@@ -138,7 +202,11 @@ export async function POST(request: NextRequest) {
         provider_session_id: session.providerSessionId,
         checkout_url: session.checkoutUrl,
         status: "created",
-        expires_at: session.expiresAt ?? null,
+        // Keep a durable expiry even if the provider omits one. The value
+        // is capped at the inventory hold so a stale attempt can be released.
+        expires_at: session.expiresAt
+          ? new Date(Math.min(new Date(session.expiresAt).getTime(), holdExpiry)).toISOString()
+          : new Date(Math.min(Date.now() + sessionDurationMinutes * 60_000, holdExpiry)).toISOString(),
         metadata: session.metadata ?? {},
       });
 
