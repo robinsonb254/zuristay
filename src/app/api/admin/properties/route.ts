@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     let query = context.admin
       .from("properties")
       .select(
-        "id, partner_id, destination_id, name, property_type, description, address, city, county, country, currency, contact_phone, contact_email, status, is_active, created_at, partner:property_partners(business_name, contact_person, email, phone)"
+        "id, partner_id, destination_id, name, property_type, description, address, city, sub_county, county, country, currency, contact_phone, contact_email, status, is_active, created_at, partner:property_partners(business_name, contact_person, email, phone)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
