@@ -26,6 +26,15 @@ type DatabaseDestination = {
   country: string;
   country_code: string;
   active: boolean;
+  destination_type?: string;
+  population_2019?: number | null;
+  sort_order?: number | null;
+};
+
+type KenyaCounty = {
+  county_code: number;
+  name: string;
+  subcounties: { subcounty_code: string; name: string }[];
 };
 
 const destinationHighlights = [
@@ -131,6 +140,7 @@ export default function Home() {
   const [databaseDestinations, setDatabaseDestinations] = useState<
     DatabaseDestination[]
   >([]);
+  const [kenyaCounties, setKenyaCounties] = useState<KenyaCounty[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -149,6 +159,12 @@ export default function Home() {
           if (isMounted) {
             setDatabaseDestinations(result.destinations);
           }
+        }
+
+        const locationsResponse = await fetch("/api/kenya-locations");
+        const locationsResult = await locationsResponse.json();
+        if (locationsResponse.ok && locationsResult.success && isMounted) {
+          setKenyaCounties(locationsResult.counties || []);
         }
       } catch (error) {
         console.error("Destination loading error:", error);
@@ -534,6 +550,97 @@ export default function Home() {
               </div>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section id="kenya-counties" className="container py-20">
+        <div className="mb-9">
+          <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
+            EVERY CORNER OF KENYA
+          </p>
+          <h2 className="text-3xl font-bold md:text-4xl">
+            Explore all 47 counties
+          </h2>
+          <p className="mt-3 max-w-2xl text-gray-500">
+            Browse counties and their sub-counties. Select an area to search for accommodation.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {kenyaCounties.map((county) => (
+            <details key={county.county_code} className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-[#173b30]">
+                <span>{county.name}</span>
+                <span className="rounded-full bg-[#f4eee2] px-3 py-1 text-xs font-semibold text-[#8d6a31]">
+                  {county.subcounties.length} sub-counties
+                </span>
+              </summary>
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination(county.name);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="rounded-full bg-[#173b30] px-3 py-1.5 text-xs font-semibold text-white"
+                >
+                  Search county
+                </button>
+                {county.subcounties.map((subcounty) => (
+                  <button
+                    type="button"
+                    key={subcounty.subcounty_code}
+                    onClick={() => {
+                      setDestination(`${subcounty.name}, ${county.name}`);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f4eee2]"
+                  >
+                    {subcounty.name}
+                  </button>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section id="urban-centres" className="bg-white py-20">
+        <div className="container">
+          <div className="mb-9">
+            <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
+              NATIONWIDE DESTINATION DIRECTORY
+            </p>
+            <h2 className="text-3xl font-bold md:text-4xl">
+              Major towns and urban centres
+            </h2>
+            <p className="mt-3 max-w-2xl text-gray-500">
+              Browse urban centres ranked by their 2019 census population. Search results show actual approved accommodation listings.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {databaseDestinations
+              .filter((item) => item.population_2019 !== null && item.population_2019 !== undefined)
+              .sort((a, b) => (a.sort_order ?? 999999) - (b.sort_order ?? 999999))
+              .map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => {
+                    setDestination(item.city);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-[#faf9f6] px-4 py-3 text-left transition hover:border-[#c49a52] hover:bg-white"
+                >
+                  <span>
+                    <span className="block text-sm font-semibold text-[#173b30]">{item.city}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">{item.county}</span>
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-gray-400">
+                    {Number(item.population_2019).toLocaleString("en-KE")}
+                  </span>
+                </button>
+              ))}
+          </div>
         </div>
       </section>
 
