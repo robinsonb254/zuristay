@@ -23,7 +23,11 @@ export default function CardPaymentReturnPage() {
   const [message, setMessage] = useState("Checking your booking payment...");
   const [loading, setLoading] = useState(true);
 
-  const checkStatus = useCallback(async (id: string, bookingReference: string) => {
+  const checkStatus = useCallback(async (
+    id: string,
+    bookingReference: string,
+    transactionReference = ""
+  ) => {
     if (!id) {
       setMessage("The booking reference is missing. Please contact ZuriStay support.");
       setLoading(false);
@@ -56,7 +60,7 @@ export default function CardPaymentReturnPage() {
             "Content-Type": "application/json",
             "x-booking-access-token": accessToken,
           },
-          body: JSON.stringify({ booking_id: id }),
+          body: JSON.stringify({ booking_id: id, tx_ref: transactionReference || undefined }),
         });
         const verificationResult = await verificationResponse.json();
         if (!verificationResponse.ok) {
@@ -94,9 +98,10 @@ export default function CardPaymentReturnPage() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("booking_id") || "";
     const bookingReference = params.get("reference") || "";
+    const transactionReference = params.get("tx_ref") || "";
     setBookingId(id);
     setReference(bookingReference);
-    void checkStatus(id, bookingReference);
+    void checkStatus(id, bookingReference, transactionReference);
   }, [checkStatus]);
 
   const paid = status?.payment_status === "paid" && status.booking_status === "confirmed";
