@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         BusinessShortCode: config.shortcode,
         Password: darajaPassword(config.shortcode, config.passkey, timestamp),
         Timestamp: timestamp,
-        TransactionType: "CustomerPayBillOnline",
+        TransactionType: "CustomerBuyGoodsOnline",
         Amount: amount,
         PartyA: phone,
         PartyB: config.shortcode,
