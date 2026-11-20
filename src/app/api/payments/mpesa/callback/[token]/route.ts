@@ -77,6 +77,13 @@ export async function POST(
       last_error: null,
     }).eq("id", callbackEvent.id);
 
+    const markForReview = async (reason: string) => {
+      await db.from("mpesa_callback_events").update({
+        processing_status: "needs_review",
+        last_error: reason.slice(0, 1000),
+      }).eq("id", callbackEvent.id);
+    };
+
     const { data: pendingPayment, error: paymentLookupError } = await db
       .from("payments")
       .select("id, booking_id, amount, currency, status")
@@ -86,7 +93,8 @@ export async function POST(
 
     if (paymentLookupError || !pendingPayment) {
       console.error("Unknown M-Pesa checkout callback:", paymentLookupError);
-      return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
+      await markForReview("No matching pending payment record was found.");
+      return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for reconciliation" });
     }
 
     if (pendingPayment.status !== "pending") {
@@ -101,6 +109,7 @@ export async function POST(
 
     if (bookingError || !booking || String(booking.currency).toUpperCase() !== "KES") {
       console.error("M-Pesa callback booking validation failed:", bookingError);
+      await markForReview("Booking could not be validated or currency was not KES.");
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for review" });
     }
 
@@ -118,6 +127,7 @@ export async function POST(
     const accessToken = await getMpesaAccessToken(config);
     const query = await queryMpesaStk(config, accessToken, checkoutId);
     if (String(query.ResultCode) !== "0") {
+      await markForReview("Daraja STK query did not confirm successful payment.");
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Awaiting provider verification" });
     }
 
@@ -133,6 +143,7 @@ export async function POST(
         !transactionPhone || !transactionDate ||
         normalizeKenyanPhone(transactionPhone) !== normalizeKenyanPhone(booking.guest_phone)) {
       console.error("M-Pesa callback details failed validation:", { checkoutId, amount });
+      await markForReview("M-Pesa receipt, amount, phone, or transaction date did not pass validation.");
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for review" });
     }
 
@@ -146,6 +157,7 @@ export async function POST(
 
     if (confirmError || !confirmed?.success) {
       console.error("M-Pesa booking confirmation failed:", confirmError);
+      await markForReview("Verified provider payment could not be applied to the booking.");
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted for reconciliation" });
     }
 
