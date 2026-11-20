@@ -460,10 +460,10 @@ export default function Home() {
               EXPLORE THE WORLD
             </p>
             <h2 className="text-3xl font-bold md:text-4xl">
-              Popular destinations
+              Kenya's top tourist destinations
             </h2>
             <p className="mt-3 text-gray-500">
-              Find inspiration for your next getaway.
+              From world-famous safari landscapes to the Indian Ocean coast and highland retreats.
             </p>
           </div>
           <a href="#featured" className="flex items-center gap-2 text-sm font-bold">
