@@ -205,8 +205,14 @@ export async function GET(request: NextRequest) {
         const quote = availableByUnit.get(unit.id);
         const guestRate = quote && quote.nights > 0 ? quote.totalRate / quote.nights * 1.3 : baseRate * 1.3;
         return {
-          ...unit,
-          base_rate: baseRate,
+          id: unit.id,
+          property_id: unit.property_id,
+          name: unit.name,
+          unit_type: unit.unit_type,
+          description: unit.description,
+          capacity: unit.capacity,
+          total_units: unit.total_units,
+          currency: unit.currency,
           customer_rate: Number(guestRate.toFixed(2)),
           markup_percentage: 30,
           ...(quote ? { quoted_stay_total: Number((quote.totalRate * 1.3 * rooms).toFixed(2)) } : {}),
