@@ -106,12 +106,9 @@ export async function POST(
       });
     }
 
-    if (payment.status !== "pending") {
-      return NextResponse.json({ success: true, received: true, duplicate: true }, {
-        headers: { "Cache-Control": "no-store" },
-      });
-    }
-
+    // Continue through the idempotent confirmation RPC even if an earlier
+    // failure notification marked the initiation row failed. A later verified
+    // success must still be reconciled, and duplicate success events are safe.
     // Only the provider adapter's signature-verified event can reach this point.
     const { data: confirmed, error: confirmError } = await db.rpc("confirm_booking_payment", {
       p_booking_id: payment.booking_id,
