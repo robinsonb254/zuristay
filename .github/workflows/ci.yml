@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/admin-property-approval-v2
+      - feature/branded-checkout-foundation
 
 permissions:
   contents: read
