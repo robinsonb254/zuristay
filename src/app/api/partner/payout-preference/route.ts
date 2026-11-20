@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await context.admin
       .from("partner_payout_accounts")
-      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_branch, bank_account_name, bank_account_number, verification_status, verified_at, updated_at")
+      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, verification_status, verified_at, updated_at")
       .eq("partner_id", context.partner.id)
       .maybeSingle();
 
@@ -98,6 +98,7 @@ export async function PUT(request: NextRequest) {
       merchant_number: null,
       merchant_account_number: null,
       bank_name: null,
+      bank_code: null,
       bank_branch: null,
       bank_account_name: null,
       bank_account_number: null,
@@ -131,11 +132,13 @@ export async function PUT(request: NextRequest) {
       const bank = typeof body.bank_name === "string" ? body.bank_name.trim() : "";
       const accountName = typeof body.bank_account_name === "string" ? body.bank_account_name.trim() : "";
       const accountNumber = typeof body.bank_account_number === "string" ? body.bank_account_number.trim().replace(/\s+/g, "") : "";
+      const bankCode = typeof body.bank_code === "string" ? body.bank_code.trim() : "";
       const branch = typeof body.bank_branch === "string" ? body.bank_branch.trim() : "";
-      if (bank.length < 2 || bank.length > 100 || accountName.length < 2 || accountName.length > 120 || !/^[A-Za-z0-9-]{4,34}$/.test(accountNumber) || branch.length > 100) {
+      if (bank.length < 2 || bank.length > 100 || !/^\\d{1,8}$/.test(bankCode) || accountName.length < 2 || accountName.length > 120 || !/^[A-Za-z0-9-]{4,34}$/.test(accountNumber) || branch.length > 100) {
         return fail("Enter valid bank, account name and account number details.", 400);
       }
       values.bank_name = bank;
+      values.bank_code = bankCode;
       values.bank_account_name = accountName;
       values.bank_account_number = accountNumber;
       values.bank_branch = branch || null;
@@ -144,7 +147,7 @@ export async function PUT(request: NextRequest) {
     const { data, error } = await context.admin
       .from("partner_payout_accounts")
       .upsert(values, { onConflict: "partner_id" })
-      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_branch, bank_account_name, bank_account_number, verification_status, verified_at, updated_at")
+      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, verification_status, verified_at, updated_at")
       .single();
 
     if (error || !data) {
