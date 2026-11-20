@@ -29,10 +29,7 @@ export async function POST(request: NextRequest) {
     if (!verifyGuestToken(request.headers.get("x-booking-access-token"), session.guest_access_token_hash)) {
       return fail("Secure booking access is required to complete payment.", 401);
     }
-    if (new Date(session.expires_at).getTime() <= Date.now() && session.status !== "captured") {
-      await db.from("paypal_checkout_sessions").update({ status: "expired" }).eq("id", session.id);
-      return fail("This PayPal checkout has expired. Please create a new booking.", 409);
-    }
+    const checkoutExpired = new Date(session.expires_at).getTime() <= Date.now() && session.status !== "captured";
 
     const accessToken = await paypalAccessToken();
     const orderResponse = await fetch(`${paypalBaseUrl()}/v2/checkout/orders/${encodeURIComponent(orderId)}`, {
@@ -43,6 +40,19 @@ export async function POST(request: NextRequest) {
       console.error("PayPal order lookup failed:", order);
       return fail("PayPal could not verify this order yet.", 502);
     }
+    if (checkoutExpired && order.status === "COMPLETED") {
+      const completedCapture = order.purchase_units?.[0]?.payments?.captures?.[0];
+      await db.from("paypal_checkout_sessions").update({
+        status: "needs_review",
+        capture_id: typeof completedCapture?.id === "string" ? completedCapture.id : null,
+      }).eq("id", session.id);
+      return fail("PayPal reports a completed payment, but the room hold has expired. Do not pay again; contact ZuriStay support for reconciliation.", 409);
+    }
+    if (checkoutExpired) {
+      await db.from("paypal_checkout_sessions").update({ status: "expired" }).eq("id", session.id);
+      return fail("This PayPal checkout has expired. Please create a new booking.", 409);
+    }
+
     if (order.status === "APPROVED") {
       const captureResponse = await fetch(`${paypalBaseUrl()}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
         method: "POST",
