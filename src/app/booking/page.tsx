@@ -477,8 +477,8 @@ export default function BookingPage() {
       attempts += 1;
       try {
         const response = await fetch(
-          `/api/bookings/status?booking_id=${encodeURIComponent(pollingBookingId)}`,
-          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${pollingBookingId}`) || ""; } catch { return ""; } })() } }
+          `/api/bookings/status?booking_id=${encodeURIComponent(pollingBookingId!)}`,
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${pollingBookingId!}`) || ""; } catch { return ""; } })() } }
         );
         const result = await response.json();
         if (cancelled || !response.ok || !result.success) return;
