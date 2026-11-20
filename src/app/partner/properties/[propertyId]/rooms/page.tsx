@@ -146,6 +146,25 @@ function RoomAvailabilityForm({
         {saving ? "Saving dates..." : "Save availability"}
       </button>
     </form>
+      <div className="mt-5 border-t border-slate-200 pt-4">
+        <h5 className="text-sm font-semibold text-slate-800">Upcoming availability · next 30 days</h5>
+        {calendarLoading ? <p className="mt-2 text-xs text-slate-500">Loading dates...</p> :
+          availability.length === 0 ? <p className="mt-2 text-xs text-slate-500">No date-specific settings yet. Add a date range above to set room inventory and rates.</p> :
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-xs">
+              <thead><tr className="border-b border-slate-200 text-slate-500"><th className="py-2 pr-3">Date</th><th className="py-2 pr-3">Available rooms</th><th className="py-2">Partner rate</th></tr></thead>
+              <tbody>{availability.map((day) => (
+                <tr key={day.id} className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">{new Date(day.stay_date + "T00:00:00").toLocaleDateString()}</td>
+                  <td className="py-2 pr-3"><span className={day.available_units === 0 ? "font-semibold text-red-700" : "text-slate-700"}>{day.available_units} / {unit.total_units}</span></td>
+                  <td className="py-2 text-slate-700">{day.currency} {Number(day.partner_base_rate).toLocaleString()}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
   );
 }
 
