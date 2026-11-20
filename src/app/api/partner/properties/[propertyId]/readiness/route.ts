@@ -29,7 +29,8 @@ async function contextFor(request: NextRequest) {
   return { admin, partner };
 }
 
-async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId: string, partnerId: string) {
+async function checkReadiness(adminClient: unknown, propertyId: string, partnerId: string) {
+  const admin = adminClient as ReturnType<typeof createClient>;
   const { data: propertyData, error: propertyError } = await admin.from("properties")
     .select("id, status, is_active, name, description, address, contact_phone, contact_email")
     .eq("id", propertyId).eq("partner_id", partnerId).maybeSingle();
