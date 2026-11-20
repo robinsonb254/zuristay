@@ -125,6 +125,118 @@ function RoomAvailabilityForm({
 }
 
 
+
+type Amenity = { id: string; name: string; category: string | null };
+
+function PropertyFacilities({ propertyId }: { propertyId: string }) {
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const endpoint = "/api/partner/properties/" + propertyId + "/amenities";
+
+  const loadFacilities = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again to manage facilities.");
+      const response = await fetch(endpoint, {
+        headers: { Authorization: "Bearer " + session.access_token },
+        cache: "no-store",
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to load facilities.");
+      setAmenities(result.amenities || []);
+      setSelected(result.selectedIds || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load facilities.");
+    } finally {
+      setLoading(false);
+    }
+  }, [endpoint]);
+
+  useEffect(() => { loadFacilities(); }, [loadFacilities]);
+
+  function toggleAmenity(id: string) {
+    setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  async function saveFacilities() {
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again to save facilities.");
+      const response = await fetch(endpoint, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ amenityIds: selected }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to save facilities.");
+      setMessage(result.message || "Facilities saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save facilities.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const groups = amenities.reduce<Record<string, Amenity[]>>((result, amenity) => {
+    const category = amenity.category || "Other";
+    if (!result[category]) result[category] = [];
+    result[category].push(amenity);
+    return result;
+  }, {});
+
+  return (
+    <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <div className="mb-5">
+        <h2 className="text-xl font-bold text-slate-900">Property facilities and amenities</h2>
+        <p className="mt-1 text-sm text-slate-500">Select the facilities guests can expect at your property.</p>
+      </div>
+      {loading ? <p className="py-6 text-sm text-slate-500">Loading facilities...</p> :
+        amenities.length === 0 ? <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">The facilities catalogue is being prepared. Please check back shortly.</p> :
+        <div className="space-y-5">
+          {Object.entries(groups).map(([category, items]) => (
+            <div key={category}>
+              <h3 className="mb-3 text-sm font-semibold capitalize text-slate-800">{category.replaceAll("_", " ")}</h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((amenity) => (
+                  <label key={amenity.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <input type="checkbox" checked={selected.includes(amenity.id)} onChange={() => toggleAmenity(amenity.id)} className="h-4 w-4 rounded border-slate-300 text-blue-900 focus:ring-blue-700" />
+                    {amenity.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+            <button type="button" onClick={saveFacilities} disabled={saving}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+              {saving ? "Saving facilities..." : "Save facilities"}
+            </button>
+            <span className="text-xs text-slate-500">{selected.length} selected</span>
+          </div>
+        </div>
+      }
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
+    </section>
+  );
+}
+
 type PropertyImage = {
   id: string;
   image_url: string;
@@ -426,7 +538,7 @@ export default function PartnerPropertyRoomsPage() {
             {units.length === 0 ? <div className="px-6 py-12 text-center"><BedDouble className="mx-auto mb-3 text-slate-400" size={34} /><h3 className="font-semibold text-slate-900">No room categories yet</h3><p className="mt-2 text-sm text-slate-500">Add your first room category using the form.</p></div> : <div className="divide-y divide-slate-100">{units.map((unit) => <article key={unit.id} className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{unit.name}</h3><p className="mt-1 text-sm text-slate-500">{unit.unit_type || "Room"} · {unit.total_units} room(s)</p></div><span className={unit.active ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"}>{unit.active ? "Active" : "Inactive"}</span></div><div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600"><span className="inline-flex items-center gap-1"><Users size={15} />Up to {unit.capacity} guests</span><span className="font-semibold text-slate-900">{unit.currency} {Number(unit.base_rate).toLocaleString()} / night</span></div>{unit.description && <p className="mt-3 text-sm leading-6 text-slate-600">{unit.description}</p>}<RoomAvailabilityForm propertyId={propertyId} unit={unit} /></article>)}</div>}
           </section>
         </div>
-        {property?.status === "approved" && <PropertyPhotos propertyId={propertyId} />}\n        <p className="mt-8 text-center text-xs text-slate-400">ZuriStay Partner Portal · Your World. Your Stay.</p>
+        {property?.status === "approved" && <><PropertyFacilities propertyId={propertyId} /><PropertyPhotos propertyId={propertyId} /></>}\n        <p className="mt-8 text-center text-xs text-slate-400">ZuriStay Partner Portal · Your World. Your Stay.</p>
       </div>
     </main>
   );
