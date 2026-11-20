@@ -3,6 +3,7 @@ name: ZuriStay CI
 on:
   push:
     branches:
+      - main
       - feature/admin-property-approval-v2
 
 permissions:
