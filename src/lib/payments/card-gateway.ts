@@ -15,16 +15,28 @@ export type CardCheckoutSession = {
   metadata?: Record<string, unknown>;
 };
 
-/**
- * Provider-specific implementations must create a hosted checkout session
- * and verify signed webhooks before any booking can be marked as paid.
- * Raw card details must remain on the provider's PCI-compliant checkout.
- */
+export type VerifiedCardWebhook = {
+  providerSessionId: string;
+  providerReference: string;
+  status: "succeeded" | "failed" | "pending";
+  amount: number;
+  currency: string;
+};
+
 export interface CardPaymentProvider {
   readonly name: string;
   createCheckoutSession(input: CardCheckoutRequest): Promise<CardCheckoutSession>;
+  verifyWebhook(
+    rawBody: string,
+    headers: Record<string, string>
+  ): Promise<VerifiedCardWebhook>;
 }
 
+/**
+ * Provider-specific implementations must create hosted checkout sessions
+ * and verify signed webhooks before a booking can be marked as paid.
+ * Raw card details must remain on the provider's PCI-compliant checkout.
+ */
 export function getCardPaymentProvider(): CardPaymentProvider | null {
   // Intentionally empty until ZuriStay selects and completes onboarding
   // with a licensed acquiring/payment provider. Never simulate success here.
