@@ -624,14 +624,18 @@ export default function BookingPage() {
             <select
               value={propertyId}
               onChange={(event) => setPropertyId(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-orange-500"
+              disabled={allProperties.length === 0}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-orange-500 disabled:bg-slate-100"
             >
-              {allProperties.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {item.isLive ? " — Live listing" : " — Not bookable yet"}
-                </option>
-              ))}
+              {allProperties.length === 0 ? (
+                <option value="">No approved live listings yet</option>
+              ) : (
+                allProperties.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} — Live listing
+                  </option>
+                ))
+              )}
             </select>
 
             {property.isLive && property.units.length > 0 && (
