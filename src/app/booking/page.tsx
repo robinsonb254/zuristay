@@ -467,7 +467,8 @@ export default function BookingPage() {
   const activeBookingId = booking?.booking_id;
 
   useEffect(() => {
-    if (!activeBookingId || paymentState !== "waiting") return;
+    const pollingBookingId = activeBookingId;
+    if (!pollingBookingId || paymentState !== "waiting") return;
 
     let attempts = 0;
     let cancelled = false;
@@ -476,8 +477,8 @@ export default function BookingPage() {
       attempts += 1;
       try {
         const response = await fetch(
-          `/api/bookings/status?booking_id=${encodeURIComponent(activeBookingId)}`,
-          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${activeBookingId}`) || ""; } catch { return ""; } })() } }
+          `/api/bookings/status?booking_id=${encodeURIComponent(pollingBookingId)}`,
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${pollingBookingId}`) || ""; } catch { return ""; } })() } }
         );
         const result = await response.json();
         if (cancelled || !response.ok || !result.success) return;
