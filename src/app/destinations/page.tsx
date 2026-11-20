@@ -47,7 +47,7 @@ export default function DestinationsPage() {
   const filteredDestinations = useMemo(() => {
     const term = query.trim().toLowerCase();
     return destinations
-      .filter((item) => item.population_2019 !== null)
+      
       .filter((item) => !term || item.city.toLowerCase().includes(term) || (item.county || "").toLowerCase().includes(term))
       .sort((a, b) => (a.sort_order ?? 999999) - (b.sort_order ?? 999999));
   }, [destinations, query]);
@@ -91,7 +91,7 @@ export default function DestinationsPage() {
           <div>
             <p className="mb-2 text-xs font-bold tracking-[0.2em] text-[#c49a52]">NATIONWIDE DIRECTORY</p>
             <h2 className="text-3xl font-bold">Major towns and urban centres</h2>
-            <p className="mt-2 text-sm text-gray-500">148 urban centres with populations of 10,000 or more, ranked by KNBS 2019 census population.</p>
+            <p className="mt-2 text-sm text-gray-500">148 urban centres ranked by KNBS 2019 census population, plus additional destinations.</p>
           </div>
           <span className="text-sm font-semibold text-gray-500">{filteredDestinations.length} places</span>
         </div>
@@ -99,8 +99,8 @@ export default function DestinationsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredDestinations.map((item) => (
               <button key={item.id} onClick={() => searchFor(item.city)} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
-                <span><span className="block text-sm font-semibold">{item.city}</span><span className="mt-0.5 block text-xs text-gray-500">{item.county}</span></span>
-                <span className="shrink-0 text-xs tabular-nums text-gray-400">{Number(item.population_2019).toLocaleString("en-KE")}</span>
+                <span><span className="block text-sm font-semibold">{item.city === "Diani" ? "Diani Beach" : item.city}</span><span className="mt-0.5 block text-xs text-gray-500">{item.county}</span></span>
+                <span className="shrink-0 text-right text-xs tabular-nums text-gray-400">{item.population_2019 !== null ? Number(item.population_2019).toLocaleString("en-KE") : "Tourist destination"}</span>
               </button>
             ))}
           </div>
