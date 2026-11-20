@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const now = Date.now();
     const { data: pendingAttempts, error: pendingAttemptError } = await db
       .from("payments")
-      .select("id")
+      .select("id, created_at")
       .eq("booking_id", bookingId)
       .eq("payment_method", "card")
       .eq("status", "pending");
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const { data: pendingSessions, error: pendingSessionError } = pendingPaymentIds.length
       ? await db
           .from("card_payment_sessions")
-          .select("id, payment_id, expires_at")
+          .select("id, payment_id, expires_at, created_at")
           .in("payment_id", pendingPaymentIds)
       : { data: [], error: null };
 
@@ -88,19 +88,45 @@ export async function POST(request: NextRequest) {
       ? new Date(activeHolds[0].expires_at).getTime()
       : Number.NaN;
     const holdIsExpired = !Number.isFinite(holdExpiry) || holdExpiry <= now;
-    const expiredSessions = (pendingSessions ?? []).filter((session) =>
-      holdIsExpired || (session.expires_at && new Date(session.expires_at).getTime() <= now)
-    );
+    const sessionPaymentIds = new Set((pendingSessions ?? []).map((session) => session.payment_id));
+    const expiredSessions = (pendingSessions ?? []).filter((session) => {
+      const createdAt = new Date(session.created_at).getTime();
+      const storedExpiry = session.expires_at ? new Date(session.expires_at).getTime() : Number.NaN;
+      // Older session rows may not have an expiry. Bound those to 30 minutes
+      // from creation rather than leaving a permanent pending-attempt lock.
+      const effectiveExpiry = Number.isFinite(storedExpiry) ? storedExpiry : createdAt + 30 * 60_000;
+      return holdIsExpired || !Number.isFinite(createdAt) || effectiveExpiry <= now;
+    });
+    const staleOrphanAttempts = (pendingAttempts ?? []).filter((attempt) => {
+      if (sessionPaymentIds.has(attempt.id)) return false;
+      const createdAt = new Date(attempt.created_at).getTime();
+      // Allow a provider request up to ten minutes to finish before treating
+      // an initiation row without a durable session as abandoned.
+      return holdIsExpired || !Number.isFinite(createdAt) || createdAt + 10 * 60_000 <= now;
+    });
 
-    if (expiredSessions.length) {
-      const expiredSessionIds = expiredSessions.map((session) => session.id);
-      const expiredPaymentIds = expiredSessions.map((session) => session.payment_id);
-      const [{ error: expirePaymentError }, { error: expireSessionError }] = await Promise.all([
-        db.from("payments").update({ status: "failed" }).in("id", expiredPaymentIds).eq("status", "pending"),
-        db.from("card_payment_sessions").update({ status: "expired" }).in("id", expiredSessionIds).neq("status", "completed"),
+    const expiredSessionIds = expiredSessions.map((session) => session.id);
+    const expiredPaymentIds = [
+      ...new Set([
+        ...expiredSessions.map((session) => session.payment_id),
+        ...staleOrphanAttempts.map((attempt) => attempt.id),
+      ]),
+    ];
+    if (expiredPaymentIds.length || expiredSessionIds.length) {
+      const updates = await Promise.all([
+        expiredPaymentIds.length
+          ? db.from("payments").update({ status: "failed" }).in("id", expiredPaymentIds).eq("status", "pending")
+          : Promise.resolve({ error: null }),
+        expiredSessionIds.length
+          ? db.from("card_payment_sessions").update({ status: "expired" }).in("id", expiredSessionIds).neq("status", "completed")
+          : Promise.resolve({ error: null }),
       ]);
-      if (expirePaymentError || expireSessionError) {
-        console.error("Unable to release expired card checkout attempts:", { expirePaymentError, expireSessionError });
+      const [expirePaymentResult, expireSessionResult] = updates;
+      if (expirePaymentResult.error || expireSessionResult.error) {
+        console.error("Unable to release expired card checkout attempts:", {
+          expirePaymentError: expirePaymentResult.error,
+          expireSessionError: expireSessionResult.error,
+        });
         return reply("An expired card checkout needs reconciliation. Please try again shortly.", 500);
       }
     }
