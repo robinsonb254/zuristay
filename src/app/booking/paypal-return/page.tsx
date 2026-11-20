@@ -13,11 +13,6 @@ export default function PayPalReturnPage() {
     if (started.current) return;
     started.current = true;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("cancelled") === "1") {
-      setStatus("cancelled");
-      setMessage("You cancelled PayPal checkout. Your reservation is not confirmed and your room hold remains subject to its expiry time.");
-      return;
-    }
     const orderId = params.get("token");
     let bookingId = "";
     try { bookingId = sessionStorage.getItem("zuristay:paypal-booking-id") || ""; } catch {}
@@ -30,6 +25,20 @@ export default function PayPalReturnPage() {
     }
     void (async () => {
       try {
+        if (params.get("cancelled") === "1") {
+          const cancelledResponse = await fetch("/api/payments/paypal/cancel-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-booking-access-token": accessToken },
+            body: JSON.stringify({ order_id: orderId }),
+          });
+          const cancelledResult = await cancelledResponse.json();
+          if (!cancelledResponse.ok || !cancelledResult.success) throw new Error("We could not verify the cancellation status. Do not start another payment yet.");
+          setStatus("cancelled");
+          setMessage(cancelledResult.cancelled
+            ? "You cancelled PayPal checkout. No payment was captured. Your room hold remains subject to its expiry time."
+            : "PayPal reports that this order may already have been approved. It has been left open for secure reconciliation; do not pay again.");
+          return;
+        }
         const response = await fetch("/api/payments/paypal/capture-order", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-booking-access-token": accessToken },
