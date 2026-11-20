@@ -1,10 +1,14 @@
 -- Store hosted card checkout sessions without exposing provider data to browser roles.
+create unique index if not exists payments_one_pending_card_per_booking
+  on public.payments (booking_id)
+  where payment_method = 'card' and status = 'pending';
+
 create table if not exists public.card_payment_sessions (
   id uuid primary key default gen_random_uuid(),
   payment_id uuid not null unique references public.payments(id) on delete cascade,
-  provider text not null,
+  provider text not null check (length(trim(provider)) > 0),
   provider_session_id text unique,
-  checkout_url text not null,
+  checkout_url text not null check (checkout_url like 'https://%'),
   status text not null default 'created'
     check (status in ('created', 'completed', 'expired', 'failed', 'cancelled')),
   expires_at timestamptz,
