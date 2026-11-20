@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { randomBytes } from "node:crypto";
+import { hashBookingAccessToken } from "@/lib/bookings/access";
 
 export const dynamic = "force-dynamic";
 
@@ -201,11 +203,28 @@ export async function POST(request: NextRequest) {
     }
 
     const replay = booking.idempotent_replay === true;
+    const bookingId = typeof booking.booking_id === "string" ? booking.booking_id : "";
+    if (!bookingId) {
+      console.error("Booking RPC returned no booking identifier.");
+      return errorResponse("The booking could not be secured. Please contact support before retrying.", 500);
+    }
+
+    // The raw capability is returned once; only its SHA-256 hash is stored.
+    const bookingAccessToken = randomBytes(32).toString("hex");
+    const { error: accessTokenError } = await supabaseAdmin
+      .from("bookings")
+      .update({ guest_access_token_hash: hashBookingAccessToken(bookingAccessToken) })
+      .eq("id", bookingId);
+    if (accessTokenError) {
+      console.error("Unable to secure guest booking access:", accessTokenError);
+      return errorResponse("The booking was created but secure access could not be issued. Contact support before retrying.", 500);
+    }
 
     return NextResponse.json(
       {
         success: true,
         booking,
+        booking_access_token: bookingAccessToken,
       },
       {
         status: replay ? 200 : 201,
