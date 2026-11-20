@@ -116,6 +116,7 @@ export default function BookingPage() {
   const [bookingAccessToken, setBookingAccessToken] = useState("");
   const [paymentPhone, setPaymentPhone] = useState("");
   const [startingPayment, setStartingPayment] = useState(false);
+  const [startingPaypal, setStartingPaypal] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
   const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
@@ -451,7 +452,10 @@ export default function BookingPage() {
         throw new Error("Secure booking access could not be established. Please contact support.");
       }
       setBookingAccessToken(result.booking_access_token);
-      try { sessionStorage.setItem(`zuristay:booking-access:${createdBooking.booking_id}`, result.booking_access_token); } catch { /* Session storage may be unavailable; in-memory access remains active. */ }
+      try {
+        sessionStorage.setItem(`zuristay:booking-access:${createdBooking.booking_id}`, result.booking_access_token);
+        sessionStorage.setItem("zuristay:paypal-booking-id", createdBooking.booking_id);
+      } catch { /* Session storage may be unavailable; in-memory access remains active. */ }
       setBooking(createdBooking);
     } catch (submitError) {
       setError(
@@ -546,6 +550,33 @@ export default function BookingPage() {
       setPaymentError(paymentStartError instanceof Error ? paymentStartError.message : "M-Pesa payment could not be started.");
     } finally {
       setStartingPayment(false);
+    }
+  }
+
+  async function startPaypalPayment() {
+    if (!booking) return;
+    setStartingPaypal(true);
+    setPaymentError("");
+    setPaymentMessage("");
+    try {
+      try { sessionStorage.setItem("zuristay:paypal-booking-id", booking.booking_id); } catch {}
+      const accessToken = bookingAccessToken || (() => {
+        try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; }
+      })();
+      const response = await fetch("/api/payments/paypal/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-booking-access-token": accessToken },
+        body: JSON.stringify({ booking_id: booking.booking_id }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || typeof result.approval_url !== "string") {
+        throw new Error(result.error || "Unable to start PayPal checkout.");
+      }
+      setPaymentMessage(`PayPal will charge USD ${result.quote.paypal_amount_usd}. Your booking total is KES ${Number(result.quote.booking_amount_kes).toLocaleString("en-KE")}. Exchange rate locked for this checkout.`);
+      window.location.assign(result.approval_url);
+    } catch (paypalError) {
+      setPaymentError(paypalError instanceof Error ? paypalError.message : "PayPal checkout could not be started.");
+      setStartingPaypal(false);
     }
   }
 
@@ -662,6 +693,16 @@ export default function BookingPage() {
                 className="mt-4 w-full rounded-xl bg-green-600 px-5 py-4 font-bold text-white transition hover:bg-green-700 disabled:opacity-60"
               >
                 {startingPayment ? "Sending M-Pesa prompt..." : paymentState === "failed" ? "Try M-Pesa again" : "Pay with M-Pesa"}
+              </button>
+            )}
+            {(paymentState === "idle" || paymentState === "failed") && (
+              <button
+                type="button"
+                onClick={startPaypalPayment}
+                disabled={startingPaypal || startingPayment}
+                className="mt-3 w-full rounded-xl border border-blue-950 px-5 py-4 font-bold text-blue-950 transition hover:bg-blue-50 disabled:opacity-60"
+              >
+                {startingPaypal ? "Opening PayPal…" : "Pay with PayPal"}
               </button>
             )}
             {paymentState === "waiting" && (
