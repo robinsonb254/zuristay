@@ -45,6 +45,27 @@ export default function CardPaymentReturnPage() {
 
     setLoading(true);
     try {
+      // Do not rely solely on webhook delivery: verify the merchant tx_ref
+      // server-side when the guest returns from Flutterwave checkout.
+      let verificationMessage = "";
+      try {
+        const verificationResponse = await fetch("/api/payments/card/return/verify", {
+          method: "POST",
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+            "x-booking-access-token": accessToken,
+          },
+          body: JSON.stringify({ booking_id: id }),
+        });
+        const verificationResult = await verificationResponse.json();
+        if (!verificationResponse.ok) {
+          verificationMessage = verificationResult.error || "Payment verification is still pending.";
+        }
+      } catch {
+        verificationMessage = "Payment verification is temporarily unavailable. Please check again shortly.";
+      }
+
       const response = await fetch(`/api/bookings/status?booking_id=${encodeURIComponent(id)}`, {
         cache: "no-store",
         headers: { "x-booking-access-token": accessToken },
@@ -58,7 +79,9 @@ export default function CardPaymentReturnPage() {
           ? "Your card payment has been verified and your booking is confirmed."
           : result.card_status === "failed"
             ? "The card payment was not completed. Your booking has not been confirmed."
-            : "We have returned from the card checkout. The provider has not yet confirmed payment; check again shortly."
+            : verificationMessage
+              ? verificationMessage
+              : "We have returned from the card checkout. The provider has not yet confirmed payment; check again shortly."
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Payment status is temporarily unavailable.");
