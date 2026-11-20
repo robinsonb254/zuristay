@@ -11,66 +11,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const featuredProperties = [
-  {
-    id: "1",
-    name: "Ocean View Resort",
-    location: "Diani Beach, Kwale",
-    type: "Resort",
-    price: 12500,
-    rating: 4.9,
-    reviews: 128,
-    facilities: ["Swimming pool", "Free Wi-Fi", "Beach access"],
-    description:
-      "Enjoy a relaxing coastal escape at Ocean View Resort. Experience beautiful surroundings, comfortable accommodation and convenient access to the beach.",
-    image:
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1400",
-    gallery: [
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000",
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-      "https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?w=1000",
-    ],
-  },
-  {
-    id: "2",
-    name: "The City Garden Hotel",
-    location: "Nairobi, Kenya",
-    type: "Hotel",
-    price: 8500,
-    rating: 4.8,
-    reviews: 96,
-    facilities: ["Restaurant", "Free Wi-Fi", "Parking"],
-    description:
-      "Discover comfortable city accommodation at The City Garden Hotel. Conveniently positioned for guests visiting Nairobi for business, leisure or family trips.",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400",
-    gallery: [
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-      "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=1000",
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1000",
-    ],
-  },
-  {
-    id: "3",
-    name: "Palm Breeze Villas",
-    location: "Watamu, Kilifi",
-    type: "Villa",
-    price: 18000,
-    rating: 4.9,
-    reviews: 74,
-    facilities: ["Private pool", "Kitchen", "Free Wi-Fi"],
-    description:
-      "Relax in the comfort of Palm Breeze Villas in Watamu. Enjoy a private villa experience with convenient facilities and a peaceful coastal atmosphere.",
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1400",
-    gallery: [
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000",
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1000",
-      "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1000",
-    ],
-  },
-];
-
 const money = (amount: number, currency = "KSh") =>
   `${currency} ${amount.toLocaleString("en-KE")}`;
 
@@ -81,14 +21,10 @@ export default async function PropertyDetailsPage({
 }) {
   const { id } = await params;
 
-  const featuredProperty = featuredProperties.find(
-    (item) => item.id === id
-  );
-
   let liveProperty: any = null;
   let loadingError = false;
 
-  if (!featuredProperty) {
+  {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -204,7 +140,7 @@ export default async function PropertyDetailsPage({
     }
   }
 
-  const property = featuredProperty || liveProperty;
+  const property = liveProperty;
 
   if (!property || loadingError) {
     return (
