@@ -187,7 +187,6 @@ class FlutterwaveCardProvider implements CardPaymentProvider {
 
     if (
       !verified.tx_ref ||
-      !verified.tx_ref ||
       !verified.flw_ref ||
       !Number.isFinite(Number(verified.amount)) ||
       !verified.currency
