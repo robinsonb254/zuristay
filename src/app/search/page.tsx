@@ -6,8 +6,6 @@ import {
   MapPin,
   CalendarDays,
   Users,
-  SlidersHorizontal,
-  ArrowUpDown,
 } from "lucide-react";
 
 
@@ -183,23 +181,6 @@ export default async function SearchPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold"
-            >
-              <SlidersHorizontal size={17} />
-              Filters
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold"
-            >
-              <ArrowUpDown size={17} />
-              Recommended
-            </button>
-          </div>
         </div>
 
         <LivePropertyResults
