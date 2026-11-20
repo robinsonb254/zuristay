@@ -58,6 +58,16 @@ export async function POST(request: NextRequest) {
       return reply("Your room hold has expired. Please create a new booking.", 409);
     }
 
+    // Never create a provider checkout that can outlive the inventory hold.
+    // Flutterwave accepts a duration in minutes, so round down and reject a
+    // hold with less than one full minute remaining.
+    const holdExpiry = new Date(activeHolds[0].expires_at).getTime();
+    const remainingHoldSeconds = Math.floor((holdExpiry - Date.now()) / 1000);
+    if (!Number.isFinite(holdExpiry) || remainingHoldSeconds < 60) {
+      return reply("Your room hold is almost over. Please create a new booking before paying.", 409);
+    }
+    const sessionDurationMinutes = Math.min(30, Math.floor(remainingHoldSeconds / 60));
+
     const amount = Number(booking.total_amount);
     const currency = String(booking.currency || "").toUpperCase();
     if (!Number.isFinite(amount) || amount <= 0 || !/^[A-Z]{3}$/.test(currency)) {
@@ -110,6 +120,7 @@ export async function POST(request: NextRequest) {
         customerEmail: booking.guest_email,
         idempotencyKey: payment.id,
         returnUrl: `${siteUrl.replace(/\/$/, "")}/booking/payment/return?booking_id=${encodeURIComponent(booking.id)}&reference=${encodeURIComponent(booking.booking_reference)}`,
+        sessionDurationMinutes,
       });
 
       if (
