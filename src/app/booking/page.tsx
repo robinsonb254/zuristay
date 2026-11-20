@@ -67,6 +67,10 @@ function formatMoney(amount: number, currency: string) {
 
 export default function BookingPage() {
   const [liveProperties, setLiveProperties] = useState<Property[]>([]);
+  const [dateQuotes, setDateQuotes] = useState<Record<string, { nightlyRate: number; stayTotal: number }>>({});
+  const [availabilityChecking, setAvailabilityChecking] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [unitId, setUnitId] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -182,9 +186,10 @@ export default function BookingPage() {
     property.units[0] ||
     null;
 
-  const price = selectedUnit
+  const selectedDateQuote = selectedUnit ? dateQuotes[selectedUnit.id] : undefined;
+  const price = selectedDateQuote?.nightlyRate ?? (selectedUnit
     ? selectedUnit.customer_rate
-    : property.price;
+    : property.price);
 
   const currency = selectedUnit
     ? selectedUnit.currency || property.currency
@@ -199,7 +204,73 @@ export default function BookingPage() {
         )
       : 0;
 
-  const estimatedTotal = price * Math.max(0, nights) * Number(rooms || 1);
+  const estimatedTotal = selectedDateQuote?.stayTotal ?? price * Math.max(0, nights) * Number(rooms || 1);
+
+  useEffect(() => {
+    if (!checkIn || !checkOut || checkOut <= checkIn) {
+      setDateQuotes({});
+      setAvailabilityChecked(false);
+      setAvailabilityError("");
+      setAvailabilityChecking(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDateQuotes({});
+    setAvailabilityChecked(false);
+    setAvailabilityError("");
+    setAvailabilityChecking(true);
+
+    const params = new URLSearchParams({
+      checkIn,
+      checkOut,
+      guests,
+      rooms,
+    });
+
+    async function checkDateAvailability() {
+      try {
+        const response = await fetch(`/api/properties?${params.toString()}`, { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Unable to verify availability for these dates.");
+        }
+
+        const quotes: Record<string, { nightlyRate: number; stayTotal: number }> = {};
+        for (const item of result.properties ?? []) {
+          for (const unit of item.units ?? []) {
+            if (typeof unit.quoted_stay_total === "number" && Number.isFinite(Number(unit.customer_rate))) {
+              quotes[unit.id] = {
+                nightlyRate: Number(unit.customer_rate),
+                stayTotal: Number(unit.quoted_stay_total),
+              };
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setDateQuotes(quotes);
+          setAvailabilityChecked(true);
+        }
+      } catch (availabilityCheckError) {
+        if (!cancelled) {
+          setDateQuotes({});
+          setAvailabilityError(
+            availabilityCheckError instanceof Error
+              ? availabilityCheckError.message
+              : "Unable to verify availability for these dates."
+          );
+        }
+      } finally {
+        if (!cancelled) setAvailabilityChecking(false);
+      }
+    }
+
+    void checkDateAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, [checkIn, checkOut, guests, rooms, liveProperties.length]);
 
   useEffect(() => {
     setUnitId(property.units[0]?.id || "");
@@ -214,6 +285,21 @@ export default function BookingPage() {
         "This property is not connected to live room inventory yet. Please select an approved live accommodation listing."
       );
       return;
+    }
+
+    if (checkIn && checkOut) {
+      if (availabilityChecking) {
+        setError("Please wait while ZuriStay checks availability for your dates.");
+        return;
+      }
+      if (availabilityError) {
+        setError(availabilityError);
+        return;
+      }
+      if (!availabilityChecked || !selectedDateQuote) {
+        setError("This room category does not have enough available rooms for the selected dates and guest count.");
+        return;
+      }
     }
 
     if (!checkIn || !checkOut) {
@@ -918,9 +1004,19 @@ export default function BookingPage() {
               </span>
             </div>
 
+            {checkIn && checkOut && availabilityChecking && (
+              <p className="mt-3 text-xs text-blue-700">Checking live room availability and date-specific rates…</p>
+            )}
+            {availabilityError && (
+              <p role="alert" className="mt-3 text-xs text-red-700">{availabilityError}</p>
+            )}
+            {availabilityChecked && !selectedDateQuote && (
+              <p className="mt-3 text-xs text-amber-700">No matching room inventory is available for these dates, rooms and guests.</p>
+            )}
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              The final price is calculated from the live nightly rates and
-              confirmed inventory in ZuriStay.
+              {selectedDateQuote
+                ? "This estimate uses the live nightly rates for your selected dates. The final amount is locked when your reservation is created."
+                : "Indicative estimate only. Select travel dates to check live availability and date-specific rates; the final amount is confirmed when your reservation is created."}
             </p>
 
             <div className="mt-6 flex items-center gap-3 rounded-xl bg-green-50 p-4 text-sm text-green-800">
