@@ -121,9 +121,9 @@ export default function BrandedCheckout({
 
               <button
                 type="button"
-                disabled
-                aria-disabled="true"
-                className="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 p-4 text-left opacity-80"
+                onClick={() => setSelectedMethod("card")}
+                aria-pressed={selectedMethod === "card"}
+                className={`rounded-xl border p-4 text-left transition ${selectedMethod === "card" ? "border-amber-500 bg-amber-50 ring-2 ring-amber-100" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 font-bold text-slate-700">
