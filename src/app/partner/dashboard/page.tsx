@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Building2,
+  Building2,\n  Banknote,
   Plus,
   RefreshCw,
   LogOut,
@@ -194,6 +194,14 @@ export default function PartnerDashboardPage() {
           >
             <Plus size={19} />
             Add a property
+          </Link>
+
+          <Link
+            href="/partner/payouts"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
+          >
+            <Banknote size={18} />
+            Payout preferences
           </Link>
         </div>
 
