@@ -34,6 +34,7 @@ type Property = {
   address: string | null;
   city: string;
   county: string | null;
+  sub_county: string | null;
   country: string;
   currency: string;
   contact_phone: string | null;
@@ -306,7 +307,7 @@ export default function AdminPropertiesPage() {
                         </div>
                         <p className="mt-2 text-sm capitalize text-slate-600">{property.property_type.replaceAll("_", " ")}</p>
                         <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                          <MapPin size={14} /> {[property.address, property.city, property.county, property.country].filter(Boolean).join(", ")}
+                          <MapPin size={14} /> {[property.address, property.city, property.sub_county, property.county, property.country].filter(Boolean).join(", ")}
                         </p>
                         <p className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                           <CalendarDays size={14} /> Submitted {formatDate(property.created_at)}
