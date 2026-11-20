@@ -130,7 +130,7 @@ export async function PUT(request: NextRequest) {
       values.merchant_account_number = type === "paybill" ? account : null;
     } else {
       const bank = typeof body.bank_name === "string" ? body.bank_name.trim() : "";
-      const accountName = typeof body.bank_account_name === "string" ? body.bank_account_name.trim() : "";
+      const accountName = holder;
       const accountNumber = typeof body.bank_account_number === "string" ? body.bank_account_number.trim().replace(/\s+/g, "") : "";
       const bankCode = typeof body.bank_code === "string" ? body.bank_code.trim() : "";
       const branch = typeof body.bank_branch === "string" ? body.bank_branch.trim() : "";
