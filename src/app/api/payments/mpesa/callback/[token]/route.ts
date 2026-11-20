@@ -38,6 +38,45 @@ export async function POST(
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
+    // Persist every valid provider callback before processing it. If a later
+    // database/provider step fails, the original event remains available for
+    // reconciliation instead of being lost after acknowledging Safaricom.
+    const { error: eventInsertError } = await db
+      .from("mpesa_callback_events")
+      .upsert({
+        checkout_request_id: checkoutId,
+        callback_payload: payload,
+      }, { onConflict: "checkout_request_id", ignoreDuplicates: true });
+
+    if (eventInsertError) {
+      console.error("Unable to persist M-Pesa callback event:", eventInsertError);
+      return NextResponse.json(
+        { ResultCode: 1, ResultDesc: "Callback could not be safely recorded" },
+        { status: 500 }
+      );
+    }
+
+    const { data: callbackEvent, error: eventLookupError } = await db
+      .from("mpesa_callback_events")
+      .select("id, processing_status, processing_attempts")
+      .eq("checkout_request_id", checkoutId)
+      .maybeSingle();
+
+    if (eventLookupError || !callbackEvent) {
+      console.error("Unable to load persisted M-Pesa callback event:", eventLookupError);
+      return NextResponse.json({ ResultCode: 1, ResultDesc: "Callback event unavailable" }, { status: 500 });
+    }
+
+    if (callbackEvent.processing_status === "processed") {
+      return NextResponse.json({ ResultCode: 0, ResultDesc: "Already processed" });
+    }
+
+    await db.from("mpesa_callback_events").update({
+      processing_status: "processing",
+      processing_attempts: Number(callbackEvent.processing_attempts || 0) + 1,
+      last_error: null,
+    }).eq("id", callbackEvent.id);
+
     const { data: pendingPayment, error: paymentLookupError } = await db
       .from("payments")
       .select("id, booking_id, amount, currency, status")
@@ -67,6 +106,11 @@ export async function POST(
 
     if (Number(callback.ResultCode) !== 0) {
       await db.from("payments").update({ status: "failed" }).eq("id", pendingPayment.id).eq("status", "pending");
+      await db.from("mpesa_callback_events").update({
+        processing_status: "processed",
+        processed_at: new Date().toISOString(),
+        last_error: null,
+      }).eq("id", callbackEvent.id);
       return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
     }
 
@@ -118,10 +162,16 @@ export async function POST(
       console.error("Verified M-Pesa payment recorded, but temporary row cleanup failed:", cleanupError);
     }
 
+    await db.from("mpesa_callback_events").update({
+      processing_status: "processed",
+      processed_at: new Date().toISOString(),
+      last_error: null,
+    }).eq("id", callbackEvent.id);
+
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (error) {
     console.error("M-Pesa callback error:", error);
-    // Acknowledge provider callbacks; unresolved transactions must be reconciled server-side.
-    return NextResponse.json({ ResultCode: 0, ResultDesc: "Received" });
+    // A persisted event remains available for retry/reconciliation.
+    return NextResponse.json({ ResultCode: 1, ResultDesc: "Callback processing failed" }, { status: 500 });
   }
 }
