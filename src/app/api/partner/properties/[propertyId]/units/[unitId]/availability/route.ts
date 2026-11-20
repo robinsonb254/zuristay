@@ -102,7 +102,9 @@ export async function GET(
     const today = getKenyaDate();
     const query = request.nextUrl.searchParams;
     const startDate = query.get("startDate") || today;
-    const defaultEnd = new Date(Date.now() + 29 * 86400000).toISOString().slice(0, 10);
+    const defaultEndDate = new Date(startDate + "T00:00:00.000Z");
+    defaultEndDate.setUTCDate(defaultEndDate.getUTCDate() + 29);
+    const defaultEnd = defaultEndDate.toISOString().slice(0, 10);
     const endDate = query.get("endDate") || defaultEnd;
     if (!isRealDate(startDate) || !isRealDate(endDate) || endDate < startDate) {
       return fail("Choose a valid date range.", 400);
