@@ -8,6 +8,7 @@ export type CardCheckoutRequest = {
   customerEmail: string;
   idempotencyKey: string;
   returnUrl: string;
+  sessionDurationMinutes: number;
 };
 
 export type CardCheckoutSession = {
@@ -145,7 +146,7 @@ class FlutterwaveCardProvider implements CardPaymentProvider {
           description: `Booking ${input.bookingReference}`,
         },
         configuration: {
-          session_duration: 30,
+          session_duration: input.sessionDurationMinutes,
           max_retry_attempt: 3,
         },
         payment_options: "card",
