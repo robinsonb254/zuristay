@@ -19,6 +19,10 @@ type KenyaCounty = {
   subcounties: { subcounty_code: string; name: string; county_code: number }[];
 };
 
+function normalizeCountyName(value: string) {
+  return value.toLowerCase().replace(/\\s+city$/, "").trim();
+}
+
 type Destination = {
   id: string;
   name: string;
@@ -99,10 +103,15 @@ export default function NewPartnerPropertyPage() {
         }
         const countyRows: KenyaCounty[] = locationsResult.counties || [];
         setCounties(countyRows);
-        if (countyRows.length > 0) setCountyCode(String(countyRows[0].county_code));
-
-        if (rows.length > 0) {
-          setDestinationId(rows[0].id);
+        if (countyRows.length > 0) {
+          const firstCounty = countyRows[0];
+          setCountyCode(String(firstCounty.county_code));
+          const firstDestination = rows.find((destination) =>
+            (destination.county || "").split(/[\\/,]/).some(
+              (part) => normalizeCountyName(part) === normalizeCountyName(firstCounty.name)
+            )
+          );
+          if (firstDestination) setDestinationId(firstDestination.id);
         }
       } catch (error) {
         setPageError(
@@ -196,6 +205,11 @@ export default function NewPartnerPropertyPage() {
 
   const selectedCounty = counties.find((county) => String(county.county_code) === countyCode);
   const subcountyOptions = selectedCounty?.subcounties || [];
+  const countyDestinations = destinations.filter((destination) =>
+    (destination.county || "").split(/[\\/,]/).some(
+      (part) => normalizeCountyName(part) === normalizeCountyName(selectedCounty?.name || "")
+    )
+  );
 
   const fieldClass =
     "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100";
@@ -322,8 +336,16 @@ export default function NewPartnerPropertyPage() {
                     className={fieldClass}
                     value={countyCode}
                     onChange={(e) => {
-                      setCountyCode(e.target.value);
+                      const nextCode = e.target.value;
+                      const nextCounty = counties.find((county) => String(county.county_code) === nextCode);
+                      setCountyCode(nextCode);
                       setSubCountyCode("");
+                      const firstDestination = destinations.find((destination) =>
+                        (destination.county || "").split(/[\\/,]/).some(
+                          (part) => normalizeCountyName(part) === normalizeCountyName(nextCounty?.name || "")
+                        )
+                      );
+                      setDestinationId(firstDestination?.id || "");
                     }}
                     required
                   >
@@ -369,7 +391,7 @@ export default function NewPartnerPropertyPage() {
                     required
                   >
                     <option value="">Choose a destination</option>
-                    {destinations.map((destination) => (
+                    {countyDestinations.map((destination) => (
                       <option key={destination.id} value={destination.id}>
                         {destination.name}
                         {destination.county
@@ -381,7 +403,7 @@ export default function NewPartnerPropertyPage() {
                       </option>
                     ))}
                   </select>
-                  {destinations.length === 0 && (
+                  {countyDestinations.length === 0 && (
                     <p className="mt-2 text-sm text-red-600">
                       No active destinations were returned. Please try again later.
                     </p>
