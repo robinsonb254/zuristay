@@ -62,7 +62,15 @@ export default function PartnerRegistrationPage() {
     try {
       const supabase = createSupabaseBrowserClient();
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const applicationEmail = form.email.trim().toLowerCase();
+      const linkedApplicantId =
+        session?.user.email?.trim().toLowerCase() === applicationEmail
+          ? session.user.id
+          : null;
+
       const application = {
+        applicant_user_id: linkedApplicantId,
         business_name: form.businessName.trim(),
         contact_person: form.contactPerson.trim(),
         email: form.email.trim().toLowerCase(),
@@ -216,7 +224,8 @@ export default function PartnerRegistrationPage() {
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-gray-500">
                   Complete the details below. Fields marked with *
-                  are required.
+                  are required. Before approval, create a ZuriStay account
+                  using this same email address and verify it.
                 </p>
               </div>
 
