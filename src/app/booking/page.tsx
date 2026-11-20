@@ -49,42 +49,6 @@ type BookingResult = {
   idempotent_replay?: boolean;
 };
 
-const featuredProperties: Property[] = [
-  {
-    id: "1",
-    name: "Ocean View Resort",
-    location: "Diani Beach, Kwale",
-    price: 12500,
-    currency: "KSh",
-    image:
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000",
-    units: [],
-    isLive: false,
-  },
-  {
-    id: "2",
-    name: "The City Garden Hotel",
-    location: "Nairobi, Kenya",
-    price: 8500,
-    currency: "KSh",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000",
-    units: [],
-    isLive: false,
-  },
-  {
-    id: "3",
-    name: "Palm Breeze Villas",
-    location: "Watamu, Kilifi",
-    price: 18000,
-    currency: "KSh",
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000",
-    units: [],
-    isLive: false,
-  },
-];
-
 function getToday() {
   const date = new Date();
 
@@ -103,7 +67,7 @@ function formatMoney(amount: number, currency: string) {
 
 export default function BookingPage() {
   const [liveProperties, setLiveProperties] = useState<Property[]>([]);
-  const [propertyId, setPropertyId] = useState("1");
+  const [propertyId, setPropertyId] = useState("");
   const [unitId, setUnitId] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -133,10 +97,15 @@ export default function BookingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const selectedId = params.get("propertyId");
+    const queryCheckIn = params.get("checkIn");
+    const queryCheckOut = params.get("checkOut");
+    const queryGuests = params.get("guests");
+    const queryRooms = params.get("rooms");
 
-    if (selectedId) {
-      setPropertyId(selectedId);
-    }
+    if (queryCheckIn) setCheckIn(queryCheckIn);
+    if (queryCheckOut) setCheckOut(queryCheckOut);
+    if (queryGuests && /^\d+$/.test(queryGuests)) setGuests(queryGuests);
+    if (queryRooms && /^\d+$/.test(queryRooms)) setRooms(queryRooms);
 
     async function loadProperties() {
       try {
@@ -180,6 +149,8 @@ export default function BookingPage() {
           }));
 
         setLiveProperties(listings);
+        const preferred = listings.find((item) => item.id === selectedId) || listings[0];
+        setPropertyId(preferred?.id || "");
       } catch (loadError) {
         console.error("Property loading error:", loadError);
         setError("Unable to load live accommodation listings.");
@@ -191,11 +162,20 @@ export default function BookingPage() {
     loadProperties();
   }, []);
 
-  const allProperties = [...featuredProperties, ...liveProperties];
+  const allProperties = liveProperties;
 
   const property =
     allProperties.find((item) => item.id === propertyId) ||
-    featuredProperties[0];
+    allProperties[0] || {
+      id: "",
+      name: "No live accommodation available",
+      location: "Approved partner listings will appear here",
+      price: 0,
+      currency: "KES",
+      image: "",
+      units: [],
+      isLive: false,
+    };
 
   const selectedUnit =
     property.units.find((unit) => unit.id === unitId) ||
