@@ -16,6 +16,7 @@ const money = (amount: number, currency = "KSh") =>
 
 export default async function PropertyDetailsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ checkIn?: string; checkOut?: string; guests?: string; rooms?: string }>;
