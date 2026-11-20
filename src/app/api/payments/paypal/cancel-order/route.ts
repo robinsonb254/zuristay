@@ -15,9 +15,13 @@ export async function POST(request: NextRequest) {
     const key = process.env.SUPABASE_SECRET_KEY;
     if (!url || !key) return NextResponse.json({ success: false }, { status: 500 });
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: session } = await db.from("paypal_checkout_sessions")
+    const { data: session, error: sessionError } = await db.from("paypal_checkout_sessions")
       .select("id, booking_id, guest_access_token_hash, status")
       .eq("order_id", orderId).maybeSingle();
+    if (sessionError) {
+      console.error("PayPal cancellation session lookup failed:", sessionError);
+      return NextResponse.json({ success: false }, { status: 503 });
+    }
     if (!session || !verifyGuestToken(request.headers.get("x-booking-access-token"), session.guest_access_token_hash)) {
       return NextResponse.json({ success: false }, { status: 404 });
     }
@@ -28,10 +32,20 @@ export async function POST(request: NextRequest) {
     const order = await response.json();
     if (!response.ok) return NextResponse.json({ success: false }, { status: 503 });
     if (order.status === "CREATED" || order.status === "VOIDED") {
-      await db.from("paypal_checkout_sessions").update({ status: "cancelled" }).eq("id", session.id);
-      await db.from("payments").update({ status: "failed" })
+      const { error: sessionUpdateError } = await db.from("paypal_checkout_sessions")
+        .update({ status: "cancelled" }).eq("id", session.id)
+        .neq("status", "captured");
+      if (sessionUpdateError) {
+        console.error("Unable to record PayPal cancellation:", sessionUpdateError);
+        return NextResponse.json({ success: false, error: "Cancellation needs reconciliation." }, { status: 503 });
+      }
+      const { error: paymentUpdateError } = await db.from("payments").update({ status: "failed" })
         .eq("booking_id", session.booking_id).eq("payment_method", "paypal")
         .eq("provider_reference", orderId).eq("status", "pending");
+      if (paymentUpdateError) {
+        console.error("Unable to close cancelled PayPal payment attempt:", paymentUpdateError);
+        return NextResponse.json({ success: false, error: "Cancellation was verified but its payment record needs reconciliation." }, { status: 503 });
+      }
       return NextResponse.json({ success: true, cancelled: true });
     }
     // An approved or completed order must remain reserved for capture/reconciliation.
