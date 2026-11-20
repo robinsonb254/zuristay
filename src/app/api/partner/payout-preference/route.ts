@@ -135,7 +135,7 @@ export async function PUT(request: NextRequest) {
       const accountNumber = typeof body.bank_account_number === "string" ? body.bank_account_number.trim().replace(/\s+/g, "") : "";
       const bankCode = typeof body.bank_code === "string" ? body.bank_code.trim() : "";
       const branch = typeof body.bank_branch === "string" ? body.bank_branch.trim() : "";
-      if (bank.length < 2 || bank.length > 100 || !/^\\d{1,8}$/.test(bankCode) || accountName.length < 2 || accountName.length > 120 || !/^[A-Za-z0-9-]{4,34}$/.test(accountNumber) || branch.length > 100) {
+      if (bank.length < 2 || bank.length > 100 || !/^\d{1,8}$/.test(bankCode) || accountName.length < 2 || accountName.length > 120 || !/^[A-Za-z0-9-]{4,34}$/.test(accountNumber) || branch.length > 100) {
         return fail("Enter valid bank, account name and account number details.", 400);
       }
       values.bank_name = bank;
