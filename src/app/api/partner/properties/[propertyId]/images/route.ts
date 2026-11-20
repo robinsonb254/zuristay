@@ -134,6 +134,36 @@ export async function POST(
     if (file.size < 1 || file.size > MAX_IMAGE_BYTES) {
       return fail("Each image must be smaller than 8 MB.", 400);
     }
+
+    // Do not trust the browser-provided MIME type alone. Confirm the file
+    // signature before storing it in the public property-images bucket.
+    const signature = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    const isJpeg =
+      file.type === "image/jpeg" &&
+      signature[0] === 0xff &&
+      signature[1] === 0xd8 &&
+      signature[2] === 0xff;
+    const isPng =
+      file.type === "image/png" &&
+      signature.length >= 8 &&
+      signature[0] === 0x89 &&
+      signature[1] === 0x50 &&
+      signature[2] === 0x4e &&
+      signature[3] === 0x47 &&
+      signature[4] === 0x0d &&
+      signature[5] === 0x0a &&
+      signature[6] === 0x1a &&
+      signature[7] === 0x0a;
+    const isWebp =
+      file.type === "image/webp" &&
+      signature.length >= 12 &&
+      String.fromCharCode(...signature.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...signature.slice(8, 12)) === "WEBP";
+
+    if (!isJpeg && !isPng && !isWebp) {
+      return fail("The uploaded file does not match a supported JPG, PNG or WebP image.", 400);
+    }
+
     if (caption.length > 160) return fail("Image caption must be 160 characters or fewer.", 400);
 
     const { count, error: countError } = await admin
