@@ -157,7 +157,7 @@ export default function PartnerPayoutSettingsPage() {
           {payout.payout_method === "bank" && <div className="grid gap-5 sm:grid-cols-2">
             <div><label className={labelClass} htmlFor="bank_name">Bank name</label><select id="bank_name" className={inputClass} value={payout.bank_code || ""} onChange={e => { const bank = banks.find(item => item.bank_code === e.target.value); setPayout(current => ({ ...current, bank_name: bank?.bank_name || "", bank_code: bank?.bank_code || "" })); }} required><option value="">Select your bank</option>{banks.map(bank => <option key={bank.bank_code} value={bank.bank_code}>{bank.bank_name}</option>)}</select>{banks.length === 0 && <p className="mt-1 text-xs text-amber-700">Bank directory unavailable. Refresh the page to try again.</p>}</div>
             <div><label className={labelClass} htmlFor="bank_branch">Branch (optional)</label><input id="bank_branch" className={inputClass} value={payout.bank_branch || ""} onChange={e => update("bank_branch", e.target.value)} placeholder="Branch name"/></div>
-            <div><label className={labelClass} htmlFor="bank_account_name">Bank account name</label><input id="bank_account_name" className={inputClass} value={payout.bank_account_name || ""} onChange={e => update("bank_account_name", e.target.value)} required placeholder="Name on bank account"/></div>
+            
             <div><label className={labelClass} htmlFor="bank_account_number">Bank account number</label><input id="bank_account_number" className={inputClass} value={payout.bank_account_number || ""} onChange={e => update("bank_account_number", e.target.value)} required inputMode="numeric" placeholder="Account number"/></div>
           </div>}
 
