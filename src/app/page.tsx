@@ -422,9 +422,15 @@ export default function Home() {
               type="button"
               key={item.name}
               onClick={() => {
-                setDestination(item.searchDestination);
-                setSearchMessage("");
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                const params = new URLSearchParams({
+                  destination: item.searchDestination,
+                  checkIn,
+                  checkOut,
+                  guests,
+                  rooms,
+                  budget,
+                });
+                window.location.href = `/search?${params.toString()}`;
               }}
               className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
             >
