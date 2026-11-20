@@ -13,14 +13,19 @@ type PaymentState = "idle" | "waiting" | "paid" | "failed" | "expired" | "timeou
 
 type BrandedCheckoutProps = {
   bookingReference: string;
+  bookingId: string;
+  bookingAccessToken: string;
   amount: number;
   currency: string;
   paymentState: PaymentState;
   paymentPhone: string;
   onPaymentPhoneChange: (value: string) => void;
   onStartMpesaPayment: () => void;
+  onStartCardPayment: () => void;
   onCheckStatus: () => void;
   startingPayment: boolean;
+  startingCardPayment: boolean;
+  cardPaymentError: string;
   paymentError: string;
   paymentMessage: string;
   paymentReference: string;
@@ -36,14 +41,19 @@ function formatMoney(amount: number, currency: string) {
 
 export default function BrandedCheckout({
   bookingReference,
+  bookingId,
+  bookingAccessToken,
   amount,
   currency,
   paymentState,
   paymentPhone,
   onPaymentPhoneChange,
   onStartMpesaPayment,
+  onStartCardPayment,
   onCheckStatus,
   startingPayment,
+  startingCardPayment,
+  cardPaymentError,
   paymentError,
   paymentMessage,
   paymentReference,
@@ -215,8 +225,22 @@ export default function BrandedCheckout({
                   Card payments are being prepared
                 </div>
                 <p className="mt-2 text-sm leading-6 text-amber-900">
-                  Visa and Mastercard checkout will appear here once ZuriStay&apos;s acquiring partner has enabled live processing. This page does not collect or store card numbers or security codes.
+                  Continue to Flutterwave&apos;s hosted checkout to pay securely by card. Card details are entered on Flutterwave, never on this page.
                 </p>
+                {cardPaymentError && (
+                  <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">
+                    {cardPaymentError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={onStartCardPayment}
+                  disabled={startingCardPayment || !bookingId || !bookingAccessToken}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#102b52] px-5 py-4 font-bold text-white transition hover:bg-[#173b6d] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <LockKeyhole size={17} />
+                  {startingCardPayment ? "Preparing secure card checkout..." : "Continue to Visa / Mastercard"}
+                </button>
               </div>
             )}
           </>
