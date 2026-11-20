@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { verifyBookingAccessToken } from "@/lib/bookings/access";
 import {
@@ -75,6 +76,30 @@ export async function POST(request: NextRequest) {
       return reply("Use the guest phone number saved with this booking. Update the booking details before paying with another number.", 400);
     }
 
+    // Claim the single in-flight M-Pesa attempt before contacting Daraja.
+    // The database partial unique index makes this safe across concurrent requests.
+    const attemptReference = `INIT-${randomUUID()}`;
+    const { data: attempt, error: attemptError } = await db
+      .from("payments")
+      .insert({
+        booking_id: bookingId,
+        payment_method: "mpesa",
+        provider_reference: attemptReference,
+        amount,
+        currency: "KES",
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (attemptError || !attempt) {
+      if (attemptError?.code === "23505") {
+        return reply("An M-Pesa request is already pending for this booking. Check your phone and wait for confirmation before trying again.", 409);
+      }
+      console.error("Unable to reserve M-Pesa payment attempt:", attemptError);
+      return reply("Unable to safely reserve this payment attempt. Please try again shortly.", 500);
+    }
+
     const config = getMpesaConfig();
     const token = await getMpesaAccessToken(config);
     const timestamp = darajaTimestamp();
@@ -111,21 +136,21 @@ export async function POST(request: NextRequest) {
     const result = await response.json();
     if (!response.ok || result.ResponseCode !== "0" || !result.CheckoutRequestID) {
       console.error("Daraja STK initiation failed:", result);
+      await db.from("payments").update({ status: "failed" }).eq("id", attempt.id).eq("status", "pending");
       return reply(result.CustomerMessage || "M-Pesa could not start the payment. Please try again.", 502);
     }
 
-    const { error: paymentError } = await db.from("payments").insert({
-      booking_id: bookingId,
-      payment_method: "mpesa",
-      provider_reference: String(result.CheckoutRequestID),
-      amount,
-      currency: "KES",
-      status: "pending",
-    });
+    const { error: paymentUpdateError } = await db
+      .from("payments")
+      .update({ provider_reference: String(result.CheckoutRequestID) })
+      .eq("id", attempt.id)
+      .eq("status", "pending");
 
-    if (paymentError) {
-      console.error("Unable to record M-Pesa request:", paymentError);
-      return reply("Payment was initiated but could not be recorded. Contact ZuriStay support before retrying.", 500);
+    if (paymentUpdateError) {
+      // Daraja may already have sent the prompt. Keep the pending claim in place
+      // to prevent a second charge; support can reconcile this attempt safely.
+      console.error("Daraja accepted STK but its reference could not be stored:", paymentUpdateError);
+      return reply("M-Pesa may have sent a prompt. Do not retry yet; contact ZuriStay support for verification.", 503);
     }
 
     return NextResponse.json({
@@ -135,7 +160,9 @@ export async function POST(request: NextRequest) {
       booking_reference: booking.booking_reference,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    // If the network fails after a request may have reached Daraja, do not
+    // automatically release the pending attempt: that could permit a duplicate charge.
     console.error("M-Pesa STK endpoint error:", error);
-    return reply(error instanceof Error ? error.message : "Unable to start M-Pesa payment.", 400);
+    return reply("We could not confirm whether M-Pesa received the request. Check your phone and contact support before retrying.", 503);
   }
 }
