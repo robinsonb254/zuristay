@@ -117,6 +117,8 @@ export default function BookingPage() {
   const [bookingAccessToken, setBookingAccessToken] = useState("");
   const [paymentPhone, setPaymentPhone] = useState("");
   const [startingPayment, setStartingPayment] = useState(false);
+  const [startingCardPayment, setStartingCardPayment] = useState(false);
+  const [cardPaymentError, setCardPaymentError] = useState("");
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
   const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
@@ -523,6 +525,46 @@ export default function BookingPage() {
     };
   }, [activeBookingId, bookingAccessToken, paymentState]);
 
+  async function startCardPayment() {
+    if (!booking) return;
+    setStartingCardPayment(true);
+    setCardPaymentError("");
+    try {
+      let accessToken = bookingAccessToken;
+      if (!accessToken) {
+        try {
+          accessToken = sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || "";
+        } catch {
+          accessToken = "";
+        }
+      }
+      if (!accessToken) throw new Error("Secure booking access is unavailable. Please reopen your booking session.");
+
+      const response = await fetch("/api/payments/card/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-booking-access-token": accessToken,
+        },
+        body: JSON.stringify({ booking_id: booking.booking_id }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || typeof result.checkout_url !== "string") {
+        throw new Error(result.error || "Unable to start card checkout.");
+      }
+
+      const checkoutUrl = new URL(result.checkout_url);
+      if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.flutterwave.com") {
+        throw new Error("The card provider returned an untrusted checkout address.");
+      }
+      window.location.assign(checkoutUrl.toString());
+    } catch (cardStartError) {
+      setCardPaymentError(cardStartError instanceof Error ? cardStartError.message : "Card checkout could not be started.");
+    } finally {
+      setStartingCardPayment(false);
+    }
+  }
+
   async function startMpesaPayment() {
     if (!booking) return;
     setStartingPayment(true);
@@ -636,14 +678,19 @@ export default function BookingPage() {
 
           <BrandedCheckout
             bookingReference={booking.booking_reference}
+            bookingId={booking.booking_id}
+            bookingAccessToken={bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })()}
             amount={Number(booking.total_amount)}
             currency={booking.currency}
             paymentState={paymentState}
             paymentPhone={paymentPhone}
             onPaymentPhoneChange={setPaymentPhone}
             onStartMpesaPayment={startMpesaPayment}
+            onStartCardPayment={startCardPayment}
             onCheckStatus={() => setPaymentState("waiting")}
             startingPayment={startingPayment}
+            startingCardPayment={startingCardPayment}
+            cardPaymentError={cardPaymentError}
             paymentError={paymentError}
             paymentMessage={paymentMessage}
             paymentReference={paymentReference}
