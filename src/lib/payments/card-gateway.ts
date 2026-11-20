@@ -56,6 +56,7 @@ type FlutterwaveVerifiedTransaction = {
 type FlutterwaveWebhookPayload = {
   type?: string;
   data?: {
+    id?: string | number;
     reference?: string;
     status?: string;
   };
@@ -171,22 +172,22 @@ class FlutterwaveCardProvider implements CardPaymentProvider {
     }
 
     const payload = JSON.parse(rawBody) as FlutterwaveWebhookPayload;
-    const transactionReference = payload.data?.reference;
-    if (typeof transactionReference !== "string" || !transactionReference.trim()) {
-      throw new Error("Flutterwave webhook is missing its transaction reference.");
+    const transactionId = payload.data?.id;
+    if ((typeof transactionId !== "number" && typeof transactionId !== "string") ||
+        !/^\\d+$/.test(String(transactionId))) {
+      throw new Error("Flutterwave webhook is missing its transaction ID.");
     }
 
-    // Never trust the webhook body alone. Re-query Flutterwave using the
-    // merchant-generated tx_ref and compare the verified transaction.
-    const query = new URLSearchParams({ tx_ref: transactionReference });
+    // Never trust the webhook body alone. Re-query Flutterwave by its
+    // transaction ID, then correlate the verified tx_ref to our attempt ID.
     const verified = await flutterwaveRequest<FlutterwaveVerifiedTransaction>(
-      `/transactions/verify_by_reference?${query.toString()}`,
+      `/transactions/${encodeURIComponent(String(transactionId))}/verify`,
       { method: "GET" }
     );
 
     if (
       !verified.tx_ref ||
-      verified.tx_ref !== transactionReference ||
+      !verified.tx_ref ||
       !verified.flw_ref ||
       !Number.isFinite(Number(verified.amount)) ||
       !verified.currency
