@@ -67,7 +67,7 @@ export default function PartnerPayoutSettingsPage() {
   }, [router]);
 
   function update(field: keyof Payout, value: string) {
-    setPayout(current => ({ ...current, [field]: value }));
+    setPayout(current => ({ ...current, [field]: value } as Payout));
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
