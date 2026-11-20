@@ -18,8 +18,9 @@ export default async function PropertyDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ checkIn?: string; checkOut?: string; guests?: string; rooms?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
 
   let liveProperty: any = null;
   let loadingError = false;
@@ -168,6 +169,12 @@ export default async function PropertyDetailsPage({
   }
 
   const isLiveProperty = Boolean(liveProperty);
+  const bookingQuery = new URLSearchParams();
+  if (query.checkIn) bookingQuery.set("checkIn", query.checkIn);
+  if (query.checkOut) bookingQuery.set("checkOut", query.checkOut);
+  if (query.guests) bookingQuery.set("guests", query.guests);
+  if (query.rooms) bookingQuery.set("rooms", query.rooms);
+  const bookingHref = `/booking?propertyId=${property.id}${bookingQuery.size ? `&${bookingQuery.toString()}` : ""}`;
 
   const location = isLiveProperty
     ? [
@@ -442,7 +449,7 @@ export default async function PropertyDetailsPage({
               {isLiveProperty ? (
                 property.units.length > 0 ? (
                   <Link
-                    href={`/booking?propertyId=${property.id}`}
+                    href={bookingHref}
                     className="mt-6 block w-full rounded-xl bg-orange-500 px-5 py-4 text-center font-bold text-white transition hover:bg-orange-600"
                   >
                     Check availability and reserve
@@ -454,7 +461,7 @@ export default async function PropertyDetailsPage({
                 )
               ) : (
                 <Link
-                  href={`/booking?propertyId=${property.id}`}
+                  href={bookingHref}
                   className="mt-6 block w-full rounded-xl bg-orange-500 px-5 py-4 text-center font-bold text-white transition hover:bg-orange-600"
                 >
                   Check booking options
