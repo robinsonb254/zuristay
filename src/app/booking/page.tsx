@@ -121,7 +121,7 @@ export default function BookingPage() {
   const [startingPayment, setStartingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
-  const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "expired" | "timeout">("idle");
+  const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -382,6 +382,12 @@ export default function BookingPage() {
           return;
         }
 
+        if (result.mpesa_status === "failed") {
+          setPaymentState("failed");
+          setPaymentError("The M-Pesa request was not completed. You can try again while your room hold is active.");
+          return;
+        }
+
         if (!result.hold_active) {
           setPaymentState("expired");
           setPaymentError("Your 15-minute room hold has expired before payment was confirmed. Please contact ZuriStay support before making another payment.");
@@ -509,14 +515,14 @@ export default function BookingPage() {
             </label>}
             {paymentError && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{paymentError}</p>}
             {paymentMessage && <p role="status" className="mt-3 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">{paymentMessage}</p>}
-            {paymentState === "idle" && (
+            {(paymentState === "idle" || paymentState === "failed") && (
               <button
                 type="button"
                 onClick={startMpesaPayment}
                 disabled={startingPayment}
                 className="mt-4 w-full rounded-xl bg-green-600 px-5 py-4 font-bold text-white transition hover:bg-green-700 disabled:opacity-60"
               >
-                {startingPayment ? "Sending M-Pesa prompt..." : "Pay with M-Pesa"}
+                {startingPayment ? "Sending M-Pesa prompt..." : paymentState === "failed" ? "Try M-Pesa again" : "Pay with M-Pesa"}
               </button>
             )}
             {paymentState === "waiting" && (
