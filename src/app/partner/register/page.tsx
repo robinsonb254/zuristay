@@ -246,7 +246,7 @@ export default function PartnerRegistrationPage() {
                     htmlFor="contactPerson"
                     className="mb-2 block text-sm font-semibold"
                   >
-                    Contact person's full name *
+                    Contact person&apos;s full name *
                   </label>
                   <input
                     id="contactPerson"
