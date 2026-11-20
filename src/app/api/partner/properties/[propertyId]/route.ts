@@ -48,7 +48,7 @@ async function ownedProperty(request: NextRequest, propertyId: string) {
     return { error: fail("Unable to load this property.", 500) };
   }
   if (!property) return { error: fail("Property not found in your partner account.", 404) };
-  return { ...context, property };
+  return { admin: context.admin, partner: context.partner, property };
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
