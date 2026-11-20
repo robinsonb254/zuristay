@@ -49,6 +49,17 @@ export async function POST(request: NextRequest) {
       return fail("PayPal reports a completed payment, but the room hold has expired. Do not pay again; contact ZuriStay support for reconciliation.", 409);
     }
     if (checkoutExpired) {
+      const { error: expireAttemptError } = await db.from("payments")
+        .update({ status: "failed" })
+        .eq("booking_id", session.booking_id)
+        .eq("payment_method", "paypal")
+        .eq("provider_reference", orderId)
+        .eq("status", "pending");
+      if (expireAttemptError) {
+        console.error("Unable to close expired PayPal payment attempt:", expireAttemptError);
+        await db.from("paypal_checkout_sessions").update({ status: "needs_review" }).eq("id", session.id);
+        return fail("This checkout expired but its payment record needs reconciliation. Do not pay again; contact support.", 503);
+      }
       await db.from("paypal_checkout_sessions").update({ status: "expired" }).eq("id", session.id);
       return fail("This PayPal checkout has expired. Please create a new booking.", 409);
     }
