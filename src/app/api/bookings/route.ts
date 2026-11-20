@@ -33,40 +33,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Guest checkout is supported. If a bearer token is supplied, verify it
+    // and attach the authenticated customer; never trust a client-supplied user ID.
+    let customerUserId: string | null = null;
     const authorization = request.headers.get("authorization");
-
-    if (!authorization?.startsWith("Bearer ")) {
-      return errorResponse("Please sign in to make a booking.", 401);
-    }
-
-    const accessToken = authorization.slice(7).trim();
-
-    if (!accessToken) {
-      return errorResponse("Invalid authentication token.", 401);
-    }
-
-    const authClient = createClient(
-      supabaseUrl,
-      publishableKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
+    if (authorization) {
+      if (!authorization.startsWith("Bearer ")) {
+        return errorResponse("Invalid authentication token.", 401);
       }
-    );
+      const accessToken = authorization.slice(7).trim();
+      if (!accessToken) return errorResponse("Invalid authentication token.", 401);
 
-    const {
-      data: { user },
-      error: authError,
-    } = await authClient.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return errorResponse(
-        "Your session is invalid or expired. Please sign in again.",
-        401
-      );
+      const authClient = createClient(supabaseUrl, publishableKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const { data: { user }, error: authError } = await authClient.auth.getUser(accessToken);
+      if (authError || !user) {
+        return errorResponse("Your session is invalid or expired. Please sign in again.", 401);
+      }
+      customerUserId = user.id;
     }
 
     let body: unknown;
@@ -188,7 +173,7 @@ export async function POST(request: NextRequest) {
         p_guest_email: guest_email.trim().toLowerCase(),
         p_guest_phone: guest_phone.trim(),
         p_idempotency_key: idempotency_key,
-        p_customer_user_id: user.id,
+        p_customer_user_id: customerUserId,
         p_special_requests:
           typeof special_requests === "string"
             ? special_requests.trim() || null
