@@ -74,12 +74,19 @@ export async function POST(request: NextRequest) {
       return fail("PayPal payment is awaiting verification. Do not retry or make another payment.", 409);
     }
 
-    const { error: pendingDeleteError } = await db.from("payments")
-      .delete().eq("booking_id", session.booking_id).eq("payment_method", "paypal")
-      .eq("provider_reference", orderId).eq("status", "pending");
-    if (pendingDeleteError) {
-      console.error("Unable to clear pending PayPal payment attempt:", pendingDeleteError);
-      await db.from("paypal_checkout_sessions").update({ status: "needs_review" }).eq("id", session.id);
+    // Retain the original attempt as an audit record. The confirmation RPC
+    // inserts a separate successful row keyed by the actual capture ID.
+    // Marking this order attempt failed releases the one-pending-attempt index
+    // without deleting evidence if booking confirmation later needs recovery.
+    const { error: pendingUpdateError } = await db.from("payments")
+      .update({ status: "failed" })
+      .eq("booking_id", session.booking_id)
+      .eq("payment_method", "paypal")
+      .eq("provider_reference", orderId)
+      .eq("status", "pending");
+    if (pendingUpdateError) {
+      console.error("Unable to close pending PayPal payment attempt:", pendingUpdateError);
+      await db.from("paypal_checkout_sessions").update({ status: "needs_review", capture_id: capture.id }).eq("id", session.id);
       return fail("Payment was captured but booking confirmation is being reconciled. Do not pay again.", 503);
     }
 
