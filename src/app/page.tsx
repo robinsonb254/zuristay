@@ -31,67 +31,21 @@ type DatabaseDestination = {
   sort_order?: number | null;
 };
 
-type KenyaCounty = {
-  county_code: number;
-  name: string;
-  subcounties: { subcounty_code: string; name: string }[];
-};
+
 
 const destinationHighlights = [
-  {
-    name: "Mombasa",
-    description: "Coastal escapes and ocean views",
-    image:
-      "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=900",
-  },
-  {
-    name: "Diani Beach",
-    description: "White sands and tropical luxury",
-    image:
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
-  },
-  {
-    name: "Nairobi",
-    description: "City stays and urban experiences",
-    image:
-      "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=900",
-  },
-  {
-    name: "Watamu",
-    description: "Beautiful beaches and relaxation",
-    image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900",
-  },
-  {
-    name: "Malindi",
-    description: "Discover Kenya's beautiful coast",
-    image:
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
-  },
-  {
-    name: "Naivasha",
-    description: "Nature, lakes and peaceful retreats",
-    image:
-      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900",
-  },
-  {
-    name: "Kisumu",
-    description: "Lakeside stays and western Kenya experiences",
-    image:
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900",
-  },
-  {
-    name: "Bungoma",
-    description: "Discover stays in western Kenya",
-    image:
-      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900",
-  },
-  {
-    name: "Eldoret",
-    description: "City comfort and highland escapes",
-    image:
-      "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=900",
-  },
+  { name: "Maasai Mara", searchDestination: "Narok", description: "Iconic safari country and the Great Migration", image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1000" },
+  { name: "Diani Beach", searchDestination: "Diani", description: "White-sand beaches and Indian Ocean escapes", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
+  { name: "Amboseli", searchDestination: "Kimana", description: "Elephant country beneath Mount Kilimanjaro", image: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?w=1000" },
+  { name: "Mombasa", searchDestination: "Mombasa", description: "Swahili heritage, beaches and coastal city life", image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=1000" },
+  { name: "Watamu", searchDestination: "Watamu", description: "Marine parks, coral reefs and quiet beaches", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1000" },
+  { name: "Nairobi", searchDestination: "Nairobi", description: "The city, culture and safari capital", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
+  { name: "Lake Naivasha", searchDestination: "Naivasha", description: "Lakeside retreats and Great Rift Valley scenery", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1000" },
+  { name: "Malindi", searchDestination: "Malindi", description: "Coastal charm, marine life and beach stays", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
+  { name: "Lamu", searchDestination: "Lamu", description: "Historic Swahili town and island life", image: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1000" },
+  { name: "Tsavo", searchDestination: "Voi", description: "Vast wilderness and unforgettable safari stays", image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1000" },
+  { name: "Mount Kenya", searchDestination: "Nanyuki", description: "Mountain escapes, highlands and adventure", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000" },
+  { name: "Samburu", searchDestination: "Maralal", description: "Northern landscapes and unique wildlife", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
 ];
 
 const stays = [
@@ -140,7 +94,6 @@ export default function Home() {
   const [databaseDestinations, setDatabaseDestinations] = useState<
     DatabaseDestination[]
   >([]);
-  const [kenyaCounties, setKenyaCounties] = useState<KenyaCounty[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -161,11 +114,7 @@ export default function Home() {
           }
         }
 
-        const locationsResponse = await fetch("/api/kenya-locations");
-        const locationsResult = await locationsResponse.json();
-        if (locationsResponse.ok && locationsResult.success && isMounted) {
-          setKenyaCounties(locationsResult.counties || []);
-        }
+
       } catch (error) {
         console.error("Destination loading error:", error);
       }
@@ -248,6 +197,7 @@ export default function Home() {
             <a href="#destinations" className="hover:text-[#c49a52]">
               Explore
             </a>
+            <a href="/destinations" className="hover:text-[#c49a52]">All destinations</a>
             <a href="#featured" className="hover:text-[#c49a52]">
               Featured stays
             </a>
@@ -307,6 +257,7 @@ export default function Home() {
             <a href="#destinations" onClick={() => setMenuOpen(false)}>
               Explore
             </a>
+            <a href="/destinations" onClick={() => setMenuOpen(false)}>All destinations</a>
             <a href="#featured" onClick={() => setMenuOpen(false)}>
               Featured stays
             </a>
@@ -526,7 +477,7 @@ export default function Home() {
               type="button"
               key={item.name}
               onClick={() => {
-                setDestination(item.name);
+                setDestination(item.searchDestination);
                 setSearchMessage("");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
@@ -553,94 +504,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="kenya-counties" className="container py-20">
-        <div className="mb-9">
-          <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-            EVERY CORNER OF KENYA
-          </p>
-          <h2 className="text-3xl font-bold md:text-4xl">
-            Explore all 47 counties
-          </h2>
-          <p className="mt-3 max-w-2xl text-gray-500">
-            Browse all 47 counties and 334 census sub-counties. Select an area to search for accommodation.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {kenyaCounties.map((county) => (
-            <details key={county.county_code} className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-[#173b30]">
-                <span>{county.name}</span>
-                <span className="rounded-full bg-[#f4eee2] px-3 py-1 text-xs font-semibold text-[#8d6a31]">
-                  {county.subcounties.length} sub-counties
-                </span>
-              </summary>
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDestination(county.name);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="rounded-full bg-[#173b30] px-3 py-1.5 text-xs font-semibold text-white"
-                >
-                  Search county
-                </button>
-                {county.subcounties.map((subcounty) => (
-                  <button
-                    type="button"
-                    key={subcounty.subcounty_code}
-                    onClick={() => {
-                      setDestination(`${subcounty.name}, ${county.name}`);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs text-gray-700 hover:bg-[#f4eee2]"
-                  >
-                    {subcounty.name}
-                  </button>
-                ))}
-              </div>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section id="urban-centres" className="bg-white py-20">
-        <div className="container">
-          <div className="mb-9">
-            <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              NATIONWIDE DESTINATION DIRECTORY
-            </p>
-            <h2 className="text-3xl font-bold md:text-4xl">
-              Major towns and urban centres
-            </h2>
-            <p className="mt-3 max-w-2xl text-gray-500">
-              Browse 148 urban centres with populations of 10,000 or more, ranked from largest to smallest using KNBS 2019 census figures. Search results show actual approved accommodation listings.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {databaseDestinations
-              .filter((item) => item.population_2019 !== null && item.population_2019 !== undefined)
-              .sort((a, b) => (a.sort_order ?? 999999) - (b.sort_order ?? 999999))
-              .map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() => {
-                    setDestination(item.city);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-[#faf9f6] px-4 py-3 text-left transition hover:border-[#c49a52] hover:bg-white"
-                >
-                  <span>
-                    <span className="block text-sm font-semibold text-[#173b30]">{item.city}</span>
-                    <span className="mt-0.5 block text-xs text-gray-500">{item.county}</span>
-                  </span>
-                  <span className="shrink-0 text-xs tabular-nums text-gray-400">
-                    {Number(item.population_2019).toLocaleString("en-KE")}
-                  </span>
-                </button>
-              ))}
-          </div>
+      <section className="container pb-20">
+        <div className="rounded-3xl border border-[#e8dfcf] bg-[#f4eee2] px-7 py-10 text-center md:px-14">
+          <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#9a7439]">FIND YOUR PLACE IN KENYA</p>
+          <h2 className="text-3xl font-bold md:text-4xl">Looking for somewhere else?</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-gray-600">Explore all 47 counties, 334 sub-counties and 148 major urban centres in our nationwide destination directory.</p>
+          <a href="/destinations" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#173b30] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#245545]">Browse all Kenya destinations <ArrowRight size={17} /></a>
         </div>
       </section>
 
