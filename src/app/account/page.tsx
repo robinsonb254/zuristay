@@ -66,6 +66,17 @@ type BookingDetails = {
   unitNames: string[];
 };
 
+type Payment = {
+  booking_id: string;
+  payment_method: string;
+  provider_reference: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  verified_at: string | null;
+  created_at: string;
+};
+
 const bookingLabels: Record<string, string> = {
   pending: "Awaiting confirmation",
   confirmed: "Confirmed",
@@ -130,6 +141,9 @@ export default function AccountPage() {
   const [bookingDetails, setBookingDetails] = useState<
     Record<string, BookingDetails>
   >({});
+  const [paymentsByBooking, setPaymentsByBooking] = useState<
+    Record<string, Payment>
+  >({});
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState("");
@@ -193,6 +207,27 @@ export default function AccountPage() {
 
         if (customerBookings.length > 0) {
           const bookingIds = customerBookings.map((booking) => booking.id);
+
+          const { data: paymentData, error: paymentError } = await supabase
+            .from("payments")
+            .select(
+              "booking_id, payment_method, provider_reference, amount, currency, status, verified_at, created_at"
+            )
+            .in("booking_id", bookingIds)
+            .eq("status", "successful")
+            .order("verified_at", { ascending: false, nullsFirst: false });
+
+          if (paymentError) throw paymentError;
+
+          const paymentMap: Record<string, Payment> = {};
+          for (const payment of (paymentData || []) as Payment[]) {
+            if (!paymentMap[payment.booking_id]) {
+              paymentMap[payment.booking_id] = payment;
+            }
+          }
+
+          if (!mounted) return;
+          setPaymentsByBooking(paymentMap);
 
           const { data: itemData, error: itemError } = await supabase
             .from("booking_items")
@@ -338,7 +373,24 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-800">
+    <>
+      <style jsx global>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .zuri-print-receipt, .zuri-print-receipt * { visibility: visible !important; }
+          .zuri-print-receipt {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            background: white !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+          }
+          .zuri-print-action { display: none !important; }
+        }
+      `}</style>
+      <main className="min-h-screen bg-[#f8fafc] text-slate-800">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
           <Link href="/" className="text-2xl font-black text-blue-950">
@@ -614,6 +666,76 @@ export default function AccountPage() {
                     </div>
                   </div>
 
+                  {paymentsByBooking[booking.id] && (
+                    <section className="zuri-print-receipt mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                            ZuriStay payment receipt
+                          </p>
+                          <p className="mt-1 text-sm font-bold text-blue-950">
+                            Payment verified
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="zuri-print-action rounded-lg bg-blue-950 px-4 py-2 text-xs font-bold text-white hover:bg-blue-900"
+                        >
+                          Print / save receipt
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs text-slate-500">Booking reference</p>
+                          <p className="font-bold text-blue-950">{booking.booking_reference}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Payment method</p>
+                          <p className="font-semibold text-slate-800">
+                            {paymentsByBooking[booking.id].payment_method.toUpperCase()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            {paymentsByBooking[booking.id].payment_method === "mpesa"
+                              ? "M-Pesa receipt number"
+                              : "Provider reference"}
+                          </p>
+                          <p className="break-all font-semibold text-slate-800">
+                            {paymentsByBooking[booking.id].provider_reference || "Not supplied"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Amount paid</p>
+                          <p className="font-black text-emerald-700">
+                            {formatMoney(
+                              Number(paymentsByBooking[booking.id].amount),
+                              paymentsByBooking[booking.id].currency
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Guest</p>
+                          <p className="font-semibold text-slate-800">{booking.guest_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Payment date</p>
+                          <p className="font-semibold text-slate-800">
+                            {formatDate(
+                              (paymentsByBooking[booking.id].verified_at ||
+                                paymentsByBooking[booking.id].created_at).slice(0, 10)
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="mt-4 border-t border-emerald-200 pt-3 text-xs text-emerald-800">
+                        This receipt confirms a successful payment recorded by ZuriStay.
+                      </p>
+                    </section>
+                  )}
+
                   <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span className="flex items-center gap-2">
                       <CreditCard size={16} />
@@ -658,6 +780,7 @@ export default function AccountPage() {
       <footer className="bg-white px-5 py-7 text-center text-sm text-slate-400">
         © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
