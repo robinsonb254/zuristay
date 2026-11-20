@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await context.admin
       .from("partner_payout_accounts")
-      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, verification_status, verified_at, updated_at")
+      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, provider_account_name, verification_status, verified_at, updated_at")
       .eq("partner_id", context.partner.id)
       .maybeSingle();
 
@@ -102,6 +102,7 @@ export async function PUT(request: NextRequest) {
       bank_branch: null,
       bank_account_name: null,
       bank_account_number: null,
+      provider_account_name: null,
       verification_status: "pending",
       verified_at: null,
       updated_at: new Date().toISOString(),
@@ -147,7 +148,7 @@ export async function PUT(request: NextRequest) {
     const { data, error } = await context.admin
       .from("partner_payout_accounts")
       .upsert(values, { onConflict: "partner_id" })
-      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, verification_status, verified_at, updated_at")
+      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, provider_account_name, verification_status, verified_at, updated_at")
       .single();
 
     if (error || !data) {
