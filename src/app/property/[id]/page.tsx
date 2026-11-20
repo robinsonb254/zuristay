@@ -14,6 +14,17 @@ export const dynamic = "force-dynamic";
 const money = (amount: number, currency = "KSh") =>
   `${currency} ${amount.toLocaleString("en-KE")}`;
 
+type LiveUnit = { id: string; name: string; unit_type: string | null; description: string | null; capacity: number; total_units: number; base_rate: number; customer_rate: number; currency: string; };
+type LiveImage = { id: string; image_url: string; caption: string | null; is_cover: boolean; display_order: number; };
+type LiveAmenity = { id: string; name: string; category: string | null; };
+type LiveProperty = {
+  id: string; name: string; property_type: string; description: string | null;
+  address: string | null; city: string; sub_county: string | null; county: string | null;
+  country: string; currency: string; units: LiveUnit[]; images: LiveImage[]; amenities: LiveAmenity[];
+  location?: string; facilities?: string[]; gallery?: string[]; image?: string; price?: number;
+  type?: string; rating?: number; reviews?: number;
+};
+
 export default async function PropertyDetailsPage({
   params,
   searchParams,
@@ -23,7 +34,7 @@ export default async function PropertyDetailsPage({
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
 
-  let liveProperty: any = null;
+  let liveProperty: LiveProperty | null = null;
   let loadingError = false;
 
   {
@@ -191,18 +202,18 @@ export default async function PropertyDetailsPage({
     : property.location;
 
   const facilities = isLiveProperty
-    ? property.amenities.map((item: any) => item.name)
-    : property.facilities;
+    ? property.amenities.map((item) => item.name)
+    : property.facilities ?? [];
 
   const gallery = isLiveProperty
-    ? property.images.map((item: any) => item.image_url)
-    : property.gallery;
+    ? property.images.map((item) => item.image_url)
+    : property.gallery ?? [];
 
   const coverImage = isLiveProperty
-    ? property.images.find((item: any) => item.is_cover)?.image_url ||
+    ? property.images.find((item) => item.is_cover)?.image_url ||
       property.images[0]?.image_url ||
       ""
-    : property.image;
+    : property.image ?? "";
 
   const currency = isLiveProperty
     ? property.currency
@@ -211,10 +222,10 @@ export default async function PropertyDetailsPage({
   const startingRate = isLiveProperty
     ? property.units.length > 0
       ? Math.min(
-          ...property.units.map((unit: any) => unit.customer_rate)
+          ...property.units.map((unit) => unit.customer_rate)
         )
       : null
-    : property.price;
+    : property.price ?? null;
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
@@ -366,7 +377,7 @@ export default async function PropertyDetailsPage({
 
                 <div className="mt-5 space-y-4">
                   {property.units.length > 0 ? (
-                    property.units.map((unit: any) => (
+                    property.units.map((unit) => (
                       <div
                         key={unit.id}
                         className="rounded-2xl border border-slate-200 bg-white p-5"
