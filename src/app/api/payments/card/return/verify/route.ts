@@ -22,8 +22,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
     const bookingId = body?.booking_id;
+    const transactionReference = body?.tx_ref;
     if (typeof bookingId !== "string" || !UUID_PATTERN.test(bookingId)) {
       return reply({ success: false, error: "Invalid booking reference." }, 400);
+    }
+    if (transactionReference !== undefined &&
+      (typeof transactionReference !== "string" || !UUID_PATTERN.test(transactionReference))) {
+      return reply({ success: false, error: "Invalid card transaction reference." }, 400);
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -62,15 +67,23 @@ export async function POST(request: NextRequest) {
       return reply({ success: false, error: "Card payment verification is not configured." }, 503);
     }
 
-    const { data: attempt, error: attemptError } = await db
+    let attemptQuery = db
       .from("payments")
       .select("id, amount, currency, status")
       .eq("booking_id", bookingId)
       .eq("payment_method", "card")
-      .like("provider_reference", "CARD-INIT-%")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .like("provider_reference", "CARD-INIT-%");
+
+    // Flutterwave returns the merchant tx_ref. Match it to this booking's
+    // payment row when present, rather than accidentally verifying a newer
+    // checkout if the guest has multiple checkout tabs open.
+    if (transactionReference) {
+      attemptQuery = attemptQuery.eq("id", transactionReference);
+    } else {
+      attemptQuery = attemptQuery.order("created_at", { ascending: false }).limit(1);
+    }
+
+    const { data: attempt, error: attemptError } = await attemptQuery.maybeSingle();
 
     if (attemptError || !attempt) {
       return reply({ success: false, error: "Card payment attempt could not be found." }, 404);
