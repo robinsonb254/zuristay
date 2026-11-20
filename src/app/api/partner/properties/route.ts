@@ -19,7 +19,7 @@ const PROPERTY_TYPES = [
 ] as const;
 
 function normalizeCountyName(value: string) {
-  return value.toLowerCase().replace(/\\s+city$/i, "").trim();
+  return value.toLowerCase().replace(/\s+city$/i, "").trim();
 }
 
 function fail(message: string, status: number) {
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
       return fail("The selected sub-county does not belong to the selected county.", 400);
     }
     const destinationCounties = (destination.county || "")
-      .split(/[\\/,]/)
+      .split(/[\/,]/)
       .map(normalizeCountyName);
     if (!destinationCounties.includes(normalizeCountyName(county.name))) {
       return fail("Choose a town or urban centre within the selected county.", 400);
