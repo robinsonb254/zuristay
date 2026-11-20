@@ -19,6 +19,50 @@ function fail(message: string, status: number) {
   );
 }
 
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ propertyId: string }> }
+) {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    if (!url || !publishableKey || !secretKey) return fail("Property image service is not configured.", 500);
+    const authorization = request.headers.get("authorization");
+    if (!authorization?.startsWith("Bearer ")) return fail("Please sign in to continue.", 401);
+    const authClient = createClient(url, publishableKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser(authorization.slice(7).trim());
+    if (authError || !user) return fail("Your session has expired. Please sign in again.", 401);
+    const admin = createClient(url, secretKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    const { data: partner, error: partnerError } = await admin
+      .from("property_partners").select("id")
+      .eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
+    if (partnerError) return fail("Unable to verify your partner account.", 500);
+    if (!partner) return fail("An approved partner account is required.", 403);
+    const { propertyId } = await params;
+    if (!UUID_PATTERN.test(propertyId)) return fail("Invalid property ID.", 400);
+    const { data: property } = await admin.from("properties").select("id")
+      .eq("id", propertyId).eq("partner_id", partner.id).maybeSingle();
+    if (!property) return fail("Property not found in your partner account.", 404);
+    const { data: images, error } = await admin.from("property_images")
+      .select("id, image_url, caption, is_cover, display_order")
+      .eq("property_id", propertyId).order("display_order", { ascending: true });
+    if (error) {
+      console.error("Property image list failed:", error);
+      return fail("Unable to load property photos.", 500);
+    }
+    return NextResponse.json({ success: true, images: images ?? [] }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Property image list error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ propertyId: string }> }
