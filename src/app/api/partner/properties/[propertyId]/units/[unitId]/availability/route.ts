@@ -199,8 +199,8 @@ export async function POST(
     if (!Number.isInteger(availableUnits) || availableUnits < 0 || availableUnits > unit.total_units) {
       return fail("Available rooms must be between 0 and the total number of rooms in this category.", 400);
     }
-    if (!Number.isFinite(partnerBaseRate) || partnerBaseRate < 0 || partnerBaseRate > 100000000) {
-      return fail("Enter a valid nightly rate of zero or more.", 400);
+    if (!Number.isFinite(partnerBaseRate) || partnerBaseRate <= 0 || partnerBaseRate > 100000000) {
+      return fail("Enter a valid positive nightly rate.", 400);
     }
 
     const rows = Array.from({ length: dayCount }, (_, index) => {
