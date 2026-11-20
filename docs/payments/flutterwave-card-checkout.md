@@ -29,8 +29,9 @@ The adapter refuses to start unless both secrets are present and the secret-key 
 2. ZuriStay creates a pending card-attempt row and sends a server-side request to Flutterwave Standard with the unique payment-attempt ID as `tx_ref`.
 3. The guest is redirected to the HTTPS hosted checkout link returned by Flutterwave.
 4. The webhook's `data.tx_ref` is read only after the `verif-hash` check passes. ZuriStay then asks Flutterwave to verify the transaction using that merchant reference.
-5. ZuriStay checks the verified `tx_ref`, amount, currency and transaction status against the pending booking attempt, then calls the existing idempotent booking-payment confirmation function.
-6. The browser return page only displays the server-confirmed booking status; a redirect query parameter never marks a booking as paid.
+5. When the guest returns from hosted checkout, the return page also calls a token-protected server endpoint. That endpoint looks up the stored checkout reference and independently verifies it with Flutterwave; it does not trust redirect query parameters.
+6. Both webhook and customer-return verification use the same provider verification method and the existing idempotent booking-payment confirmation function. ZuriStay checks the verified reference, amount, currency and status before confirming the booking.
+7. The browser return page displays the database-confirmed booking status. A redirect query parameter never marks a booking as paid, and a delayed webhook does not prevent the server from reconciling a verified customer return.
 
 ## Activation and release checklist
 
