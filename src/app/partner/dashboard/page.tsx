@@ -24,6 +24,7 @@ type Property = {
   property_type: string;
   city: string;
   county: string | null;
+  sub_county?: string | null;
   country: string;
   status: string;
   is_active: boolean;
@@ -339,7 +340,7 @@ export default function PartnerDashboardPage() {
                     </p>
                     <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                       <MapPin size={14} />
-                      {[property.city, property.county, property.country]
+                      {[property.city, property.sub_county, property.county, property.country]
                         .filter(Boolean)
                         .join(", ")}
                     </p>
