@@ -40,6 +40,20 @@ export async function GET(request: NextRequest) {
       return response({ success: false, error: "Booking could not be found." }, 404);
     }
 
+    const { data: latestPayment, error: paymentError } = await db
+      .from("payments")
+      .select("status")
+      .eq("booking_id", bookingId)
+      .eq("payment_method", "mpesa")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (paymentError) {
+      console.error("Payment status lookup failed:", paymentError);
+      return response({ success: false, error: "Payment status is temporarily unavailable." }, 500);
+    }
+
     const { data: holds, error: holdError } = await db
       .from("booking_holds")
       .select("id")
@@ -58,6 +72,7 @@ export async function GET(request: NextRequest) {
       booking_reference: booking.booking_reference,
       booking_status: booking.booking_status,
       payment_status: booking.payment_status,
+      mpesa_status: latestPayment?.status ?? null,
       total_amount: booking.total_amount,
       currency: booking.currency,
       hold_active: Boolean(holds?.length),
