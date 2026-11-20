@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
         ? body.phone
         : booking.guest_phone
     );
+    if (phone !== normalizeKenyanPhone(booking.guest_phone)) {
+      return reply("Use the guest phone number saved with this booking. Update the booking details before paying with another number.", 400);
+    }
 
     const config = getMpesaConfig();
     const token = await getMpesaAccessToken(config);
