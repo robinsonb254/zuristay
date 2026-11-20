@@ -4,6 +4,14 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function getKenyaDate() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 function fail(message: string, status: number) {
   return NextResponse.json({ success: false, error: message }, { status, headers: { "Cache-Control": "no-store" } });
 }
@@ -64,7 +72,7 @@ async function checkReadiness(adminClient: unknown, propertyId: string, partnerI
     const { data: availability, error: availabilityError } = await admin.from("unit_availability")
       .select("id")
       .in("unit_id", Array.from(activeUnitIds))
-      .gte("stay_date", new Date().toISOString().slice(0, 10))
+      .gte("stay_date", getKenyaDate())
       .gt("available_units", 0)
       .limit(1);
     if (availabilityError) {
