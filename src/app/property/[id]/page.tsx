@@ -98,7 +98,7 @@ export default async function PropertyDetailsPage({
       const { data: property, error: propertyError } = await supabase
         .from("properties")
         .select(
-          "id, name, property_type, description, address, city, county, country, currency"
+          "id, name, property_type, description, address, city, sub_county, county, country, currency"
         )
         .eq("id", id)
         .eq("status", "approved")
@@ -237,6 +237,7 @@ export default async function PropertyDetailsPage({
     ? [
         property.address,
         property.city,
+        property.sub_county,
         property.county,
         property.country,
       ]
