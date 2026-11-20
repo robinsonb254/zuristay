@@ -46,7 +46,8 @@ async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId
     throw new Error("Unable to check property setup. Please try again.");
   }
 
-  const activeUnitIds = new Set((unitsResult.data || []).map((unit) => unit.id));
+  const activeUnits = (unitsResult.data ?? []) as Array<{ id: string; total_units: number }>;
+  const activeUnitIds = new Set(activeUnits.map((unit) => unit.id));
   let hasActiveUnitAvailability = false;
   if (activeUnitIds.size > 0) {
     const { data: availability, error: availabilityError } = await admin.from("unit_availability")
