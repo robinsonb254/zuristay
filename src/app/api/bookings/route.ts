@@ -163,8 +163,11 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // Generate the guest capability before creating the hold. The secure
+    // database wrapper stores its hash in the same transaction as the booking.
+    const bookingAccessToken = randomBytes(32).toString("hex");
     const { data, error } = await supabaseAdmin.rpc(
-      "create_booking_hold",
+      "create_booking_hold_secure",
       {
         p_unit_id: unit_id,
         p_check_in: check_in,
@@ -180,6 +183,7 @@ export async function POST(request: NextRequest) {
           typeof special_requests === "string"
             ? special_requests.trim() || null
             : null,
+        p_guest_access_token_hash: hashBookingAccessToken(bookingAccessToken),
       }
     );
 
@@ -209,16 +213,7 @@ export async function POST(request: NextRequest) {
       return errorResponse("The booking could not be secured. Please contact support before retrying.", 500);
     }
 
-    // The raw capability is returned once; only its SHA-256 hash is stored.
-    const bookingAccessToken = randomBytes(32).toString("hex");
-    const { error: accessTokenError } = await supabaseAdmin
-      .from("bookings")
-      .update({ guest_access_token_hash: hashBookingAccessToken(bookingAccessToken) })
-      .eq("id", bookingId);
-    if (accessTokenError) {
-      console.error("Unable to secure guest booking access:", accessTokenError);
-      return errorResponse("The booking was created but secure access could not be issued. Contact support before retrying.", 500);
-    }
+    // The raw capability is returned once; only its hash was stored atomically.
 
     return NextResponse.json(
       {
