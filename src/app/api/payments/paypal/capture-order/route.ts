@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = await paypalAccessToken();
-    let orderResponse = await fetch(`${paypalBaseUrl()}/v2/checkout/orders/${encodeURIComponent(orderId)}`, {
+    const orderResponse = await fetch(`${paypalBaseUrl()}/v2/checkout/orders/${encodeURIComponent(orderId)}`, {
       headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store",
     });
     let order = await orderResponse.json();
