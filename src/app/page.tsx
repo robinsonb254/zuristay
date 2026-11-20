@@ -34,18 +34,18 @@ type DatabaseDestination = {
 
 
 const destinationHighlights = [
-  { name: "Maasai Mara", searchDestination: "Narok", description: "Iconic safari country and the Great Migration", image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1000" },
-  { name: "Diani Beach", searchDestination: "Diani", description: "White-sand beaches and Indian Ocean escapes", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
-  { name: "Amboseli", searchDestination: "Kimana", description: "Elephant country beneath Mount Kilimanjaro", image: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?w=1000" },
+  { name: "Maasai Mara", searchDestination: "Maasai Mara", description: "Iconic safari country and the Great Migration", image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1000" },
+  { name: "Diani Beach", searchDestination: "Diani Beach", description: "White-sand beaches and Indian Ocean escapes", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
+  { name: "Amboseli", searchDestination: "Amboseli", description: "Elephant country beneath Mount Kilimanjaro", image: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?w=1000" },
   { name: "Mombasa", searchDestination: "Mombasa", description: "Swahili heritage, beaches and coastal city life", image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=1000" },
   { name: "Watamu", searchDestination: "Watamu", description: "Marine parks, coral reefs and quiet beaches", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1000" },
   { name: "Nairobi", searchDestination: "Nairobi", description: "The city, culture and safari capital", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
-  { name: "Lake Naivasha", searchDestination: "Naivasha", description: "Lakeside retreats and Great Rift Valley scenery", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1000" },
+  { name: "Lake Naivasha", searchDestination: "Lake Naivasha", description: "Lakeside retreats and Great Rift Valley scenery", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1000" },
   { name: "Malindi", searchDestination: "Malindi", description: "Coastal charm, marine life and beach stays", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
   { name: "Lamu", searchDestination: "Lamu", description: "Historic Swahili town and island life", image: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1000" },
-  { name: "Tsavo", searchDestination: "Voi", description: "Vast wilderness and unforgettable safari stays", image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1000" },
-  { name: "Mount Kenya", searchDestination: "Nanyuki", description: "Mountain escapes, highlands and adventure", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000" },
-  { name: "Samburu", searchDestination: "Maralal", description: "Northern landscapes and unique wildlife", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
+  { name: "Tsavo", searchDestination: "Tsavo", description: "Vast wilderness and unforgettable safari stays", image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1000" },
+  { name: "Mount Kenya", searchDestination: "Mount Kenya", description: "Mountain escapes, highlands and adventure", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000" },
+  { name: "Samburu", searchDestination: "Samburu", description: "Northern landscapes and unique wildlife", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
 ];
 
 const stays = [
