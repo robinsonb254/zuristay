@@ -353,6 +353,12 @@ export default function PartnerDashboardPage() {
                         Live
                       </span>
                     )}
+                    <Link
+                      href={`/partner/properties/${property.id}/edit`}
+                      className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Edit details
+                    </Link>
                     {property.status === "approved" && (
                       <Link
                         href={`/partner/properties/${property.id}/rooms`}
