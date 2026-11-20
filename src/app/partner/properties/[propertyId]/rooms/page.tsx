@@ -244,7 +244,7 @@ function PropertyFacilities({ propertyId }: { propertyId: string }) {
   }, {});
 
   return (
-    <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <section id="property-amenities" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="mb-5">
         <h2 className="text-xl font-bold text-slate-900">Property facilities and amenities</h2>
         <p className="mt-1 text-sm text-slate-500">Select the facilities guests can expect at your property.</p>
@@ -382,7 +382,7 @@ function PropertyPhotos({ propertyId }: { propertyId: string }) {
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <section id="property-photos" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="mb-5">
         <h2 className="text-xl font-bold text-slate-900">Property photographs</h2>
         <p className="mt-1 text-sm text-slate-500">Upload up to 30 clear JPG, PNG or WebP photos. Maximum 8 MB each. Your first photo becomes the cover image.</p>
@@ -504,6 +504,13 @@ function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: st
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const ready = status === "approved" && checks.length > 0 && checks.every((check) => check.complete);
+  const setupActions: Record<string, { href: string; label: string }> = {
+    property_details: { href: "/partner/properties/" + propertyId + "/edit", label: "Edit details" },
+    rooms: { href: "#room-categories", label: "Add rooms" },
+    photos: { href: "#property-photos", label: "Upload photos" },
+    amenities: { href: "#property-amenities", label: "Choose facilities" },
+    availability: { href: "#room-categories", label: "Set dates and rates" },
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -554,7 +561,7 @@ function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: st
       </div>
       {status !== "approved" && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your property must first be approved by the ZuriStay admin team.</p>}
       {loading ? <p className="mt-4 text-sm text-slate-500">Checking your listing setup...</p> :
-        <ul className="mt-4 space-y-3">{checks.map((check) => <li key={check.key} className="flex items-start gap-2 text-sm">{check.complete ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-700" /> : <Circle size={18} className="mt-0.5 shrink-0 text-slate-400" />}<span className={check.complete ? "text-slate-700" : "text-slate-600"}>{check.label}</span></li>)}</ul>}
+        <ul className="mt-4 space-y-3">{checks.map((check) => <li key={check.key} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">{check.complete ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-700" /> : <Circle size={18} className="mt-0.5 shrink-0 text-slate-400" />}<span className={check.complete ? "text-slate-700" : "text-slate-600"}>{check.label}</span>{!check.complete && setupActions[check.key] && <Link href={setupActions[check.key].href} className="ml-1 text-xs font-semibold text-blue-800 underline underline-offset-2 hover:text-blue-950">{setupActions[check.key].label}</Link>}</li>)}</ul>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
       {status === "approved" && <button type="button" onClick={publish} disabled={!ready || publishing || loading} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{publishing ? <Loader2 size={17} className="animate-spin" /> : <CheckCircle2 size={17} />}{publishing ? "Publishing..." : "Publish my property"}</button>}
@@ -697,7 +704,7 @@ export default function PartnerPropertyRoomsPage() {
         {property && <PropertyReadiness propertyId={propertyId} status={property.status} onPublished={loadRooms} />}
 
         <div className="grid gap-7 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <section id="room-categories" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
             <div className="mb-5 flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-900"><Plus size={22} /></div><div><h2 className="text-xl font-bold text-slate-900">Add a room category</h2><p className="text-sm text-slate-500">For example, Deluxe Double or Family Villa.</p></div></div>
             <form onSubmit={handleSubmit} className="space-y-5">
               <div><label htmlFor="roomName" className={labelClass}>Room category name *</label><input id="roomName" className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Deluxe Double Room" minLength={2} maxLength={100} required /></div>
