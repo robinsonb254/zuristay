@@ -19,7 +19,14 @@ const PROPERTY_TYPES = [
 ] as const;
 
 function normalizeCountyName(value: string) {
-  return value.toLowerCase().replace(/\s+city$/i, "").trim();
+  return value.toLowerCase().replace(/\\s+city$/i, "").trim();
+}
+
+function destinationBelongsToCounty(destinationCounty: string | null, countyName: string) {
+  if (!destinationCounty) return false;
+  const target = normalizeCountyName(countyName);
+  return normalizeCountyName(destinationCounty) === target ||
+    destinationCounty.split(/[\\/,]/).some((part) => normalizeCountyName(part) === target);
 }
 
 function fail(message: string, status: number) {
