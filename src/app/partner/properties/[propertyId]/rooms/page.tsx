@@ -428,6 +428,74 @@ function PropertyPhotos({ propertyId }: { propertyId: string }) {
   );
 }
 
+
+function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string; unit: Unit; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(unit.name);
+  const [unitType, setUnitType] = useState(unit.unit_type || "");
+  const [description, setDescription] = useState(unit.description || "");
+  const [capacity, setCapacity] = useState(String(unit.capacity));
+  const [baseRate, setBaseRate] = useState(String(unit.base_rate));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true); setError(""); setMessage("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in again.");
+      const response = await fetch("/api/partner/properties/" + propertyId + "/units/" + unit.id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({ name, unitType, description, capacity: Number(capacity), baseRate: Number(baseRate) }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to update room category.");
+      setMessage(result.message || "Room category updated.");
+      setEditing(false);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update room category.");
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="mt-3">
+      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setBaseRate(String(unit.base_rate)); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details and base rate</button> :
+        <form onSubmit={save} className="mt-3 space-y-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <h4 className="text-sm font-bold text-slate-900">Edit room category</h4>
+          <label className="block text-xs font-semibold text-slate-700">Category name
+            <input required minLength={2} maxLength={100} value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+          </label>
+          <label className="block text-xs font-semibold text-slate-700">Room type
+            <input maxLength={80} value={unitType} onChange={(e) => setUnitType(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+          </label>
+          <label className="block text-xs font-semibold text-slate-700">Description
+            <textarea rows={2} maxLength={1500} value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-semibold text-slate-700">Maximum guests
+              <input type="number" min="1" max="20" step="1" required value={capacity} onChange={(e) => setCapacity(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+            </label>
+            <label className="block text-xs font-semibold text-slate-700">Default partner rate ({unit.currency})
+              <input type="number" min="0.01" max="100000000" step="0.01" required value={baseRate} onChange={(e) => setBaseRate(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+            </label>
+          </div>
+          <p className="text-xs text-slate-500">Changing the default rate does not overwrite date-specific availability rates already saved.</p>
+          {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" disabled={saving} className="rounded-lg bg-blue-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{saving ? "Saving..." : "Save room changes"}</button>
+            <button type="button" onClick={() => { setEditing(false); setError(""); }} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700">Cancel</button>
+          </div>
+        </form>}
+      {message && <p role="status" className="mt-2 text-xs text-green-700">{message}</p>}
+    </div>
+  );
+}
+
 export default function PartnerPropertyRoomsPage() {
   const params = useParams<{ propertyId: string }>();
   const propertyId = params.propertyId;
@@ -579,7 +647,7 @@ export default function PartnerPropertyRoomsPage() {
 
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 p-5"><div><h2 className="text-xl font-bold text-slate-900">Room categories</h2><p className="mt-1 text-sm text-slate-500">{units.length} saved</p></div><button onClick={loadRooms} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><RefreshCw size={15} />Refresh</button></div>
-            {units.length === 0 ? <div className="px-6 py-12 text-center"><BedDouble className="mx-auto mb-3 text-slate-400" size={34} /><h3 className="font-semibold text-slate-900">No room categories yet</h3><p className="mt-2 text-sm text-slate-500">Add your first room category using the form.</p></div> : <div className="divide-y divide-slate-100">{units.map((unit) => <article key={unit.id} className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{unit.name}</h3><p className="mt-1 text-sm text-slate-500">{unit.unit_type || "Room"} · {unit.total_units} room(s)</p></div><span className={unit.active ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"}>{unit.active ? "Active" : "Inactive"}</span></div><div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600"><span className="inline-flex items-center gap-1"><Users size={15} />Up to {unit.capacity} guests</span><span className="font-semibold text-slate-900">{unit.currency} {Number(unit.base_rate).toLocaleString()} / night</span></div>{unit.description && <p className="mt-3 text-sm leading-6 text-slate-600">{unit.description}</p>}<RoomAvailabilityForm propertyId={propertyId} unit={unit} /></article>)}</div>}
+            {units.length === 0 ? <div className="px-6 py-12 text-center"><BedDouble className="mx-auto mb-3 text-slate-400" size={34} /><h3 className="font-semibold text-slate-900">No room categories yet</h3><p className="mt-2 text-sm text-slate-500">Add your first room category using the form.</p></div> : <div className="divide-y divide-slate-100">{units.map((unit) => <article key={unit.id} className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{unit.name}</h3><p className="mt-1 text-sm text-slate-500">{unit.unit_type || "Room"} · {unit.total_units} room(s)</p></div><span className={unit.active ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"}>{unit.active ? "Active" : "Inactive"}</span></div><div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600"><span className="inline-flex items-center gap-1"><Users size={15} />Up to {unit.capacity} guests</span><span className="font-semibold text-slate-900">{unit.currency} {Number(unit.base_rate).toLocaleString()} / night</span></div>{unit.description && <p className="mt-3 text-sm leading-6 text-slate-600">{unit.description}</p>}<RoomCategoryEditor propertyId={propertyId} unit={unit} onSaved={loadRooms} /><RoomAvailabilityForm propertyId={propertyId} unit={unit} /></article>)}</div>}
           </section>
         </div>
         {property?.status === "approved" && <><PropertyFacilities propertyId={propertyId} /><PropertyPhotos propertyId={propertyId} /></>}\n        <p className="mt-8 text-center text-xs text-slate-400">ZuriStay Partner Portal · Your World. Your Stay.</p>
