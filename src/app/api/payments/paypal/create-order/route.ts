@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         purchase_units: [{
           reference_id: booking.booking_reference,
           custom_id: bookingId,
-          invoice_id: booking.booking_reference,
+          invoice_id: attemptReference,
           description: `ZuriStay reservation ${booking.booking_reference}`,
           amount: { currency_code: "USD", value: money(usdAmount) },
         }],
