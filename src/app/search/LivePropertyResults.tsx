@@ -91,7 +91,12 @@ export default function LivePropertyResults({
 
     async function loadProperties() {
       try {
-        const response = await fetch("/api/properties", {
+        const query = new URLSearchParams({ guests, rooms });
+        if (checkIn && checkOut) {
+          query.set("checkIn", checkIn);
+          query.set("checkOut", checkOut);
+        }
+        const response = await fetch("/api/properties?" + query.toString(), {
           cache: "no-store",
         });
 
@@ -125,7 +130,7 @@ export default function LivePropertyResults({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [checkIn, checkOut, guests, rooms]);
 
   const filteredProperties = useMemo(() => {
     const searchTerm = destination.trim().toLowerCase();
