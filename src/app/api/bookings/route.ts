@@ -182,7 +182,13 @@ export async function POST(request: NextRequest) {
     );
 
     if (error) {
-      return errorResponse(error.message, 400);
+      // Log database details server-side; expose only a safe booking message.
+      console.error("Booking hold creation failed:", error);
+      const message = error.message || "";
+      const safeMessage = /availability|available|capacity|dates|guest|room quantity|commission rule/i.test(message)
+        ? message.replace(/[<>]/g, "").slice(0, 220)
+        : "We could not complete this reservation. Please review your details and try again.";
+      return errorResponse(safeMessage, 400);
     }
 
     const booking = data as Record<string, unknown> | null;
