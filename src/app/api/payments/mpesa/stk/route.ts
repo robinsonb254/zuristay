@@ -76,6 +76,18 @@ export async function POST(request: NextRequest) {
       return reply("Use the guest phone number saved with this booking. Update the booking details before paying with another number.", 400);
     }
 
+    const config = getMpesaConfig();
+    const token = await getMpesaAccessToken(config);
+    const timestamp = darajaTimestamp();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ""
+    );
+    if (!siteUrl || !siteUrl.startsWith("https://")) {
+      return reply("The secure payment callback URL is not configured.", 500);
+    }
+
+    const callbackUrl = `${siteUrl.replace(/\/$/, "")}/api/payments/mpesa/callback/${encodeURIComponent(config.callbackToken)}`;
+
     // Claim the single in-flight M-Pesa attempt before contacting Daraja.
     // The database partial unique index makes this safe across concurrent requests.
     const attemptReference = `INIT-${randomUUID()}`;
@@ -100,17 +112,6 @@ export async function POST(request: NextRequest) {
       return reply("Unable to safely reserve this payment attempt. Please try again shortly.", 500);
     }
 
-    const config = getMpesaConfig();
-    const token = await getMpesaAccessToken(config);
-    const timestamp = darajaTimestamp();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (
-      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ""
-    );
-    if (!siteUrl || !siteUrl.startsWith("https://")) {
-      return reply("The secure payment callback URL is not configured.", 500);
-    }
-
-    const callbackUrl = `${siteUrl.replace(/\/$/, "")}/api/payments/mpesa/callback/${encodeURIComponent(config.callbackToken)}`;
     const response = await fetch(`${config.baseUrl}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
       headers: {
