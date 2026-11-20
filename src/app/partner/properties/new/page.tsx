@@ -13,6 +13,12 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+type KenyaCounty = {
+  county_code: number;
+  name: string;
+  subcounties: { subcounty_code: string; name: string; county_code: number }[];
+};
+
 type Destination = {
   id: string;
   name: string;
@@ -40,6 +46,9 @@ export default function NewPartnerPropertyPage() {
   const router = useRouter();
 
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [counties, setCounties] = useState<KenyaCounty[]>([]);
+  const [countyCode, setCountyCode] = useState("");
+  const [subCountyCode, setSubCountyCode] = useState("");
   const [loadingDestinations, setLoadingDestinations] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pageError, setPageError] = useState("");
@@ -82,6 +91,15 @@ export default function NewPartnerPropertyPage() {
           : result.destinations || result.data || [];
 
         setDestinations(rows);
+
+        const locationsResponse = await fetch("/api/kenya-locations", { cache: "no-store" });
+        const locationsResult = await locationsResponse.json();
+        if (!locationsResponse.ok || !locationsResult.success) {
+          throw new Error(locationsResult.error || "Unable to load Kenya counties and sub-counties.");
+        }
+        const countyRows: KenyaCounty[] = locationsResult.counties || [];
+        setCounties(countyRows);
+        if (countyRows.length > 0) setCountyCode(String(countyRows[0].county_code));
 
         if (rows.length > 0) {
           setDestinationId(rows[0].id);
@@ -134,6 +152,8 @@ export default function NewPartnerPropertyPage() {
           name,
           propertyType,
           destinationId,
+          countyCode: Number(countyCode),
+          subCountyCode,
           address,
           description,
           currency,
@@ -173,6 +193,9 @@ export default function NewPartnerPropertyPage() {
       setSubmitting(false);
     }
   }
+
+  const selectedCounty = counties.find((county) => String(county.county_code) === countyCode);
+  const subcountyOptions = selectedCounty?.subcounties || [];
 
   const fieldClass =
     "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100";
@@ -285,6 +308,50 @@ export default function NewPartnerPropertyPage() {
                     {propertyTypes.map((type) => (
                       <option key={type.value} value={type.value}>
                         {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass} htmlFor="county">
+                    County *
+                  </label>
+                  <select
+                    id="county"
+                    className={fieldClass}
+                    value={countyCode}
+                    onChange={(e) => {
+                      setCountyCode(e.target.value);
+                      setSubCountyCode("");
+                    }}
+                    required
+                  >
+                    <option value="">Choose a county</option>
+                    {counties.map((county) => (
+                      <option key={county.county_code} value={county.county_code}>
+                        {county.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass} htmlFor="subCounty">
+                    Sub-county *
+                  </label>
+                  <select
+                    id="subCounty"
+                    className={fieldClass}
+                    value={subCountyCode}
+                    onChange={(e) => setSubCountyCode(e.target.value)}
+                    required
+                    disabled={!countyCode}
+                  >
+                    <option value="">Choose a sub-county</option>
+                    {subcountyOptions.map((subcounty) => (
+                      <option key={subcounty.subcounty_code} value={subcounty.subcounty_code}>
+                        {subcounty.name}
                       </option>
                     ))}
                   </select>
