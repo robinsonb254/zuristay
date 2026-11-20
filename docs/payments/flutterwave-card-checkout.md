@@ -21,7 +21,8 @@ The adapter refuses to start unless both secrets are present and the secret-key 
    `https://YOUR-ZURISTAY-DOMAIN/api/payments/card/webhook/flutterwave`
 3. Set a strong webhook secret hash and put the exact same value in `FLW_SECRET_HASH`.
 4. Enable payment event notifications and webhook retries.
-5. Flutterwave v3 Standard sends the configured secret hash in the `verif-hash` header. ZuriStay compares it in constant time.
+5. In Flutterwave account payment preferences, disable the dashboard-wide preferred payment-method override so the per-transaction `payment_options: "card"` setting is respected. Confirm card payments are enabled for the merchant's approved country and currency.
+6. Flutterwave v3 Standard sends the configured secret hash in the `verif-hash` header. ZuriStay compares it in constant time.
 
 ## Payment flow
 
