@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, MapPin, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 
 type Subcounty = { subcounty_code: string; name: string };
 type County = { county_code: number; name: string; subcounties: Subcounty[] };
