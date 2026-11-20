@@ -121,6 +121,7 @@ export default function BookingPage() {
   const [startingPayment, setStartingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
+  const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "expired" | "timeout">("idle");
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -359,6 +360,54 @@ export default function BookingPage() {
     }
   }
 
+  useEffect(() => {
+    if (!booking?.booking_id || paymentState !== "waiting") return;
+
+    let attempts = 0;
+    let cancelled = false;
+
+    async function checkStatus() {
+      attempts += 1;
+      try {
+        const response = await fetch(
+          `/api/bookings/status?booking_id=${encodeURIComponent(booking!.booking_id)}`,
+          { cache: "no-store" }
+        );
+        const result = await response.json();
+        if (cancelled || !response.ok || !result.success) return;
+
+        if (result.payment_status === "paid" && result.booking_status === "confirmed") {
+          setPaymentState("paid");
+          setPaymentMessage("Payment received and verified. Your reservation is confirmed.");
+          return;
+        }
+
+        if (!result.hold_active) {
+          setPaymentState("expired");
+          setPaymentError("Your 15-minute room hold has expired before payment was confirmed. Please contact ZuriStay support before making another payment.");
+          return;
+        }
+      } catch (statusError) {
+        console.error("Payment status check failed:", statusError);
+      }
+
+      if (attempts >= 18 && !cancelled) {
+        setPaymentState("timeout");
+        setPaymentMessage("We are still waiting for M-Pesa confirmation. Check the status again before leaving this page.");
+      }
+    }
+
+    void checkStatus();
+    const timer = window.setInterval(() => {
+      if (attempts < 18 && !cancelled) void checkStatus();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [booking?.booking_id, paymentState]);
+
   async function startMpesaPayment() {
     if (!booking) return;
     setStartingPayment(true);
@@ -378,6 +427,7 @@ export default function BookingPage() {
         throw new Error(result.error || "Unable to start M-Pesa payment.");
       }
       setPaymentMessage(result.message || "M-Pesa prompt sent. Check your phone and enter your PIN.");
+      setPaymentState("waiting");
     } catch (paymentStartError) {
       setPaymentError(paymentStartError instanceof Error ? paymentStartError.message : "M-Pesa payment could not be started.");
     } finally {
@@ -396,7 +446,7 @@ export default function BookingPage() {
           </div>
 
           <h1 className="mt-6 text-3xl font-black text-blue-950">
-            Reservation held successfully!
+            {paymentState === "paid" ? "Booking confirmed!" : "Reservation held successfully!"}
           </h1>
 
           <p className="mt-3 text-slate-500">
@@ -427,10 +477,10 @@ export default function BookingPage() {
                 {formatMoney(Number(booking.total_amount), booking.currency)}
               </p>
               <p>
-                <strong>Booking status:</strong> {booking.booking_status}
+                <strong>Booking status:</strong> {paymentState === "paid" ? "confirmed" : booking.booking_status}
               </p>
               <p>
-                <strong>Payment status:</strong> {booking.payment_status}
+                <strong>Payment status:</strong> {paymentState === "paid" ? "paid" : booking.payment_status}
               </p>
               <p>
                 <strong>Hold expires:</strong> {expiry.toLocaleString()}
@@ -439,11 +489,15 @@ export default function BookingPage() {
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-left">
-            <h2 className="font-bold text-blue-950">Pay securely with M-Pesa</h2>
+            <h2 className="font-bold text-blue-950">
+              {paymentState === "paid" ? "M-Pesa payment confirmed" : "Pay securely with M-Pesa"}
+            </h2>
             <p className="mt-2 text-sm text-slate-500">
-              We will send an STK Push to the guest phone number entered for this booking.
+              {paymentState === "paid"
+                ? "Your payment was received and verified by ZuriStay."
+                : "We will send an STK Push to the guest phone number entered for this booking."}
             </p>
-            <label className="mt-4 block text-sm font-semibold text-slate-700">
+            {paymentState !== "paid" && <label className="mt-4 block text-sm font-semibold text-slate-700">
               M-Pesa phone number
               <input
                 type="tel"
@@ -452,23 +506,39 @@ export default function BookingPage() {
                 placeholder="+254 7XX XXX XXX"
                 className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-orange-500"
               />
-            </label>
+            </label>}
             {paymentError && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{paymentError}</p>}
             {paymentMessage && <p role="status" className="mt-3 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">{paymentMessage}</p>}
-            <button
-              type="button"
-              onClick={startMpesaPayment}
-              disabled={startingPayment}
-              className="mt-4 w-full rounded-xl bg-green-600 px-5 py-4 font-bold text-white transition hover:bg-green-700 disabled:opacity-60"
-            >
-              {startingPayment ? "Sending M-Pesa prompt..." : "Pay with M-Pesa"}
-            </button>
+            {paymentState === "idle" && (
+              <button
+                type="button"
+                onClick={startMpesaPayment}
+                disabled={startingPayment}
+                className="mt-4 w-full rounded-xl bg-green-600 px-5 py-4 font-bold text-white transition hover:bg-green-700 disabled:opacity-60"
+              >
+                {startingPayment ? "Sending M-Pesa prompt..." : "Pay with M-Pesa"}
+              </button>
+            )}
+            {paymentState === "waiting" && (
+              <p className="mt-4 text-sm font-semibold text-blue-900">Waiting for secure payment confirmation…</p>
+            )}
+            {paymentState === "timeout" && (
+              <button
+                type="button"
+                onClick={() => setPaymentState("waiting")}
+                className="mt-4 w-full rounded-xl border border-blue-900 px-5 py-3 font-bold text-blue-950"
+              >
+                Check payment status again
+              </button>
+            )}
           </div>
 
-          <p className="mt-5 text-xs text-slate-500">
-            Your room hold expires after 15 minutes unless payment is
-            successfully verified. Your reservation is not yet confirmed.
-          </p>
+          {paymentState !== "paid" && (
+            <p className="mt-5 text-xs text-slate-500">
+              Your room hold expires after 15 minutes unless payment is
+              successfully verified. Your reservation is not yet confirmed.
+            </p>
+          )}
 
           <Link
             href="/account"
