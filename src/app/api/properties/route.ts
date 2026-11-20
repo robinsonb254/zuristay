@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
     if (availabilityError) {
       return NextResponse.json({ success: false, error: "Unable to verify room availability for these dates." }, { status: 500 });
     }
-    const grouped = new Map<string, typeof availabilityRows>();
+    const grouped = new Map<string, NonNullable<typeof availabilityRows>>();
     for (const row of availabilityRows ?? []) {
       const current = grouped.get(row.unit_id) ?? [];
       current.push(row);
