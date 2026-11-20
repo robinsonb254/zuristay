@@ -255,7 +255,7 @@ export async function DELETE(
 
     const { data: image, error: imageError } = await admin
       .from("property_images")
-      .select("id, image_url")
+      .select("id, image_url, is_cover")
       .eq("id", body.imageId)
       .eq("property_id", propertyId)
       .maybeSingle();
@@ -284,16 +284,18 @@ export async function DELETE(
       console.error("Property image storage cleanup failed:", storageDeleteError);
     }
 
-    const { data: remaining } = await admin
-      .from("property_images")
-      .select("id")
-      .eq("property_id", propertyId)
-      .order("display_order", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    if (image.is_cover) {
+      const { data: remaining } = await admin
+        .from("property_images")
+        .select("id")
+        .eq("property_id", propertyId)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-    if (remaining) {
-      await admin.from("property_images").update({ is_cover: true }).eq("id", remaining.id);
+      if (remaining) {
+        await admin.from("property_images").update({ is_cover: true }).eq("id", remaining.id);
+      }
     }
 
     return NextResponse.json(
