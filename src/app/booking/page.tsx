@@ -122,6 +122,7 @@ export default function BookingPage() {
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
   const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
+  const [paymentReference, setPaymentReference] = useState("");
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -378,6 +379,7 @@ export default function BookingPage() {
 
         if (result.payment_status === "paid" && result.booking_status === "confirmed") {
           setPaymentState("paid");
+          setPaymentReference(result.payment_reference || "");
           setPaymentMessage("Payment received and verified. Your reservation is confirmed.");
           return;
         }
@@ -445,8 +447,8 @@ export default function BookingPage() {
     const expiry = new Date(booking.hold_expires_at);
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-12">
-        <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-12 print:bg-white print:py-0">
+        <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm print:max-w-none print:border-0 print:p-0 print:shadow-none">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
             <CheckCircle2 size={42} className="text-green-600" />
           </div>
@@ -494,7 +496,38 @@ export default function BookingPage() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-left">
+          {paymentState === "paid" && (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left print:break-inside-avoid">
+              <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-300 pb-5">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.18em] text-orange-500">ZuriStay</p>
+                  <h2 className="mt-2 text-xl font-black text-blue-950">Payment receipt</h2>
+                  <p className="mt-1 text-xs text-slate-500">Your World. Your Stay.</p>
+                </div>
+                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase text-green-800">Paid</span>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+                <div><p className="text-xs text-slate-500">Booking reference</p><p className="mt-1 font-bold text-blue-950">{booking.booking_reference}</p></div>
+                <div><p className="text-xs text-slate-500">M-Pesa receipt</p><p className="mt-1 break-all font-bold text-blue-950">{paymentReference || "Verified by ZuriStay"}</p></div>
+                <div><p className="text-xs text-slate-500">Guest</p><p className="mt-1 font-semibold text-slate-800">{fullName}</p></div>
+                <div><p className="text-xs text-slate-500">Property</p><p className="mt-1 font-semibold text-slate-800">{property.name}</p></div>
+                <div><p className="text-xs text-slate-500">Accommodation</p><p className="mt-1 font-semibold text-slate-800">{selectedUnit?.name}</p></div>
+                <div><p className="text-xs text-slate-500">Travel dates</p><p className="mt-1 font-semibold text-slate-800">{checkIn} – {checkOut}</p></div>
+                <div><p className="text-xs text-slate-500">Guests / rooms</p><p className="mt-1 font-semibold text-slate-800">{guests} guests · {rooms} room(s)</p></div>
+                <div><p className="text-xs text-slate-500">Payment method</p><p className="mt-1 font-semibold text-slate-800">M-Pesa</p></div>
+              </div>
+              <div className="mt-5 flex items-center justify-between border-t border-dashed border-slate-300 pt-5">
+                <span className="font-bold text-blue-950">Amount paid</span>
+                <span className="text-xl font-black text-green-700">{formatMoney(Number(booking.total_amount), booking.currency)}</span>
+              </div>
+              <p className="mt-4 text-center text-xs text-slate-500">Thank you for booking with ZuriStay.</p>
+              <button type="button" onClick={() => window.print()} className="mt-5 w-full rounded-xl bg-blue-950 px-5 py-3 font-bold text-white hover:bg-blue-900 print:hidden">
+                Print / Save receipt
+              </button>
+            </section>
+          )}
+
+          <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-left print:hidden">
             <h2 className="font-bold text-blue-950">
               {paymentState === "paid" ? "M-Pesa payment confirmed" : "Pay securely with M-Pesa"}
             </h2>
@@ -548,7 +581,7 @@ export default function BookingPage() {
 
           <Link
             href="/account"
-            className="mt-7 inline-flex rounded-xl bg-blue-950 px-7 py-4 font-bold text-white transition hover:bg-blue-900"
+            className="mt-7 inline-flex rounded-xl bg-blue-950 px-7 py-4 font-bold text-white transition hover:bg-blue-900 print:hidden"
           >
             View my account
           </Link>
