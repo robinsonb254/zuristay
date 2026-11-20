@@ -40,6 +40,29 @@ function RoomAvailabilityForm({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [availability, setAvailability] = useState<{ id: string; stay_date: string; available_units: number; partner_base_rate: number; currency: string }[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(true);
+
+  const loadCalendar = useCallback(async () => {
+    setCalendarLoading(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        "/api/partner/properties/" + propertyId + "/units/" + unit.id + "/availability",
+        { headers: { Authorization: "Bearer " + session.access_token }, cache: "no-store" }
+      );
+      const result = await response.json();
+      if (response.ok && result.success) setAvailability(result.availability || []);
+    } catch (err) {
+      console.error("Unable to refresh room availability:", err);
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [propertyId, unit.id]);
+
+  useEffect(() => { loadCalendar(); }, [loadCalendar]);
 
   const today = new Date();
   const minDate = [
@@ -83,6 +106,7 @@ function RoomAvailabilityForm({
         throw new Error(result.error || "Unable to save availability.");
       }
       setMessage(result.message || "Availability saved.");
+      await loadCalendar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save availability.");
     } finally {
@@ -91,7 +115,8 @@ function RoomAvailabilityForm({
   }
 
   return (
-    <form onSubmit={saveAvailability} className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <form onSubmit={saveAvailability}>
       <h4 className="font-semibold text-slate-900">Set availability and nightly rate</h4>
       <p className="mt-1 text-xs text-slate-500">
         Apply these settings to every date in the selected range. Set available rooms to zero to block the dates.
