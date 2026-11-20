@@ -36,6 +36,34 @@ type Property = {
   isLive: boolean;
 };
 
+type PropertyImage = { image_url?: string | null; is_cover?: boolean };
+type ApiUnit = {
+  id: string;
+  name: string;
+  unit_type?: string | null;
+  capacity: number | string;
+  total_units: number | string;
+  customer_rate: number | string;
+  currency?: string | null;
+};
+type ApiProperty = {
+  id: string;
+  name: string;
+  address?: string | null;
+  city?: string | null;
+  county?: string | null;
+  country?: string | null;
+  starting_rate?: number | string | null;
+  currency?: string | null;
+  images?: PropertyImage[] | null;
+  units?: ApiUnit[] | null;
+};
+type PropertiesApiResponse = {
+  success: boolean;
+  properties?: ApiProperty[];
+  error?: string;
+};
+
 type BookingResult = {
   booking_id: string;
   booking_reference: string;
@@ -114,43 +142,44 @@ export default function BookingPage() {
     async function loadProperties() {
       try {
         const response = await fetch("/api/properties");
-        const result = await response.json();
+        const result = (await response.json()) as PropertiesApiResponse;
 
         if (!response.ok || !result.success) {
-          throw new Error("Unable to load accommodation listings.");
+          throw new Error(result.error || "Unable to load accommodation listings.");
         }
 
         const listings: Property[] = (result.properties ?? [])
-          .filter(
-            (item: any) =>
-              Array.isArray(item.units) && item.units.length > 0
-          )
-          .map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            location: [
-              item.address,
-              item.city,
-              item.county,
-              item.country,
-            ]
-              .filter(Boolean)
-              .join(", "),
-            price: Number(item.starting_rate ?? 0),
-            currency: item.currency || "KES",
-            image:
-              item.images?.find((image: any) => image.is_cover)
-                ?.image_url ||
-              item.images?.[0]?.image_url ||
-              "",
-            units: item.units.map((unit: any) => ({
-              ...unit,
-              customer_rate: Number(unit.customer_rate),
-              capacity: Number(unit.capacity),
-              total_units: Number(unit.total_units),
-            })),
-            isLive: true,
-          }));
+          .filter((item) => Array.isArray(item.units) && item.units.length > 0)
+          .map((item) => {
+            const images = item.images ?? [];
+            const units = item.units ?? [];
+            return {
+              id: item.id,
+              name: item.name,
+              location: [
+                item.address,
+                item.city,
+                item.county,
+                item.country,
+              ]
+                .filter(Boolean)
+                .join(", "),
+              price: Number(item.starting_rate ?? 0),
+              currency: item.currency || "KES",
+              image:
+                images.find((image) => image.is_cover)?.image_url ||
+                images[0]?.image_url ||
+                "",
+              units: units.map((unit) => ({
+                ...unit,
+                customer_rate: Number(unit.customer_rate),
+                capacity: Number(unit.capacity),
+                total_units: Number(unit.total_units),
+                currency: unit.currency || item.currency || "KES",
+              })),
+              isLive: true,
+            };
+          });
 
         setLiveProperties(listings);
         const preferred = listings.find((item) => item.id === selectedId) || listings[0];
@@ -273,8 +302,10 @@ export default function BookingPage() {
   }, [checkIn, checkOut, guests, rooms, liveProperties.length]);
 
   useEffect(() => {
-    setUnitId(property.units[0]?.id || "");
-  }, [propertyId, liveProperties]);
+    const selectedProperty =
+      allProperties.find((item) => item.id === propertyId) || allProperties[0];
+    setUnitId(selectedProperty?.units[0]?.id || "");
+  }, [propertyId, allProperties]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -433,8 +464,10 @@ export default function BookingPage() {
     }
   }
 
+  const activeBookingId = booking?.booking_id;
+
   useEffect(() => {
-    if (!booking?.booking_id || paymentState !== "waiting") return;
+    if (!activeBookingId || paymentState !== "waiting") return;
 
     let attempts = 0;
     let cancelled = false;
@@ -443,8 +476,8 @@ export default function BookingPage() {
       attempts += 1;
       try {
         const response = await fetch(
-          `/api/bookings/status?booking_id=${encodeURIComponent(booking!.booking_id)}`,
-          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking!.booking_id}`) || ""; } catch { return ""; } })() } }
+          `/api/bookings/status?booking_id=${encodeURIComponent(activeBookingId)}`,
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${activeBookingId}`) || ""; } catch { return ""; } })() } }
         );
         const result = await response.json();
         if (cancelled || !response.ok || !result.success) return;
@@ -486,7 +519,7 @@ export default function BookingPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [booking?.booking_id, bookingAccessToken, paymentState]);
+  }, [activeBookingId, bookingAccessToken, paymentState]);
 
   async function startMpesaPayment() {
     if (!booking) return;
