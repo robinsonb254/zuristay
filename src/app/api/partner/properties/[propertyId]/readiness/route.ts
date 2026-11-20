@@ -30,10 +30,20 @@ async function contextFor(request: NextRequest) {
 }
 
 async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId: string, partnerId: string) {
-  const { data: property, error: propertyError } = await admin.from("properties")
+  const { data: propertyData, error: propertyError } = await admin.from("properties")
     .select("id, status, is_active, name, description, address, contact_phone, contact_email")
     .eq("id", propertyId).eq("partner_id", partnerId).maybeSingle();
   if (propertyError) throw new Error("Unable to load property details.");
+  const property = propertyData as {
+    id: string;
+    status: string;
+    is_active: boolean;
+    name: string | null;
+    description: string | null;
+    address: string | null;
+    contact_phone: string | null;
+    contact_email: string | null;
+  } | null;
   if (!property) return null;
 
   const [unitsResult, imagesResult, amenitiesResult] = await Promise.all([
