@@ -938,7 +938,7 @@ export default function BookingPage() {
 
           <button
             type="submit"
-            disabled={submitting || loadingProperties}
+            disabled={submitting || loadingProperties || availabilityChecking}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-5 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CheckCircle2 size={20} />
