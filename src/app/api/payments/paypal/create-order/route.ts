@@ -61,10 +61,15 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(usdAmount) || usdAmount < 0.01) return fail("The PayPal amount is below the minimum supported value.", 400);
 
     const attemptReference = `INIT-PAYPAL-${randomUUID()}`;
-    const { data: attempt, error: attemptError } = await db.from("payments").insert({
+    // The repository's generated Supabase table typings currently omit the
+    // payments insert shape. Keep the runtime payload explicit while narrowing
+    // this single insert at the boundary until database types are regenerated.
+    const paymentAttempt = {
       booking_id: bookingId, payment_method: "paypal", provider_reference: attemptReference,
       amount: kesAmount, currency: "KES", status: "pending",
-    }).select("id").single();
+    };
+    const { data: attempt, error: attemptError } = await db.from("payments")
+      .insert(paymentAttempt as never).select("id").single();
     if (attemptError || !attempt) {
       if (attemptError?.code === "23505") return fail("A PayPal checkout is already pending for this booking. Return to the existing checkout or contact support.", 409);
       console.error("Unable to reserve PayPal payment attempt:", attemptError);
