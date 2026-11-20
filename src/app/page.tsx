@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   Search,
   MapPin,
@@ -18,18 +18,7 @@ import {
   X,
 } from "lucide-react";
 
-type DatabaseDestination = {
-  id: string;
-  name: string;
-  city: string;
-  county: string | null;
-  country: string;
-  country_code: string;
-  active: boolean;
-  destination_type?: string;
-  population_2019?: number | null;
-  sort_order?: number | null;
-};
+
 
 
 
@@ -91,42 +80,6 @@ export default function Home() {
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [databaseDestinations, setDatabaseDestinations] = useState<
-    DatabaseDestination[]
-  >([]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadDestinations() {
-      try {
-        const response = await fetch("/api/destinations");
-
-        if (!response.ok) {
-          throw new Error("Unable to load destinations.");
-        }
-
-        const result = await response.json();
-
-        if (result.success && Array.isArray(result.destinations)) {
-          if (isMounted) {
-            setDatabaseDestinations(result.destinations);
-          }
-        }
-
-
-      } catch (error) {
-        console.error("Destination loading error:", error);
-      }
-    }
-
-    loadDestinations();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   const currentDate = new Date();
   const today = [
     currentDate.getFullYear(),
@@ -172,18 +125,10 @@ export default function Home() {
   const money = (amount: number) =>
     `KSh ${amount.toLocaleString("en-KE")}`;
 
-  const destinationSuggestions =
-    databaseDestinations.length > 0
-      ? databaseDestinations
-      : destinationHighlights.map((item, index) => ({
-          id: `fallback-${index}`,
-          name: item.name,
-          city: item.name,
-          county: null,
-          country: "Kenya",
-          country_code: "KE",
-          active: true,
-        }));
+  const destinationSuggestions = destinationHighlights.map((item, index) => ({
+    id: `popular-${index}`,
+    name: item.name,
+  }));
 
   return (
     <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
