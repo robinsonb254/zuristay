@@ -902,7 +902,7 @@ export default function BookingPage() {
 
             <div className="mt-5 flex items-center gap-3 text-xs text-slate-400">
               <CreditCard size={17} />
-              Payment integration will follow in the next development phase.
+              Payment is arranged securely after your room inventory is held.
             </div>
           </div>
         </aside>
