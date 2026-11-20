@@ -132,15 +132,15 @@ export default function Home() {
   }));
 
   return (
-    <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
-      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur">
-        <div className="container flex h-20 items-center justify-between">
-          <Link href="/" className="text-3xl font-bold tracking-tight">
+    <main className="min-h-screen overflow-x-hidden bg-[#fbfaf7] text-[#173b30] antialiased">
+      <header className="sticky top-0 z-50 border-b border-[#e9e3d8] bg-white/95 shadow-[0_4px_24px_rgba(23,59,48,0.05)] backdrop-blur-xl">
+        <div className="container flex h-20 items-center justify-between gap-5">
+          <Link href="/" className="shrink-0 font-serif text-[2rem] font-bold tracking-[-0.06em] md:text-[2.15rem]">
             Zuri<span className="text-[#c49a52]">Stay</span>
           </Link>
 
-          <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
-            <a href="#destinations" className="hover:text-[#c49a52]">
+          <nav className="ml-5 hidden items-center gap-6 whitespace-nowrap text-[13px] font-semibold tracking-wide text-[#39574d] md:ml-10 md:flex lg:ml-14 lg:gap-7">
+            <a href="#destinations" className="rounded-full bg-[#f4eee2] px-4 py-2.5 text-[#8b682f] transition hover:bg-[#eee2cc] hover:text-[#6f5124]">
               Explore
             </a>
             <a href="/destinations" className="hover:text-[#c49a52]">All destinations</a>
@@ -155,7 +155,7 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="hidden items-center gap-2 lg:flex">
+          <div className="hidden shrink-0 items-center gap-2 lg:flex">
             <a
               href="/partner/dashboard"
               className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
@@ -222,7 +222,7 @@ export default function Home() {
         )}
       </header>
 
-      <section className="relative flex min-h-[650px] items-center overflow-hidden bg-[#173b30]">
+      <section className="relative flex min-h-[690px] items-center overflow-hidden bg-[#102c24]">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-40"
           style={{
@@ -230,21 +230,22 @@ export default function Home() {
               "url('https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1800')",
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#102c24] via-[#173b30]/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b241d]/95 via-[#12382d]/75 to-[#173b30]/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#102c24]/65 via-transparent to-[#102c24]/15" />
 
-        <div className="container relative z-10 py-20">
+        <div className="container relative z-10 py-24 md:py-28">
           <div className="max-w-3xl text-white">
-            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold tracking-widest">
+            <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#e7c98f]/50 bg-white/10 px-5 py-2.5 text-[11px] font-bold tracking-[0.24em] text-[#f2d9a8] shadow-lg backdrop-blur-md">
               <Globe2 size={15} /> YOUR WORLD. YOUR STAY.
             </span>
 
-            <h1 className="text-5xl font-bold leading-tight md:text-7xl">
+            <h1 className="font-serif text-5xl font-semibold leading-[1.08] tracking-[-0.045em] drop-shadow-sm md:text-7xl lg:text-[5.4rem]">
               Discover places.
               <br />
               Create memories.
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-white/80">
+            <p className="mt-7 max-w-xl text-base leading-8 text-white/85 md:text-lg">
               From beautiful coastal escapes to city hotels and private villas,
               find the perfect stay for every journey.
             </p>
@@ -252,7 +253,7 @@ export default function Home() {
 
           <form
             onSubmit={handleSearch}
-            className="mt-12 grid gap-3 rounded-2xl bg-white p-4 shadow-2xl md:grid-cols-3 lg:grid-cols-6 md:rounded-3xl"
+            className="mt-14 grid gap-3 rounded-[1.75rem] border border-white/70 bg-white p-4 shadow-[0_24px_70px_rgba(5,25,19,0.28)] md:grid-cols-3 md:p-5 lg:grid-cols-6"
           >
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 lg:col-span-2">
               <MapPin className="shrink-0 text-[#c49a52]" />
@@ -399,13 +400,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="destinations" className="container py-24">
+      <section id="destinations" className="container py-24 md:py-28">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
               EXPLORE KENYA
             </p>
-            <h2 className="text-3xl font-bold md:text-4xl">
+            <h2 className="font-serif text-3xl font-semibold tracking-tight text-[#173b30] md:text-4xl">
               Kenya&apos;s top tourist destinations
             </h2>
             <p className="mt-3 text-gray-500">
@@ -433,7 +434,7 @@ export default function Home() {
                 });
                 window.location.href = `/search?${params.toString()}`;
               }}
-              className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+              className="group overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white text-left shadow-[0_8px_28px_rgba(23,59,48,0.06)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_rgba(23,59,48,0.14)]"
             >
               <div className="h-64 overflow-hidden">
                 <img
@@ -442,11 +443,11 @@ export default function Home() {
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
                 />
               </div>
-              <div className="p-5">
+              <div className="p-6">
                 <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
                   KENYA
                 </p>
-                <h3 className="mt-2 text-xl font-bold">{item.name}</h3>
+                <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-[#173b30]">{item.name}</h3>
                 <p className="mt-2 text-sm text-gray-500">
                   {item.description}
                 </p>
@@ -465,7 +466,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="featured" className="bg-white py-24">
+      <section id="featured" className="border-y border-[#eee8dd] bg-white py-24 md:py-28">
         <div className="container">
           <div className="mb-10">
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
@@ -483,7 +484,7 @@ export default function Home() {
             {stays.map((stay) => (
               <article
                 key={stay.name}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+                className="overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white shadow-[0_8px_28px_rgba(23,59,48,0.07)] transition hover:-translate-y-1 hover:shadow-xl"
               >
                 <div className="relative h-60">
                   <img
@@ -504,7 +505,7 @@ export default function Home() {
                   <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
                     {stay.type}
                   </p>
-                  <h3 className="mt-2 text-xl font-bold">{stay.name}</h3>
+                  <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight">{stay.name}</h3>
                   <p className="mt-2 flex items-center gap-1 text-sm text-gray-500">
                     <MapPin size={15} /> {stay.location}
                   </p>
@@ -585,7 +586,7 @@ export default function Home() {
       </section>
 
       <section id="partners" className="container py-20">
-        <div className="overflow-hidden rounded-3xl bg-[#173b30] px-8 py-16 text-center text-white md:px-20">
+        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#102c24] via-[#173b30] to-[#285b49] px-8 py-16 text-center text-white shadow-[0_22px_60px_rgba(23,59,48,0.18)] md:px-20 md:py-20">
           <p className="mb-4 text-xs font-bold tracking-[0.2em] text-[#d8b879]">
             PARTNER WITH ZURISTAY
           </p>
@@ -607,7 +608,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="bg-[#102c24] py-12 text-white">
+      <footer className="border-t border-white/10 bg-[#0c251e] py-14 text-white">
         <div className="container flex flex-col justify-between gap-8 md:flex-row">
           <div>
             <h2 className="text-3xl font-bold">
