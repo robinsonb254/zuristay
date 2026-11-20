@@ -11,6 +11,17 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function getKenyaDate() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 const money = (amount: number, currency = "KSh") =>
   `${currency} ${amount.toLocaleString("en-KE")}`;
 
@@ -89,6 +100,22 @@ export default async function PropertyDetailsPage({
         ) {
           loadingError = true;
         } else {
+          const activeUnitIds = (unitsResult.data ?? []).map((unit) => unit.id);
+          const { data: futureAvailability, error: availabilityError } = activeUnitIds.length
+            ? await supabase
+                .from("unit_availability")
+                .select("unit_id")
+                .in("unit_id", activeUnitIds)
+                .gte("stay_date", getKenyaDate())
+                .gt("available_units", 0)
+                .limit(5000)
+            : { data: [], error: null };
+
+          if (availabilityError) {
+            loadingError = true;
+          }
+
+          const bookableUnitIds = new Set((futureAvailability ?? []).map((row) => row.unit_id));
           const amenityIds = [
             ...new Set(
               (propertyAmenitiesResult.data ?? []).map(
@@ -117,17 +144,17 @@ export default async function PropertyDetailsPage({
           }
 
           if (!loadingError) {
-            const units = (unitsResult.data ?? []).map((unit) => {
-              const baseRate = Number(unit.base_rate);
+            const units = (unitsResult.data ?? [])
+              .filter((unit) => bookableUnitIds.has(unit.id))
+              .map((unit) => {
+                const baseRate = Number(unit.base_rate);
 
-              return {
-                ...unit,
-                base_rate: baseRate,
-                customer_rate: Number(
-                  (baseRate * 1.3).toFixed(2)
-                ),
-              };
-            });
+                return {
+                  ...unit,
+                  base_rate: baseRate,
+                  customer_rate: Number((baseRate * 1.3).toFixed(2)),
+                };
+              });
 
             const images = [...(imagesResult.data ?? [])].sort(
               (a, b) => {
@@ -139,12 +166,14 @@ export default async function PropertyDetailsPage({
               }
             );
 
-            liveProperty = {
-              ...property,
-              units,
-              images,
-              amenities,
-            };
+            if (units.length > 0 && images.length > 0) {
+              liveProperty = {
+                ...property,
+                units,
+                images,
+                amenities,
+              };
+            }
           }
         }
       }
