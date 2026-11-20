@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 
 type Subcounty = { subcounty_code: string; name: string };
@@ -69,8 +70,8 @@ export default function DestinationsPage() {
     <main className="min-h-screen bg-[#faf9f6] text-[#173b30]">
       <header className="border-b border-gray-100 bg-white">
         <div className="container flex h-20 items-center justify-between">
-          <a href="/" className="text-3xl font-bold tracking-tight">Zuri<span className="text-[#c49a52]">Stay</span></a>
-          <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold hover:text-[#a77e3e]"><ArrowLeft size={17} /> Back to home</a>
+          <Link href="/" className="text-3xl font-bold tracking-tight">Zuri<span className="text-[#c49a52]">Stay</span></Link>
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold hover:text-[#a77e3e]"><ArrowLeft size={17} /> Back to home</Link>
         </div>
       </header>
 
@@ -140,7 +141,7 @@ export default function DestinationsPage() {
       <footer className="bg-[#102c24] py-10 text-white">
         <div className="container flex flex-wrap items-center justify-between gap-4">
           <div><p className="text-2xl font-bold">Zuri<span className="text-[#c49a52]">Stay</span></p><p className="mt-2 text-sm text-white/60">Your world. Your stay.</p></div>
-          <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white">Return to homepage <ArrowRight size={16} /></a>
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white">Return to homepage <ArrowRight size={16} /></Link>
         </div>
       </footer>
     </main>
