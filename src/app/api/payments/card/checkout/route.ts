@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const { data: pendingSessions, error: pendingSessionError } = pendingPaymentIds.length
       ? await db
           .from("card_payment_sessions")
-          .select("id, payment_id, expires_at, created_at")
+          .select("id, payment_id, expires_at, created_at, status")
           .in("payment_id", pendingPaymentIds)
       : { data: [], error: null };
 
@@ -95,7 +95,13 @@ export async function POST(request: NextRequest) {
       // Older session rows may not have an expiry. Bound those to 30 minutes
       // from creation rather than leaving a permanent pending-attempt lock.
       const effectiveExpiry = Number.isFinite(storedExpiry) ? storedExpiry : createdAt + 30 * 60_000;
-      return holdIsExpired || !Number.isFinite(createdAt) || effectiveExpiry <= now;
+      // If a prior failure notification updated the session but its payment
+      // row update failed, release the still-pending payment immediately.
+      return holdIsExpired ||
+        session.status === "failed" ||
+        session.status === "expired" ||
+        !Number.isFinite(createdAt) ||
+        effectiveExpiry <= now;
     });
     const staleOrphanAttempts = (pendingAttempts ?? []).filter((attempt) => {
       if (sessionPaymentIds.has(attempt.id)) return false;
