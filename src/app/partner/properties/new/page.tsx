@@ -20,7 +20,14 @@ type KenyaCounty = {
 };
 
 function normalizeCountyName(value: string) {
-  return value.toLowerCase().replace(/\s+city$/, "").trim();
+  return value.toLowerCase().replace(/\\s+city$/, "").trim();
+}
+
+function destinationBelongsToCounty(destinationCounty: string | null, countyName: string) {
+  if (!destinationCounty) return false;
+  const target = normalizeCountyName(countyName);
+  return normalizeCountyName(destinationCounty) === target ||
+    destinationCounty.split(/[\\/,]/).some((part) => normalizeCountyName(part) === target);
 }
 
 type Destination = {
