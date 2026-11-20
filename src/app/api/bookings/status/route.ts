@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyBookingAccessToken } from "@/lib/bookings/access";
 
 export const dynamic = "force-dynamic";
 
@@ -25,19 +26,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const accessToken = request.headers.get("x-booking-access-token");
     const db = createClient(supabaseUrl, secretKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
     const { data: booking, error } = await db
       .from("bookings")
-      .select("id, booking_reference, booking_status, payment_status, total_amount, currency")
+      .select("id, booking_reference, booking_status, payment_status, total_amount, currency, guest_access_token_hash")
       .eq("id", bookingId)
       .maybeSingle();
 
     if (error || !booking) {
       console.error("Booking status lookup failed:", error);
       return response({ success: false, error: "Booking could not be found." }, 404);
+    }
+
+    if (!verifyBookingAccessToken(accessToken, booking.guest_access_token_hash)) {
+      return response({ success: false, error: "Secure booking access is required." }, 401);
     }
 
     const { data: latestPayment, error: paymentError } = await db
