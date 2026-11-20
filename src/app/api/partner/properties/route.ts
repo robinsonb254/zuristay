@@ -18,6 +18,10 @@ const PROPERTY_TYPES = [
   "other",
 ] as const;
 
+function normalizeCountyName(value: string) {
+  return value.toLowerCase().replace(/\\s+city$/i, "").trim();
+}
+
 function fail(message: string, status: number) {
   return NextResponse.json(
     { success: false, error: message },
@@ -240,6 +244,12 @@ export async function POST(request: NextRequest) {
     }
     if (!county || !subCounty || subCounty.county_code !== county.county_code) {
       return fail("The selected sub-county does not belong to the selected county.", 400);
+    }
+    const destinationCounties = (destination.county || "")
+      .split(/[\\/,]/)
+      .map(normalizeCountyName);
+    if (!destinationCounties.includes(normalizeCountyName(county.name))) {
+      return fail("Choose a town or urban centre within the selected county.", 400);
     }
 
     const { data: property, error: insertError } = await context.admin
