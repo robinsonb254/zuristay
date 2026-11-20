@@ -197,10 +197,17 @@ export default function LivePropertyResults({
           <h3 className="mt-3 font-bold text-blue-950">
             No additional live listings found
           </h3>
-          <p className="mt-2 text-sm text-slate-500">
-            New approved properties will appear here once partners add
-            accommodation units and rates.
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+            {destination
+              ? "There are no approved, bookable properties matching this destination yet. Try another nearby area or explore the full Kenya directory."
+              : "New approved properties will appear here once partners add accommodation units and rates."}
           </p>
+          <Link
+            href="/destinations"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-900"
+          >
+            Browse all destinations
+          </Link>
         </div>
       )}
 
