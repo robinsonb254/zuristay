@@ -15,11 +15,14 @@ type Payout = {
   merchant_number?: string | null;
   merchant_account_number?: string | null;
   bank_name?: string | null;
+  bank_code?: string | null;
   bank_branch?: string | null;
   bank_account_name?: string | null;
   bank_account_number?: string | null;
   verification_status: string;
 };
+
+type BankOption = { bank_name: string; bank_code: string };
 
 const blank: Payout = { payout_method: "mpesa", account_holder_name: "", verification_status: "pending" };
 
@@ -27,6 +30,7 @@ export default function PartnerPayoutSettingsPage() {
   const router = useRouter();
   const [payout, setPayout] = useState<Payout>(blank);
   const [token, setToken] = useState("");
+  const [banks, setBanks] = useState<BankOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +56,11 @@ export default function PartnerPayoutSettingsPage() {
           return;
         }
         if (!response.ok || !result.success) throw new Error(result.error || "Unable to load payout details.");
+        const bankResponse = await fetch("/api/payments/bank-codes", { cache: "force-cache" });
+        const bankResult = await bankResponse.json();
+        if (active && bankResponse.ok && bankResult.success && Array.isArray(bankResult.banks)) {
+          setBanks(bankResult.banks.filter((item: unknown): item is BankOption => !!item && typeof item === "object" && typeof (item as BankOption).bank_name === "string" && typeof (item as BankOption).bank_code === "string"));
+        }
         if (active) {
           setToken(session.access_token);
           if (result.payout) setPayout({ ...blank, ...result.payout });
@@ -146,7 +155,7 @@ export default function PartnerPayoutSettingsPage() {
           </div>}
 
           {payout.payout_method === "bank" && <div className="grid gap-5 sm:grid-cols-2">
-            <div><label className={labelClass} htmlFor="bank_name">Bank name</label><input id="bank_name" className={inputClass} value={payout.bank_name || ""} onChange={e => update("bank_name", e.target.value)} required placeholder="e.g. KCB, Equity, Co-operative"/></div>
+            <div><label className={labelClass} htmlFor="bank_name">Bank name</label><select id="bank_name" className={inputClass} value={payout.bank_code || ""} onChange={e => { const bank = banks.find(item => item.bank_code === e.target.value); setPayout(current => ({ ...current, bank_name: bank?.bank_name || "", bank_code: bank?.bank_code || "" })); }} required><option value="">Select your bank</option>{banks.map(bank => <option key={bank.bank_code} value={bank.bank_code}>{bank.bank_name}</option>)}</select>{banks.length === 0 && <p className="mt-1 text-xs text-amber-700">Bank directory unavailable. Refresh the page to try again.</p>}</div>
             <div><label className={labelClass} htmlFor="bank_branch">Branch (optional)</label><input id="bank_branch" className={inputClass} value={payout.bank_branch || ""} onChange={e => update("bank_branch", e.target.value)} placeholder="Branch name"/></div>
             <div><label className={labelClass} htmlFor="bank_account_name">Bank account name</label><input id="bank_account_name" className={inputClass} value={payout.bank_account_name || ""} onChange={e => update("bank_account_name", e.target.value)} required placeholder="Name on bank account"/></div>
             <div><label className={labelClass} htmlFor="bank_account_number">Bank account number</label><input id="bank_account_number" className={inputClass} value={payout.bank_account_number || ""} onChange={e => update("bank_account_number", e.target.value)} required inputMode="numeric" placeholder="Account number"/></div>
