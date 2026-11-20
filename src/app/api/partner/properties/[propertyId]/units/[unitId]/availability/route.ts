@@ -220,10 +220,12 @@ export async function POST(
     if (availabilityError) {
       console.error("Availability update failed:", availabilityError);
       const message = availabilityError.message || "";
-      const safeMessage = /reserved|booked|hold|inventory/i.test(message)
+      const isInventoryConflict = /reserved|booked|hold|inventory/i.test(message);
+      const isInputError = /valid date|date range|available rooms|nightly rate|room count|negative/i.test(message);
+      const safeMessage = isInventoryConflict || isInputError
         ? message.replace(/[<>]/g, "").slice(0, 220)
         : "Unable to save availability. Please try again.";
-      return fail(safeMessage, 409);
+      return fail(safeMessage, isInventoryConflict ? 409 : isInputError ? 400 : 500);
     }
 
     return NextResponse.json(
