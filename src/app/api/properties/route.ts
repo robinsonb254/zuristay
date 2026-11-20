@@ -5,6 +5,17 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function getKenyaDate() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 function isRealDate(value: string) {
   if (!datePattern.test(value)) return false;
   const date = new Date(value + "T00:00:00.000Z");
@@ -132,6 +143,30 @@ export async function GET(request: NextRequest) {
       }
     }
   }
+  if (!hasDateFilter && (unitsResult.data ?? []).length > 0) {
+    const unitIds = (unitsResult.data ?? []).map((unit) => unit.id);
+    const { data: futureAvailability, error: futureAvailabilityError } = await supabase
+      .from("unit_availability")
+      .select("unit_id")
+      .in("unit_id", unitIds)
+      .gte("stay_date", getKenyaDate())
+      .gt("available_units", 0)
+      .limit(5000);
+
+    if (futureAvailabilityError) {
+      return NextResponse.json(
+        { success: false, error: "Unable to verify future room availability." },
+        { status: 500 }
+      );
+    }
+
+    for (const row of futureAvailability ?? []) {
+      if (!availableByUnit.has(row.unit_id)) {
+        availableByUnit.set(row.unit_id, { nights: 0, totalRate: 0 });
+      }
+    }
+  }
+
   const amenityIds = [
     ...new Set(
       (propertyAmenitiesResult.data ?? []).map((item) => item.amenity_id)
@@ -163,7 +198,7 @@ export async function GET(request: NextRequest) {
     const propertyUnits = (unitsResult.data ?? [])
       .filter((unit) => {
         if (unit.property_id !== property.id || Number(unit.capacity) * rooms < guests) return false;
-        return !hasDateFilter || availableByUnit.has(unit.id);
+        return availableByUnit.has(unit.id);
       })
       .map((unit) => {
         const baseRate = Number(unit.base_rate);
@@ -208,7 +243,11 @@ export async function GET(request: NextRequest) {
       amenities: propertyFacilities,
       starting_rate: startingRate,
     };
-  });
+  }).filter((property) =>
+    property.units.length > 0 &&
+    property.images.length > 0 &&
+    property.starting_rate !== null
+  );
 
   return NextResponse.json({
     success: true,
