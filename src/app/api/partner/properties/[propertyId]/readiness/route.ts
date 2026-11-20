@@ -36,12 +36,10 @@ async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId
   if (propertyError) throw new Error("Unable to load property details.");
   if (!property) return null;
 
-  const [unitsResult, imagesResult, amenitiesResult, availabilityResult] = await Promise.all([
+  const [unitsResult, imagesResult, amenitiesResult] = await Promise.all([
     admin.from("property_units").select("id, total_units").eq("property_id", propertyId).eq("active", true),
     admin.from("property_images").select("id", { count: "exact", head: true }).eq("property_id", propertyId),
     admin.from("property_amenities").select("amenity_id", { count: "exact", head: true }).eq("property_id", propertyId),
-    admin.from("unit_availability").select("id, unit_id, stay_date, available_units")
-      .gte("stay_date", new Date().toISOString().slice(0, 10)).gt("available_units", 0).limit(1),
   ]);
   if (unitsResult.error || imagesResult.error || amenitiesResult.error || availabilityResult.error) {
     console.error("Readiness check query failed:", unitsResult.error || imagesResult.error || amenitiesResult.error || availabilityResult.error);
@@ -49,7 +47,20 @@ async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId
   }
 
   const activeUnitIds = new Set((unitsResult.data || []).map((unit) => unit.id));
-  const hasActiveUnitAvailability = (availabilityResult.data || []).some((row) => activeUnitIds.has(row.unit_id));
+  let hasActiveUnitAvailability = false;
+  if (activeUnitIds.size > 0) {
+    const { data: availability, error: availabilityError } = await admin.from("unit_availability")
+      .select("id")
+      .in("unit_id", Array.from(activeUnitIds))
+      .gte("stay_date", new Date().toISOString().slice(0, 10))
+      .gt("available_units", 0)
+      .limit(1);
+    if (availabilityError) {
+      console.error("Active room availability check failed:", availabilityError);
+      throw new Error("Unable to check property setup. Please try again.");
+    }
+    hasActiveUnitAvailability = (availability || []).length > 0;
+  }
   const checks = [
     { key: "property_details", label: "Property name, description, address and contact details", complete: Boolean(property.name?.trim() && property.description?.trim() && property.address?.trim() && property.contact_phone?.trim() && property.contact_email?.trim()) },
     { key: "rooms", label: "At least one active room category", complete: activeUnitIds.size > 0 },
