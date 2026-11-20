@@ -48,12 +48,14 @@ async function checkReadiness(admin: ReturnType<typeof createClient>, propertyId
     throw new Error("Unable to check property setup. Please try again.");
   }
 
+  const activeUnitIds = new Set((unitsResult.data || []).map((unit) => unit.id));
+  const hasActiveUnitAvailability = (availabilityResult.data || []).some((row) => activeUnitIds.has(row.unit_id));
   const checks = [
     { key: "property_details", label: "Property name, description, address and contact details", complete: Boolean(property.name?.trim() && property.description?.trim() && property.address?.trim() && property.contact_phone?.trim() && property.contact_email?.trim()) },
-    { key: "rooms", label: "At least one active room category", complete: (unitsResult.data || []).length > 0 },
+    { key: "rooms", label: "At least one active room category", complete: activeUnitIds.size > 0 },
     { key: "photos", label: "At least one property photograph", complete: (imagesResult.count || 0) > 0 },
     { key: "amenities", label: "At least one selected facility", complete: (amenitiesResult.count || 0) > 0 },
-    { key: "availability", label: "At least one future date with rooms available", complete: (availabilityResult.data || []).length > 0 },
+    { key: "availability", label: "At least one future date with rooms available for an active room category", complete: hasActiveUnitAvailability },
   ];
   return { property, checks, ready: property.status === "approved" && checks.every((check) => check.complete) };
 }
