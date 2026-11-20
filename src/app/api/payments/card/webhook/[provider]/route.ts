@@ -28,8 +28,8 @@ export async function POST(
 
     if (
       !event.providerSessionId ||
-      !event.providerReference ||
-      event.providerReference.length > 255 ||
+      (event.status === "succeeded" &&
+        (!event.providerReference || event.providerReference.length > 255)) ||
       !Number.isFinite(event.amount) ||
       event.amount <= 0 ||
       !/^[A-Z]{3}$/.test(event.currency)
@@ -116,7 +116,7 @@ export async function POST(
     const { data: confirmed, error: confirmError } = await db.rpc("confirm_booking_payment", {
       p_booking_id: payment.booking_id,
       p_payment_method: "card",
-      p_provider_reference: event.providerReference,
+      p_provider_reference: event.providerReference!,
       p_amount: event.amount,
       p_currency: event.currency,
     });
