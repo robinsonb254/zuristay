@@ -68,8 +68,11 @@ export async function POST(request: NextRequest) {
       booking_id: bookingId, payment_method: "paypal", provider_reference: attemptReference,
       amount: kesAmount, currency: "KES", status: "pending",
     };
-    const { data: attempt, error: attemptError } = await db.from("payments")
+    const { data: attemptData, error: attemptError } = await db.from("payments")
       .insert(paymentAttempt as never).select("id").single();
+    // The insert cast above works around stale generated table typings; restore
+    // the known selected row shape at this boundary for TypeScript.
+    const attempt = attemptData as unknown as { id: string } | null;
     if (attemptError || !attempt) {
       if (attemptError?.code === "23505") return fail("A PayPal checkout is already pending for this booking. Return to the existing checkout or contact support.", 409);
       console.error("Unable to reserve PayPal payment attempt:", attemptError);
