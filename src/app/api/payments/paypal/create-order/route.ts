@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     const order = await response.json();
     if (!response.ok || typeof order.id !== "string") {
       console.error("PayPal order creation failed:", order);
-      await db.from("payments").update({ status: "failed" }).eq("id", attemptId).eq("status", "pending");
+      await db.from("payments").update({ status: "failed" } as never).eq("id", attemptId).eq("status", "pending");
       return fail("PayPal could not create the checkout. Please try again.", 502);
     }
     const approvalUrl = Array.isArray(order.links)
