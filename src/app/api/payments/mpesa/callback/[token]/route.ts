@@ -190,16 +190,19 @@ export async function POST(
     }
 
     // confirm_booking_payment records the verified receipt as the successful
-    // payment row. Remove the temporary CheckoutRequestID row to avoid
-    // counting the same transaction twice.
+    // payment row. Retain the original CheckoutRequestID attempt as a failed
+    // audit record rather than deleting it; this also releases the pending
+    // attempt index so a later booking retry is possible.
     const { error: cleanupError } = await db
       .from("payments")
-      .delete()
+      .update({ status: "failed" })
       .eq("id", pendingPayment.id)
       .eq("status", "pending");
 
     if (cleanupError) {
-      console.error("Verified M-Pesa payment recorded, but temporary row cleanup failed:", cleanupError);
+      console.error("Verified M-Pesa payment recorded, but attempt audit update failed:", cleanupError);
+      await markForReview("Payment was verified and recorded, but the temporary attempt could not be closed.");
+      return NextResponse.json({ ResultCode: 0, ResultDesc: "Payment accepted; attempt requires reconciliation" });
     }
 
     await markProcessed();
