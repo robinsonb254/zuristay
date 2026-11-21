@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       : null;
     if (typeof approvalUrl !== "string" || !approvalUrl.startsWith("https://")) {
       console.error("PayPal response did not include an approval link.");
-      await db.from("payments").update({ status: "failed" }).eq("id", attemptId).eq("status", "pending");
+      await db.from("payments").update({ status: "failed" } as never).eq("id", attemptId).eq("status", "pending");
       return fail("PayPal did not return a secure approval link.", 502);
     }
     const { error: paymentUpdateError } = await db.from("payments")
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     });
     if (sessionError) {
       console.error("Unable to persist PayPal checkout quote:", sessionError);
-      await db.from("payments").update({ status: "failed" }).eq("id", attemptId).eq("status", "pending");
+      await db.from("payments").update({ status: "failed" } as never).eq("id", attemptId).eq("status", "pending");
       return fail("PayPal checkout could not be safely recorded. Please contact support.", 503);
     }
     return NextResponse.json({
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("PayPal order creation error:", error);
     if (db && attemptId) {
-      await db.from("payments").update({ status: "failed" }).eq("id", attemptId).eq("status", "pending");
+      await db.from("payments").update({ status: "failed" } as never).eq("id", attemptId).eq("status", "pending");
     }
     return fail(error instanceof Error ? error.message : "PayPal checkout is temporarily unavailable.", 503);
   }
