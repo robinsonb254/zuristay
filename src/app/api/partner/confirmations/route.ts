@@ -52,5 +52,10 @@ export async function POST(request: NextRequest) {
   if (body.action === "guest_arrived" && !item.partner_room_secured_at) return fail("Confirm that the room is secured before confirming guest arrival.", 409);
   const { error: updateError } = await auth.db.from("booking_items").update({ [column]: new Date().toISOString() }).eq("id", item.id).eq("partner_id", auth.partner.id);
   if (updateError) return fail("The confirmation could not be saved.", 500);
+  const { error: releaseError } = await auth.db.rpc("release_eligible_partner_settlements");
+  if (releaseError) {
+    // The scheduled settlement job retries eligibility checks every five minutes.
+    console.error("Immediate partner settlement eligibility check failed:", releaseError);
+  }
   return NextResponse.json({ success: true, message: body.action === "room_secured" ? "Room readiness confirmed." : "Guest arrival confirmed." }, { headers: { "Cache-Control": "no-store" } });
 }
