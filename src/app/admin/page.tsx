@@ -934,6 +934,30 @@ export default function AdminPage() {
             </div>
           </section>
 
+          <section className="mt-8 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-800">
+                  <ShieldCheck size={21} />
+                </span>
+                <div>
+                  <h3 className="font-bold text-blue-950">Second administrator approval</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Independent review of administrator personal-account dispute releases.
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-slate-600">robinsonbarasa44@yahoo.com</p>
+                </div>
+              </div>
+              <Link
+                href="/admin/disputes"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-900"
+              >
+                Open approval centre
+                <ExternalLink size={15} />
+              </Link>
+            </div>
+          </section>
+
           <footer className="mt-10 flex flex-col justify-between gap-3 border-t border-slate-200 py-6 text-xs text-slate-400 sm:flex-row">
             <p>
               © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
