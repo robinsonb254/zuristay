@@ -105,7 +105,7 @@ function DestinationHighlightCard({
           scheduleNext();
         };
         preload.src = item.images[nextIndex].src;
-      }, 4600 + index * 320);
+      }, 2350);
     };
 
     scheduleNext();
@@ -114,7 +114,7 @@ function DestinationHighlightCard({
       if (rotationTimer !== undefined) window.clearTimeout(rotationTimer);
       if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
     };
-  }, [index, item.images]);
+  }, [item.images]);
 
   const photo = item.images[photoIndex];
 
