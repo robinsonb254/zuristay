@@ -78,47 +78,40 @@ function DestinationHighlightCard({
 
   useEffect(() => {
     let active = true;
-    let timer: number | undefined;
+    let currentIndex = 0;
+    let rotationTimer: number | undefined;
+    let transitionTimer: number | undefined;
 
-    const showNextPhoto = () => {
-      const nextIndex = (photoIndex + 1) % item.images.length;
-      const nextImage = new Image();
-      nextImage.onload = () => {
+    const scheduleNext = () => {
+      rotationTimer = window.setTimeout(() => {
         if (!active) return;
-        setNextPhoto(item.images[nextIndex].src);
-        window.setTimeout(() => {
+        const nextIndex = (currentIndex + 1) % item.images.length;
+        const preload = new Image();
+        preload.onload = () => {
           if (!active) return;
-          setPhotoIndex(nextIndex);
-          setNextPhoto(null);
-        }, 80);
-      };
-      nextImage.onerror = () => {
-        if (active) timer = window.setTimeout(showNextPhoto, 900);
-      };
-      nextImage.src = item.images[nextIndex].src;
+          setNextPhoto(item.images[nextIndex].src);
+          transitionTimer = window.setTimeout(() => {
+            if (!active) return;
+            currentIndex = nextIndex;
+            setPhotoIndex(nextIndex);
+            setNextPhoto(null);
+            scheduleNext();
+          }, 650);
+        };
+        preload.onerror = () => {
+          if (active) scheduleNext();
+        };
+        preload.src = item.images[nextIndex].src;
+      }, 4600 + index * 320);
     };
 
-    timer = window.setTimeout(() => {
-      if (!active) return;
-      const rotate = () => {
-        const nextIndex = (photoIndex + 1) % item.images.length;
-        const nextImage = new Image();
-        nextImage.onload = () => {
-          if (!active) return;
-          setPhotoIndex(nextIndex);
-        };
-        nextImage.src = item.images[nextIndex].src;
-      };
-      rotate();
-      timer = window.setInterval(rotate, 4600);
-    }, index * 380 + 4600);
-
+    scheduleNext();
     return () => {
       active = false;
-      if (timer !== undefined) window.clearTimeout(timer);
-      if (timer !== undefined) window.clearInterval(timer);
+      if (rotationTimer !== undefined) window.clearTimeout(rotationTimer);
+      if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
     };
-  }, [index, item.images, photoIndex]);
+  }, [index, item.images]);
 
   const photo = item.images[photoIndex];
 
