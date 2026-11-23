@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
   const checkOut = params.get("checkOut") || "";
   const guests = Number(params.get("guests") || 2);
   const rooms = Number(params.get("rooms") || 1);
-  const hasDateFilter = Boolean(checkIn || checkOut);
+  // Availability filtering is applied only when both dates are supplied.
+  // A check-in-only search remains valid and returns the current bookable inventory.
+  const hasDateFilter = Boolean(checkIn && checkOut);
   if (!Number.isInteger(guests) || guests < 1 || guests > 20 || !Number.isInteger(rooms) || rooms < 1 || rooms > 10) {
     return NextResponse.json({ success: false, error: "Choose a valid number of guests and rooms." }, { status: 400 });
   }
