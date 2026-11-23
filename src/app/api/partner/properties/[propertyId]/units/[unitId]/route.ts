@@ -64,16 +64,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const description = typeof input.description === "string" ? input.description.trim() : "";
     const capacity = Number(input.capacity);
     const baseRate = Number(input.baseRate);
+    if (input.active !== undefined && typeof input.active !== "boolean") return fail("Room activation must be true or false.", 400);
     if (name.length < 2 || name.length > 100) return fail("Room category name must be between 2 and 100 characters.", 400);
     if (unitType.length > 80) return fail("Room type is too long.", 400);
     if (description.length > 1500) return fail("Room description is too long.", 400);
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 20) return fail("Guest capacity must be a whole number between 1 and 20.", 400);
     if (!Number.isFinite(baseRate) || baseRate <= 0 || baseRate > 100000000) return fail("Enter a valid positive nightly rate.", 400);
 
-    const { data: updated, error: updateError } = await context.admin.from("property_units").update({
+    const updateFields: Record<string, unknown> = {
       name, unit_type: unitType || null, description: description || null,
       capacity, base_rate: Number(baseRate.toFixed(2)),
-    }).eq("id", unitId).eq("property_id", propertyId)
+    };
+    if (typeof input.active === "boolean") updateFields.active = input.active;
+    const { data: updated, error: updateError } = await context.admin.from("property_units").update(updateFields)
+      .eq("id", unitId).eq("property_id", propertyId)
       .select("id, name, unit_type, description, capacity, total_units, base_rate, currency, active").single();
     if (updateError || !updated) {
       console.error("Room category update failed:", updateError);
