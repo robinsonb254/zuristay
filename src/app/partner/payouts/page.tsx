@@ -3,10 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Banknote, Building2, CheckCircle2, Loader2, Smartphone } from "lucide-react";
+import { ArrowLeft, Banknote, Building2, CheckCircle2, Loader2, Smartphone, Wallet } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type Method = "mpesa" | "till_paybill" | "bank";
+type Method = "mpesa" | "till_paybill" | "bank" | "paypal";
 type Payout = {
   payout_method: Method;
   account_holder_name: string;
@@ -19,6 +19,7 @@ type Payout = {
   bank_branch?: string | null;
   bank_account_name?: string | null;
   bank_account_number?: string | null;
+  paypal_email?: string | null;
   verification_status: string;
   provider_account_name?: string | null;
 };
@@ -34,7 +35,6 @@ export default function PartnerPayoutSettingsPage() {
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [verifying, setVerifying] = useState(false);
   const [hasSavedPayout, setHasSavedPayout] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -108,29 +108,6 @@ export default function PartnerPayoutSettingsPage() {
     }
   }
 
-  async function verify() {
-    setVerifying(true);
-    setError("");
-    setNotice("");
-    try {
-      const response = await fetch("/api/partner/payout-preference/verify", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await response.json();
-      if (result.provider_account_name) {
-        setPayout(current => ({ ...current, provider_account_name: result.provider_account_name }));
-      }
-      if (!response.ok || !result.success) throw new Error(result.error || "Unable to verify payout destination.");
-      setPayout(current => ({ ...current, ...result.payout }));
-      setNotice(result.message || "Payout destination verified.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to verify payout destination.");
-    } finally {
-      setVerifying(false);
-    }
-  }
-
   if (loading) return <main className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-900" /></main>;
 
   const inputClass = "mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100";
@@ -147,7 +124,7 @@ export default function PartnerPayoutSettingsPage() {
       <div className="mx-auto max-w-3xl px-5 py-10">
         <p className="text-sm font-semibold uppercase tracking-wider text-blue-700">Partner finance</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900">Payout preferences</h1>
-        <p className="mt-2 text-slate-600">Choose where ZuriStay should send your eligible booking earnings. You can update your preferred destination at any time.</p>
+        <p className="mt-2 text-slate-600">Choose where ZuriStay should send your eligible booking earnings. Destinations are reviewed before transfers are enabled.</p>
 
         {error && <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
         {notice && <div role="status" className="mt-6 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"><CheckCircle2 size={18} className="mt-0.5 shrink-0"/>{notice}</div>}
@@ -160,7 +137,7 @@ export default function PartnerPayoutSettingsPage() {
 
           <fieldset>
             <legend className="text-sm font-semibold text-slate-700">Preferred payout method</legend>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <button type="button" onClick={() => update("payout_method", "mpesa")} className={`rounded-xl border p-4 text-left transition ${payout.payout_method === "mpesa" ? "border-blue-800 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-400"}`}>
                 <Smartphone className="mb-2 text-blue-900"/><span className="block font-semibold text-slate-900">M-Pesa</span><span className="mt-1 block text-xs text-slate-500">Phone number</span>
               </button>
@@ -169,6 +146,9 @@ export default function PartnerPayoutSettingsPage() {
               </button>
               <button type="button" onClick={() => update("payout_method", "bank")} className={`rounded-xl border p-4 text-left transition ${payout.payout_method === "bank" ? "border-blue-800 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-400"}`}>
                 <Banknote className="mb-2 text-blue-900"/><span className="block font-semibold text-slate-900">Bank account</span><span className="mt-1 block text-xs text-slate-500">Bank transfer</span>
+              </button>
+              <button type="button" onClick={() => update("payout_method", "paypal")} className={`rounded-xl border p-4 text-left transition ${payout.payout_method === "paypal" ? "border-blue-800 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-400"}`}>
+                <Wallet className="mb-2 text-blue-900"/><span className="block font-semibold text-slate-900">PayPal</span><span className="mt-1 block text-xs text-slate-500">PayPal email</span>
               </button>
             </div>
           </fieldset>
@@ -191,10 +171,16 @@ export default function PartnerPayoutSettingsPage() {
             <div><label className={labelClass} htmlFor="bank_account_number">Bank account number</label><input id="bank_account_number" className={inputClass} value={payout.bank_account_number || ""} onChange={e => update("bank_account_number", e.target.value)} required inputMode="numeric" placeholder="Account number"/></div>
           </div>}
 
-          {payout.verification_status === "verified" ? <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-800">Your payout destination is verified{payout.provider_account_name ? ` as ${payout.provider_account_name}` : ""}.</p> : <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your details must be verified before automatic payouts are activated. Saving these details does not initiate a transfer.{payout.provider_account_name ? ` Provider account name returned: ${payout.provider_account_name}.` : ""}</p>}
+          {payout.payout_method === "paypal" && <div>
+            <label className={labelClass} htmlFor="paypal_email">PayPal account email</label>
+            <input id="paypal_email" type="email" className={inputClass} value={payout.paypal_email || ""} onChange={e => update("paypal_email", e.target.value)} required maxLength={254} placeholder="name@example.com"/>
+            <p className="mt-2 text-xs text-slate-500">Use the email address registered to the partner PayPal account.</p>
+          </div>}
 
-          <button type="submit" disabled={saving || verifying} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? <><Loader2 size={18} className="animate-spin"/> Saving...</> : "Save payout preference"}</button>
-          {hasSavedPayout && <button type="button" onClick={verify} disabled={saving || verifying} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60">{verifying ? <><Loader2 size={18} className="animate-spin"/> Verifying...</> : "Verify payout account"}</button>}
+          {payout.verification_status === "verified" ? <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-800">Your payout destination is verified{payout.provider_account_name ? ` as ${payout.provider_account_name}` : ""}.</p> : <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your details are awaiting ZuriStay verification. Saving them does not initiate a transfer.{payout.provider_account_name ? ` Provider account name returned: ${payout.provider_account_name}.` : ""}</p>}
+
+          <button type="submit" disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? <><Loader2 size={18} className="animate-spin"/> Saving...</> : "Save payout preference"}</button>
+          {hasSavedPayout && <p className="text-center text-sm text-slate-500">Saved destinations are reviewed by ZuriStay before transfers are enabled.</p>}
         </form>
       </div>
     </main>
