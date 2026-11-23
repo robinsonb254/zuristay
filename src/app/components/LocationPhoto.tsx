@@ -46,7 +46,6 @@ export default function LocationPhoto({
       {photo ? (
         <>
           <img src={photo.imageUrl} alt={`${location} — ${photo.title}`} loading="lazy" className="h-full w-full object-cover" />
-          {!compact && <span className="absolute bottom-2 left-2 max-w-[70%] truncate rounded bg-black/60 px-2 py-1 text-[10px] text-white">{photo.license} · {photo.credit}</span>}
         </>
       ) : (
         <div className="flex h-full min-h-20 items-center justify-center p-3 text-center text-xs font-semibold text-[#496457]">
