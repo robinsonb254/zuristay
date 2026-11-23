@@ -122,7 +122,7 @@ export default function PartnerDashboardPage() {
     try {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
-      router.replace("/login?next=%2Fpartner%2Fdashboard");
+      router.replace("/");
       router.refresh();
     } catch {
       setError("Unable to sign out. Please try again.");
@@ -190,13 +190,24 @@ export default function PartnerDashboardPage() {
             </p>
           </div>
 
-          <Link
-            href="#property-listings"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
-          >
-            <Building2 size={19} />
-            Manage properties
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="#property-listings"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
+            >
+              <Building2 size={19} />
+              Manage properties
+            </Link>
+            {partner?.status === "approved" && (
+              <Link
+                href="/partner/properties/new"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800"
+              >
+                <Plus size={19} />
+                Add property
+              </Link>
+            )}
+          </div>
 
           <Link
             href="/partner/confirmations"
