@@ -191,11 +191,11 @@ export default function PartnerDashboardPage() {
           </div>
 
           <Link
-            href="/partner/properties/new"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800"
+            href="#property-listings"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
           >
-            <Plus size={19} />
-            Add a property
+            <Building2 size={19} />
+            Manage properties
           </Link>
 
           <Link
@@ -289,7 +289,10 @@ export default function PartnerDashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <section
+          id="property-listings"
+          className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 p-5">
             <div>
               <h2 className="text-xl font-bold text-slate-900">
