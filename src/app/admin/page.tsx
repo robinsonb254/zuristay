@@ -156,7 +156,7 @@ export default function AdminPage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        router.replace("/login?next=%2Fadmin");
+        router.replace("/admin/login");
         return;
       }
 
@@ -171,8 +171,8 @@ export default function AdminPage() {
       const adminProfile = profileData as AdminProfile | null;
 
       if (!adminProfile || adminProfile.role !== "admin") {
-        setAccessDenied(true);
-        setLoading(false);
+        await supabase.auth.signOut();
+        router.replace("/admin/login?reason=access");
         return;
       }
 
