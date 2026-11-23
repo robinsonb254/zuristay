@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
           .eq("id", user.id)
           .maybeSingle();
         if (!active) return;
-        if (profile?.role === "admin") {
+        if ((profile as { role?: string } | null)?.role === "admin") {
           router.replace("/admin");
           return;
         }
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
         await supabase.auth.signOut();
         throw profileError;
       }
-      if (profile?.role !== "admin") {
+      if ((profile as { role?: string } | null)?.role !== "admin") {
         await supabase.auth.signOut();
         setPassword("");
         setError("Administrator access required. These credentials are not assigned an administrator account. You have not been signed in.");
