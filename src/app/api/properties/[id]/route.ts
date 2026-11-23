@@ -30,6 +30,7 @@ export async function GET(
     .eq("id", id)
     .eq("status", "approved")
     .eq("is_active", true)
+    .eq("is_archived", false)
     .maybeSingle();
 
   if (propertyError) {
