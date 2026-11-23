@@ -107,17 +107,17 @@ export default function Home() {
       return;
     }
 
-    if (checkIn && checkIn < today) {
+    if (!checkIn) {
+      setSearchMessage("Please select your check-in date.");
+      return;
+    }
+
+    if (checkIn < today) {
       setSearchMessage("Check-in cannot be in the past.");
       return;
     }
 
-    if ((checkIn && !checkOut) || (!checkIn && checkOut)) {
-      setSearchMessage("Please select both check-in and check-out dates.");
-      return;
-    }
-
-    if (checkIn && checkOut && checkOut <= checkIn) {
+    if (checkOut && checkOut <= checkIn) {
       setSearchMessage("Check-out must be after check-in.");
       return;
     }
@@ -293,6 +293,7 @@ export default function Home() {
                 </label>
                 <input
                   type="date"
+                  required
                   min={today}
                   value={checkIn}
                   onChange={(e) => {

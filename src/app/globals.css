@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf9f6;
-  --foreground: #172b24;
+  --background: #fbfaf7;
+  --foreground: #173b30;
   --primary: #123d32;
-  --gold: #c49a52;
+  --gold: #c9a35f;
+  --accent: #e9dcc4;
 }
 
 * {
@@ -20,10 +21,22 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--primary);
 }
 
 a {
-  color: inherit;
   text-decoration: none;
 }
 
