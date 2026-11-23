@@ -121,6 +121,8 @@ export default function BookingPage() {
   const [paymentError, setPaymentError] = useState("");
   const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
   const [paymentReference, setPaymentReference] = useState("");
+  const [guestAccessConfirmed, setGuestAccessConfirmed] = useState(false);
+  const [confirmingGuestAccess, setConfirmingGuestAccess] = useState(false);
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -468,6 +470,19 @@ export default function BookingPage() {
     }
   }
 
+  async function confirmGuestRoomAccess() {
+    if (!booking) return;
+    setConfirmingGuestAccess(true); setPaymentError(""); setPaymentMessage("");
+    try {
+      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
+      const response = await fetch("/api/bookings/confirm-access", { method: "POST", headers: { "Content-Type": "application/json", "x-booking-access-token": token }, body: JSON.stringify({ booking_id: booking.booking_id }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Room access confirmation could not be saved.");
+      setGuestAccessConfirmed(true); setPaymentMessage(result.message || "Room access confirmed.");
+    } catch (err) { setPaymentError(err instanceof Error ? err.message : "Room access confirmation could not be saved."); }
+    finally { setConfirmingGuestAccess(false); }
+  }
+
   const activeBookingId = booking?.booking_id;
 
   useEffect(() => {
@@ -633,6 +648,13 @@ export default function BookingPage() {
             </div>
           </div>
 
+          {paymentState === "paid" && (
+            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-left">
+              <h2 className="font-bold text-emerald-900">Confirm your room access</h2>
+              <p className="mt-2 text-sm leading-6 text-emerald-800">After arriving, checking the room and confirming that it is secured, confirm your access here. ZuriStay will only release the partner's payable amount after both partner confirmations and your confirmation.</p>
+              <button type="button" onClick={confirmGuestRoomAccess} disabled={guestAccessConfirmed || confirmingGuestAccess} className="mt-4 rounded-xl bg-emerald-800 px-5 py-3 text-sm font-bold text-white disabled:opacity-60">{guestAccessConfirmed ? "Room access confirmed ✓" : confirmingGuestAccess ? "Saving confirmation..." : "I have accessed and secured the room"}</button>
+            </div>
+          )}
           {paymentState === "paid" && (
             <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left print:break-inside-avoid">
               <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-300 pb-5">
