@@ -252,10 +252,13 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#fbfaf7] text-[#173b30] antialiased">
-      <header className="sticky top-0 z-50 border-b border-[#e9e3d8] bg-white/95 shadow-[0_4px_24px_rgba(23,59,48,0.05)] backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-[#e9e3d8] bg-white/95 shadow-[0_4px_24px_rgba(23,59,48,0.05)] backdrop-blur-xl dark:border-white/10 dark:bg-[#030b20]/95">
         <div className="container flex h-20 items-center justify-between gap-5">
-          <Link href="/" className="shrink-0 font-serif text-[2rem] font-bold tracking-[-0.06em] md:text-[2.15rem]">
-            Zuri<span className="text-[#c49a52]">Stay</span><span className="ml-2 text-[0.72em] font-sans font-semibold tracking-normal">Worldwide</span>
+          <Link href="/" aria-label="ZuriStay Worldwide home" className="shrink-0">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcSet="/brand/zuristay-dark.svg" />
+              <img src="/brand/zuristay-light.svg" alt="ZuriStay Worldwide — Your Next Stay, Anywhere" className="h-[4.4rem] w-[12.5rem] object-contain sm:w-[14rem]" />
+            </picture>
           </Link>
 
           <nav className="ml-5 hidden items-center gap-6 whitespace-nowrap text-[13px] font-semibold tracking-wide text-[#39574d] xl:ml-10 xl:flex xl:gap-7">
@@ -692,12 +695,8 @@ export default function Home() {
       <footer className="border-t border-white/10 bg-[#0c251e] py-14 text-white">
         <div className="container flex flex-col justify-between gap-8 md:flex-row">
           <div>
-            <h2 className="text-3xl font-bold">
-              Zuri<span className="text-[#c49a52]">Stay</span><span className="ml-2 text-[0.72em] font-sans font-semibold tracking-normal">Worldwide</span>
-            </h2>
-            <p className="mt-3 text-sm text-white/60">
-              Your world. Your stay.
-            </p>
+            <img src="/brand/zuristay-dark.svg" alt="ZuriStay Worldwide — Your Next Stay, Anywhere" className="h-auto w-64 max-w-full rounded-lg" />
+            <p className="mt-3 text-sm text-white/70">Your world. Your stay.</p>
           </div>
           <div className="text-sm text-white/60">
             <p>Explore stays. Discover experiences.</p>
