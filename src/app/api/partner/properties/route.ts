@@ -271,13 +271,14 @@ export async function POST(request: NextRequest) {
         country: destination.country,
         country_code: destination.country_code,
         currency,
+        has_conference_rooms: input.hasConferenceRooms === true,
         contact_phone: phone,
         contact_email: email,
         status: "pending",
         is_active: false,
       })
       .select(
-        "id, name, property_type, city, county, sub_county, country, status, is_active, created_at"
+        "id, name, property_type, city, county, sub_county, country, status, is_active, has_conference_rooms, created_at"
       )
       .single();
 
