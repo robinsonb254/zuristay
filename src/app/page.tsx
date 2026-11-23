@@ -140,15 +140,6 @@ function DestinationHighlightCard({
             className="absolute inset-0 h-full w-full animate-[destinationPop_650ms_ease-out] object-cover"
           />
         )}
-        <a
-          href={photo.source}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(event) => event.stopPropagation()}
-          className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm"
-        >
-          Photo source
-        </a>
       </div>
       <div className="p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">KENYA</p>
