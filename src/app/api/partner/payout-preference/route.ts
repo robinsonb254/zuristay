@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await context.admin
       .from("partner_payout_accounts")
-      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, provider_account_name, verification_status, verified_at, updated_at")
+      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, paypal_email, provider_account_name, verification_status, verified_at, updated_at")
       .eq("partner_id", context.partner.id)
       .maybeSingle();
 
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest) {
 
     const method = body.payout_method;
     const holder = typeof body.account_holder_name === "string" ? body.account_holder_name.trim() : "";
-    if (!["mpesa", "till_paybill", "bank"].includes(method) || holder.length < 2 || holder.length > 120) {
+    if (!["mpesa", "till_paybill", "bank", "paypal"].includes(method) || holder.length < 2 || holder.length > 120) {
       return fail("Choose a payout method and enter the account holder's full name.", 400);
     }
 
@@ -102,6 +102,7 @@ export async function PUT(request: NextRequest) {
       bank_branch: null,
       bank_account_name: null,
       bank_account_number: null,
+      paypal_email: null,
       provider_account_name: null,
       verification_status: "pending",
       verified_at: null,
@@ -129,7 +130,7 @@ export async function PUT(request: NextRequest) {
       values.merchant_type = type;
       values.merchant_number = number;
       values.merchant_account_number = type === "paybill" ? account : null;
-    } else {
+    } else if (method === "bank") {
       const bank = typeof body.bank_name === "string" ? body.bank_name.trim() : "";
       const accountName = holder;
       const accountNumber = typeof body.bank_account_number === "string" ? body.bank_account_number.trim().replace(/\s+/g, "") : "";
@@ -143,12 +144,18 @@ export async function PUT(request: NextRequest) {
       values.bank_account_name = accountName;
       values.bank_account_number = accountNumber;
       values.bank_branch = branch || null;
+    } else {
+      const email = typeof body.paypal_email === "string" ? body.paypal_email.trim().toLowerCase() : "";
+      if (email.length > 254 || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+        return fail("Enter a valid PayPal email address.", 400);
+      }
+      values.paypal_email = email;
     }
 
     const { data, error } = await context.admin
       .from("partner_payout_accounts")
       .upsert(values, { onConflict: "partner_id" })
-      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, provider_account_name, verification_status, verified_at, updated_at")
+      .select("payout_method, account_holder_name, mpesa_phone, merchant_type, merchant_number, merchant_account_number, bank_name, bank_code, bank_branch, bank_account_name, bank_account_number, paypal_email, provider_account_name, verification_status, verified_at, updated_at")
       .single();
 
     if (error || !data) {
@@ -158,7 +165,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Payout preference saved. The destination must be verified before automated transfers can be enabled.",
+      message: "Payout preference saved. ZuriStay will review the destination before enabling transfers.",
       payout: data,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
