@@ -73,6 +73,7 @@ export default function NewPartnerPropertyPage() {
   const [currency, setCurrency] = useState("KES");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [hasConferenceRooms, setHasConferenceRooms] = useState(false);
 
   useEffect(() => {
     async function loadPage() {
@@ -173,6 +174,7 @@ export default function NewPartnerPropertyPage() {
           currency,
           contactPhone,
           contactEmail,
+          hasConferenceRooms,
         }),
       });
 
@@ -258,6 +260,12 @@ export default function NewPartnerPropertyPage() {
           </p>
         </div>
 
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+          <label className="flex items-start gap-3 text-sm font-semibold text-slate-800">
+            <input type="checkbox" checked={hasConferenceRooms} onChange={(e) => setHasConferenceRooms(e.target.checked)} className="mt-1 h-4 w-4 accent-blue-900" />
+            <span>This property has conference rooms</span>
+          </label>
+        </div>
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
           <ShieldCheck className="mt-0.5 shrink-0 text-blue-800" size={21} />
           <p className="text-sm leading-6 text-blue-900">
