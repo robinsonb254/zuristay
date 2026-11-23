@@ -356,6 +356,7 @@ export default function AdminPropertiesPage() {
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
                       {property.status === "pending" && (
+                        <>
                           <button
                             onClick={() => reviewProperty(property, "approve")}
                             disabled={processingId === property.id}
@@ -370,7 +371,7 @@ export default function AdminPropertiesPage() {
                           >
                             <XCircle size={16} /> Reject
                           </button>
-                        </div>
+                        </>
                       )}
                       {!property.is_archived && (
                         <button onClick={() => archiveProperty(property)} disabled={processingId === property.id} className="inline-flex items-center rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">
