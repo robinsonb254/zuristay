@@ -116,7 +116,7 @@ export default function PartnerRegistrationPage() {
         <div className="lg:sticky lg:top-12 lg:self-start">
           <span className="inline-flex items-center gap-2 rounded-full bg-[#f1eadc] px-4 py-2 text-xs font-bold tracking-widest text-[#9a7437]">
             <Building2 size={15} />
-            PARTNER WITH ZURISTAY
+            PARTNER WITH ZURISTAY WORLDWIDE
           </span>
 
           <h1 className="mt-7 text-4xl font-bold leading-tight md:text-5xl">
@@ -124,7 +124,7 @@ export default function PartnerRegistrationPage() {
           </h1>
 
           <p className="mt-6 max-w-lg leading-8 text-gray-600">
-            Join ZuriStay and make your hotel, apartment, villa,
+            Join ZuriStay Worldwide and make your hotel, apartment, villa,
             resort or guesthouse discoverable by travellers
             searching for their next stay.
           </p>
@@ -170,7 +170,7 @@ export default function PartnerRegistrationPage() {
           </div>
 
           <p className="mt-10 text-sm text-gray-500">
-            Already exploring ZuriStay?{" "}
+            Already exploring ZuriStay Worldwide?{" "}
             <Link href="/" className="font-bold text-[#a77e3e]">
               Discover stays
             </Link>
@@ -190,7 +190,7 @@ export default function PartnerRegistrationPage() {
 
               <p className="mt-4 max-w-md leading-7 text-gray-600">
                 Thank you for your interest in partnering with
-                ZuriStay. Your application has been submitted for
+                ZuriStay Worldwide. Your application has been submitted for
                 review. Our team will contact you using the details
                 you provided.
               </p>
@@ -203,7 +203,7 @@ export default function PartnerRegistrationPage() {
                 href="/"
                 className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#173b30] px-7 py-4 font-bold text-white hover:bg-[#245545]"
               >
-                Return to ZuriStay
+                Return to ZuriStay Worldwide
                 <ArrowRight size={18} />
               </Link>
             </div>
@@ -427,7 +427,7 @@ export default function PartnerRegistrationPage() {
       </section>
 
       <footer className="bg-[#102c24] py-8 text-center text-sm text-white/60">
-        © {new Date().getFullYear()} ZuriStay. Your world. Your stay.
+        © {new Date().getFullYear()} ZuriStay Worldwide. Your world. Your stay.
       </footer>
     </main>
   );
