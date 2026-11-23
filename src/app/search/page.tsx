@@ -109,6 +109,7 @@ export default async function SearchPage({
                 <input
                   type="date"
                   name="checkIn"
+                  required
                   defaultValue={checkIn}
                   className="w-full min-w-0 bg-transparent text-sm outline-none"
                 />
