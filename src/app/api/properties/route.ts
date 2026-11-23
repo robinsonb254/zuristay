@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     success: true,
     count: propertiesWithDetails.length,
-    markupPercentage: 30,
+    markupPercentage: 15,
     search: { checkIn: checkIn || null, checkOut: checkOut || null, guests, rooms, availabilityChecked: hasDateFilter },
     properties: propertiesWithDetails,
   });
