@@ -436,6 +436,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
   const [description, setDescription] = useState(unit.description || "");
   const [capacity, setCapacity] = useState(String(unit.capacity));
   const [baseRate, setBaseRate] = useState(String(unit.base_rate));
+  const [active, setActive] = useState(unit.active);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -450,7 +451,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
       const response = await fetch("/api/partner/properties/" + propertyId + "/units/" + unit.id, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
-        body: JSON.stringify({ name, unitType, description, capacity: Number(capacity), baseRate: Number(baseRate) }),
+        body: JSON.stringify({ name, unitType, description, capacity: Number(capacity), baseRate: Number(baseRate), active }),
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Unable to update room category.");
@@ -464,7 +465,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
 
   return (
     <div className="mt-3">
-      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setBaseRate(String(unit.base_rate)); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details and base rate</button> :
+      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setBaseRate(String(unit.base_rate)); setActive(unit.active); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details and base rate</button> :
         <form onSubmit={save} className="mt-3 space-y-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
           <h4 className="text-sm font-bold text-slate-900">Edit room category</h4>
           <label className="block text-xs font-semibold text-slate-700">Category name
@@ -484,7 +485,8 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
               <input type="number" min="0.01" max="100000000" step="0.01" required value={baseRate} onChange={(e) => setBaseRate(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
             </label>
           </div>
-          <p className="text-xs text-slate-500">Changing the default rate does not overwrite date-specific availability rates already saved.</p>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-blue-900 focus:ring-blue-700" />Room category active and eligible for bookings</label>
+          <p className="text-xs text-slate-500">Changing the default rate does not overwrite date-specific availability rates already saved. Activating a room does not publish the property.</p>
           {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="submit" disabled={saving} className="rounded-lg bg-blue-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{saving ? "Saving..." : "Save room changes"}</button>
