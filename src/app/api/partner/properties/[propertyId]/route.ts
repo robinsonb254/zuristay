@@ -41,7 +41,7 @@ async function ownedProperty(request: NextRequest, propertyId: string) {
   if (context.error) return { error: context.error };
   if (!uuidPattern.test(propertyId)) return { error: fail("Invalid property ID.", 400) };
   const { data: property, error } = await context.admin.from("properties")
-    .select("id, partner_id, destination_id, name, property_type, description, address, city, county, country, country_code, currency, contact_phone, contact_email, status, is_active")
+    .select("id, partner_id, destination_id, name, property_type, description, address, city, county, country, country_code, currency, contact_phone, contact_email, status, is_active, has_conference_rooms, conference_room_capacity, conference_room_details")
     .eq("id", propertyId).eq("partner_id", context.partner.id).maybeSingle();
   if (error) {
     console.error("Property lookup failed:", error);
@@ -106,11 +106,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!destination) return fail("The selected destination is unavailable.", 400);
 
     const { data: updated, error: updateError } = await context.admin.from("properties").update({
-      destination_id: destination.id, name, property_type: propertyType, description: description || null,
+      destination_id: destination.id, name, property_type: propertyType, description: description || null, has_conference_rooms: input.hasConferenceRooms === true,
       address, city: destination.city, county: destination.county, country: destination.country,
       country_code: destination.country_code, currency, contact_phone: contactPhone, contact_email: contactEmail,
     }).eq("id", propertyId).eq("partner_id", context.partner.id)
-      .select("id, name, property_type, description, address, destination_id, city, county, country, currency, contact_phone, contact_email, status, is_active").single();
+      .select("id, name, property_type, description, address, destination_id, city, county, country, currency, contact_phone, contact_email, status, is_active, has_conference_rooms, conference_room_capacity, conference_room_details").single();
 
     if (updateError || !updated) {
       console.error("Property update failed:", updateError);
