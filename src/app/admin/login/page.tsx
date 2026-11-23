@@ -97,7 +97,7 @@ export default function AdminLoginPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f1eadc] text-[#a77e3e]"><ShieldCheck size={30} /></div>
             <p className="mt-6 text-xs font-bold tracking-[0.2em] text-[#c49a52]">SECURE ADMINISTRATION</p>
             <h1 className="mt-3 text-3xl font-bold">Administrator sign in</h1>
-            <p className="mt-3 text-sm leading-6 text-gray-500">Enter your administrator account credentials to access the ZuriStay control centre.</p>
+            <p className="mt-3 text-sm leading-6 text-gray-500">Enter your administrator account credentials to access the ZuriStay Worldwide control centre.</p>
           </div>
           {accessNotice && (
             <p role="status" className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">The previous session did not have administrator permission. It has been signed out. Sign in below with your administrator credentials.</p>
