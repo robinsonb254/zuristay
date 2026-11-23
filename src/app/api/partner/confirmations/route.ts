@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     console.error("Partner confirmation list failed:", error);
     return fail("Unable to load booking confirmations.", 500);
   }
-  return NextResponse.json({ success: true, items: (data || []).filter((item: any) => item.bookings?.payment_status === "paid") }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ success: true, items: (data || []).filter((item) => { const booking = item.bookings as { payment_status?: string } | null; return booking?.payment_status === "paid"; }) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: NextRequest) {
