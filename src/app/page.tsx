@@ -36,6 +36,31 @@ const destinationHighlights = [
   { name: "Mount Kenya", searchDestination: "Mount Kenya", description: "Mountain escapes, highlands and adventure", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000" },
   { name: "Samburu", searchDestination: "Samburu", description: "Northern landscapes and unique wildlife", image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1000" },
 ];
+const commonsPhoto = (filename: string) => ({
+  src: `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=1200`,
+  source: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(filename.replace(/ /g, "_"))}`,
+});
+
+const destinationPhotoFiles: Record<string, string[]> = {
+  "Maasai Mara": ["Maasai Mara savanna landscape, Kenya.jpg", "Landscape of northern Maasai Mara Preserve, Kenya.jpg", "Landscape with dirt road in Maasai Mara, Kenya.jpg", "Maasai Mara National Reserve 05.jpg", "Lions Family Portrait Masai Mara.jpg"],
+  "Diani Beach": ["Diani Beach Sunrise Kenya.jpg", "Diani Beach overlooking the Indian Ocean.jpg", "Boat at Diani Beach, Kenya.jpg", "Diani Beach 2013 Panorama - panoramio.jpg", "Diani beach white sands.jpg"],
+  "Amboseli": ["Amboseli National Park and Mt. Kilimanjaro.jpg", "African Sunrise, Amboseli National Park.jpg", "Acacia tree in Amboseli National Park.jpg", "Amboseli landscape (47940400847).jpg", "Elephants and mt kilimanjaro.jpg"],
+  "Mombasa": ["Beach view in Mombasa, Kenya.jpg", "Fort Jesus, Mombasa, view of the Indian Ocean and a new hotel construction.jpg", "Mama ngina drive.jpg", "Mombasa Harbour.jpg", "BAMBURI BEACH.MOMBASA - panoramio.jpg"],
+  "Watamu": ["Watamu beach view.jpg", "Watamu Marine Park & Mida Creek.jpg", "White-Sand Beach in Watamu.jpg", "Mangroves -Watamu.jpg", "Watamu (DSC02003).jpg"],
+  "Nairobi": ["Nairobi National Park 002.jpg", "Rooftop pool, Nairobi (20250808-P1048999).jpg", "ICRAF Road, Nairobi (20250808-P1048951).jpg", "Nairobi National Park banner Baby elephants at the Sheldrick Elephant Orphanage.jpg", "Nairobi banner.jpg"],
+  "Lake Naivasha": ["Boat on Lake Naivasha.jpg", "Hippos in Lake Naivasha, Kenya.jpg", "Fishing on Lake Naivasha (7513064018).jpg", "Tourists on boat safari, Lake Naivasha, Kenya.jpg", "African fish eagle flying over Lake Naivasha, Kenya.jpg"],
+  "Malindi": ["Beach of malindi - panoramio.jpg", "Boats malindi.jpg", "Colours of the sea.jpg", "Exposed coral reef at low tide in Malindi.jpg", "Fine sand of Malindi.jpg"],
+  "Lamu": ["Lamu Island-Kenya.jpg", "Lamu island.jpg", "Lamu old town street.jpg", "Lamu Old Town.jpg", "Lamu Streets.jpg"],
+  "Tsavo": ["Elephant at Tsavo West National Park.jpg", "Tsavo West NP. Elephants.jpg", "Chyulu Hills and Shetani Lava Flow in Kenya 01.jpg", "Elephant grid on a dirt road by the Voi Entrance Gate in the Tsavo East National Park, Kenya.jpg", "Gerenuk antelope in Tsavo East.jpeg"],
+  "Mount Kenya": ["Mount Kenya Dawn.jpg", "Mount Kenya Peaks.jpg", "Mount Kenya early afternoon view.jpg", "Mount Kenya hike.jpg", "Mt. Kenya alpine zone.jpg"],
+  "Samburu": ["Acacia tree with weaver nests next to dirt road in Samburu National Reserve, Kenya.jpg", "African Bush Elephants of Samburu.jpg", "Grevy's zebras in Samburu National Reserve, Kenya.jpg", "Giraffes with mountain and landscape at Samburu National Reserve, Kenya.jpg", "East African sunrise, Samburu National Reserve, Kenya.jpg"],
+};
+
+const destinationHighlights = destinationHighlights.map((item) => ({
+  ...item,
+  images: [ { src: item.image, source: item.image }, ...(destinationPhotoFiles[item.name] || []).map(commonsPhoto) ],
+}));
+;
 
 export default function Home() {
   const [destination, setDestination] = useState("");
@@ -46,9 +71,15 @@ export default function Home() {
   const [budget, setBudget] = useState("any");
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [destinationSlide, setDestinationSlide] = useState(0);
   const [destinationSuggestions, setDestinationSuggestions] = useState(
     destinationHighlights.map((item, index) => ({ id: `popular-${index}`, name: item.name }))
   );
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setDestinationSlide((current) => (current + 1) % 6), 3000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -186,6 +217,7 @@ export default function Home() {
             >
               Register
             </a>
+            <a href="/admin/login" className="rounded-full border border-[#c49a52]/40 px-3 py-2.5 text-xs font-semibold text-[#8b682f] hover:bg-[#f4eee2]">Admin Login</a>
           </div>
 
           <button
@@ -214,7 +246,7 @@ export default function Home() {
               List your property
             </a>
             <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>
-            <a href="/admin" onClick={() => setMenuOpen(false)}>Admin portal</a>
+            <a href="/admin/login" onClick={() => setMenuOpen(false)}>Admin Login</a>
             <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay partner</a>
             <a href="/login" onClick={() => setMenuOpen(false)}>Sign in</a>
             <a href="/register" onClick={() => setMenuOpen(false)}>Register</a>
@@ -454,12 +486,16 @@ export default function Home() {
               }}
               className="group overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white text-left shadow-[0_8px_28px_rgba(23,59,48,0.06)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_rgba(23,59,48,0.14)]"
             >
-              <div className="h-64 overflow-hidden">
+              <div className="relative h-64 overflow-hidden">
+                <style jsx global>{`@keyframes destinationPop { 0% { opacity: .4; transform: scale(.88); } 65% { opacity: 1; transform: scale(1.035); } 100% { opacity: 1; transform: scale(1); } }`}</style>
                 <img
-                  src={item.image}
-                  alt={item.name}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                  key={`${item.name}-${destinationSlide}`}
+                  src={item.images[destinationSlide].src}
+                  alt={`${item.name} - photo ${destinationSlide + 1} of 6`}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-110 animate-[destinationPop_650ms_ease-out]"
                 />
+                <a href={item.images[destinationSlide].source} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">Photo source</a>
               </div>
               <div className="p-6">
                 <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
