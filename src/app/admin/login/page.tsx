@@ -2,23 +2,24 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ShieldCheck, Eye, EyeOff, LogIn, ArrowRight } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
+  const [accessNotice, setAccessNotice] = useState(false);
 
   useEffect(() => {
     let active = true;
     async function checkExistingSession() {
+      setAccessNotice(new URLSearchParams(window.location.search).get("reason") === "access");
       const supabase = createSupabaseBrowserClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!active) return;
@@ -94,7 +95,7 @@ export default function AdminLoginPage() {
             <h1 className="mt-3 text-3xl font-bold">Administrator sign in</h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">Enter your administrator account credentials to access the ZuriStay control centre.</p>
           </div>
-          {searchParams.get("reason") === "access" && (
+          {accessNotice && (
             <p role="status" className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">The previous session did not have administrator permission. It has been signed out. Sign in below with your administrator credentials.</p>
           )}
           {error && <div role="alert" className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</div>}
