@@ -199,6 +199,14 @@ export default function PartnerDashboardPage() {
           </Link>
 
           <Link
+            href="/partner/confirmations"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-5 py-3 font-semibold text-emerald-800 hover:bg-emerald-50"
+          >
+            <CalendarDays size={18} />
+            Guest confirmations
+          </Link>
+
+          <Link
             href="/partner/payouts"
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
           >
