@@ -436,6 +436,14 @@ export default function AdminPage() {
             <CalendarDays size={18} />
             Bookings
           </a>
+
+          <Link
+            href="/admin/disputes"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-100 hover:bg-white/10"
+          >
+            <AlertCircle size={18} />
+            Arrival disputes
+          </Link>
         </nav>
 
         <div className="border-t border-white/10 p-5">
@@ -498,6 +506,7 @@ export default function AdminPage() {
               ["Properties", "#properties"],
               ["Partners", "#partners"],
               ["Bookings", "#bookings"],
+              ["Arrival disputes", "/admin/disputes"],
             ].map(([label, href]) => (
               <a
                 key={href}
