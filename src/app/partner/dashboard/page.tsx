@@ -169,7 +169,7 @@ export default function PartnerDashboardPage() {
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
           <Link href="/" className="text-2xl font-bold tracking-tight text-blue-900">
-            ZuriStay<span className="text-amber-500">.</span>
+            ZuriStay Worldwide<span className="text-amber-500">.</span>
           </Link>
 
           <div className="flex items-center gap-4">
@@ -347,7 +347,7 @@ export default function PartnerDashboardPage() {
               </h3>
               <p className="max-w-md mx-auto text-sm text-slate-500 mt-2">
                 Add your hotel, apartment, villa, lodge or other accommodation
-                to start the ZuriStay listing review process.
+                to start the ZuriStay Worldwide listing review process.
               </p>
               <Link
                 href="/partner/properties/new"
@@ -426,7 +426,7 @@ export default function PartnerDashboardPage() {
         </section>
 
         <p className="text-center text-xs text-slate-400 mt-8">
-          ZuriStay Partner Portal · Your World. Your Stay.
+          ZuriStay Worldwide Partner Portal · Your World. Your Stay.
         </p>
       </div>
     </main>

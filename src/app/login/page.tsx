@@ -94,7 +94,7 @@ export default function LoginPage() {
             </p>
 
             <h1 className="mt-3 text-3xl font-bold">
-              Sign in to ZuriStay
+              Sign in to ZuriStay Worldwide
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-gray-500">
@@ -206,7 +206,7 @@ export default function LoginPage() {
       </section>
 
       <footer className="py-8 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
+        © {new Date().getFullYear()} ZuriStay Worldwide. Your World. Your Stay.
       </footer>
     </main>
   );

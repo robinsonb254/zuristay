@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
             </p>
             <h1 className="mt-3 text-3xl font-bold">Create a new password</h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Choose a new password for your ZuriStay account.
+              Choose a new password for your ZuriStay Worldwide account.
             </p>
           </div>
 

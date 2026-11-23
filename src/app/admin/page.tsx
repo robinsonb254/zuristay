@@ -369,7 +369,7 @@ export default function AdminPage() {
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            This account does not have permission to access the ZuriStay
+            This account does not have permission to access the ZuriStay Worldwide
             administration dashboard.
           </p>
 
@@ -466,7 +466,7 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
-                ZURISTAY CONTROL CENTRE
+                ZURISTAY WORLDWIDE CONTROL CENTRE
               </p>
               <h1 className="mt-1 text-xl font-black text-blue-950">
                 Super Admin Dashboard
@@ -530,7 +530,7 @@ export default function AdminPage() {
                   Welcome, {profile?.full_name || "Administrator"}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Monitor ZuriStay operations and manage the accommodation
+                  Monitor ZuriStay Worldwide operations and manage the accommodation
                   marketplace.
                 </p>
               </div>
@@ -960,7 +960,7 @@ export default function AdminPage() {
 
           <footer className="mt-10 flex flex-col justify-between gap-3 border-t border-slate-200 py-6 text-xs text-slate-400 sm:flex-row">
             <p>
-              © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
+              © {new Date().getFullYear()} ZuriStay Worldwide. Your World. Your Stay.
             </p>
             <div className="flex items-center gap-2">
               <CheckCircle2 size={14} className="text-green-600" />

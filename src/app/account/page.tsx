@@ -671,7 +671,7 @@ export default function AccountPage() {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                            ZuriStay payment receipt
+                            ZuriStay Worldwide payment receipt
                           </p>
                           <p className="mt-1 text-sm font-bold text-blue-950">
                             Payment verified
@@ -723,7 +723,7 @@ export default function AccountPage() {
                         <div>
                           <p className="text-xs text-slate-500">Accommodation</p>
                           <p className="font-semibold text-slate-800">
-                            {details?.propertyNames.join(", ") || "ZuriStay accommodation"}
+                            {details?.propertyNames.join(", ") || "ZuriStay Worldwide accommodation"}
                           </p>
                         </div>
                         <div>
@@ -743,7 +743,7 @@ export default function AccountPage() {
                         </div>
                       </div>
                       <p className="mt-4 border-t border-emerald-200 pt-3 text-xs text-emerald-800">
-                        This receipt confirms a successful payment recorded by ZuriStay.
+                        This receipt confirms a successful payment recorded by ZuriStay Worldwide.
                       </p>
                     </section>
                   )}
@@ -775,7 +775,7 @@ export default function AccountPage() {
             <div>
               <h3 className="font-bold">Need help with your account?</h3>
               <p className="mt-1 text-sm text-blue-200">
-                Contact the ZuriStay team for assistance with your reservations.
+                Contact the ZuriStay Worldwide team for assistance with your reservations.
               </p>
             </div>
           </div>
@@ -790,7 +790,7 @@ export default function AccountPage() {
       </section>
 
       <footer className="bg-white px-5 py-7 text-center text-sm text-slate-400">
-        © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
+        © {new Date().getFullYear()} ZuriStay Worldwide. Your World. Your Stay.
       </footer>
       </main>
     </>
