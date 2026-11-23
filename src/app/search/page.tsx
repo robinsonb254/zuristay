@@ -167,7 +167,7 @@ export default async function SearchPage({
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold text-orange-500">
-              ZURISTAY ACCOMMODATION
+              ZURISTAY WORLDWIDE ACCOMMODATION
             </p>
 
             <h2 className="mt-2 text-2xl font-black md:text-3xl">
@@ -197,7 +197,7 @@ export default async function SearchPage({
       </section>
 
       <footer className="mt-12 bg-blue-950 px-5 py-8 text-center text-sm text-blue-100">
-        © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
+        © {new Date().getFullYear()} ZuriStay Worldwide. Your World. Your Stay.
       </footer>
     </main>
   );
