@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
     )
     .eq("status", "approved")
     .eq("is_active", true)
+    .eq("is_archived", false)
     .order("created_at", { ascending: false });
 
   if (propertiesError) {
