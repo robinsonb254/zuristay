@@ -22,7 +22,7 @@ import {
 
 
 
-const destinationHighlights = [
+const destinationHighlightsBase = [
   { name: "Maasai Mara", searchDestination: "Maasai Mara", description: "Iconic safari country and the Great Migration", image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1000" },
   { name: "Diani Beach", searchDestination: "Diani Beach", description: "White-sand beaches and Indian Ocean escapes", image: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1000" },
   { name: "Amboseli", searchDestination: "Amboseli", description: "Elephant country beneath Mount Kilimanjaro", image: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?w=1000" },
@@ -56,7 +56,7 @@ const destinationPhotoFiles: Record<string, string[]> = {
   "Samburu": ["Acacia tree with weaver nests next to dirt road in Samburu National Reserve, Kenya.jpg", "African Bush Elephants of Samburu.jpg", "Grevy's zebras in Samburu National Reserve, Kenya.jpg", "Giraffes with mountain and landscape at Samburu National Reserve, Kenya.jpg", "East African sunrise, Samburu National Reserve, Kenya.jpg"],
 };
 
-const destinationHighlights = destinationHighlights.map((item) => ({
+const destinationHighlights = destinationHighlightsBase.map((item) => ({
   ...item,
   images: [ { src: item.image, source: item.image }, ...(destinationPhotoFiles[item.name] || []).map(commonsPhoto) ],
 }));
@@ -468,10 +468,12 @@ export default function Home() {
           </a>
         </div>
 
+        <style jsx global>{`@keyframes destinationPop { 0% { opacity: .4; transform: scale(.88); } 65% { opacity: 1; transform: scale(1.035); } 100% { opacity: 1; transform: scale(1); } }`}</style>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {destinationHighlights.map((item) => (
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               key={item.name}
               onClick={() => {
                 const params = new URLSearchParams({
@@ -484,10 +486,16 @@ export default function Home() {
                 });
                 window.location.href = `/search?${params.toString()}`;
               }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  const params = new URLSearchParams({ destination: item.searchDestination, checkIn, checkOut, guests, rooms, budget });
+                  window.location.href = `/search?${params.toString()}`;
+                }
+              }}
               className="group overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white text-left shadow-[0_8px_28px_rgba(23,59,48,0.06)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_rgba(23,59,48,0.14)]"
             >
               <div className="relative h-64 overflow-hidden">
-                <style jsx global>{`@keyframes destinationPop { 0% { opacity: .4; transform: scale(.88); } 65% { opacity: 1; transform: scale(1.035); } 100% { opacity: 1; transform: scale(1); } }`}</style>
                 <img
                   key={`${item.name}-${destinationSlide}`}
                   src={item.images[destinationSlide].src}
@@ -506,7 +514,7 @@ export default function Home() {
                   {item.description}
                 </p>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </section>
