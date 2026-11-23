@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       exchange_rate_source: fx.source,
       status: "created",
       expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    });
+    } as never);
     if (sessionError) {
       console.error("Unable to persist PayPal checkout quote:", sessionError);
       await db.from("payments").update({ status: "failed" } as never).eq("id", attemptId).eq("status", "pending");
