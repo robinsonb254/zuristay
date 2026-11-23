@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Eye, EyeOff, LogIn, ArrowRight } from "lucide-react";
+import { ShieldCheck, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -34,6 +34,7 @@ export default function AdminLoginPage() {
           router.replace("/admin");
           return;
         }
+        setAccessNotice(true);
         await supabase.auth.signOut();
         if (!active) return;
       }
