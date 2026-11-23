@@ -41,6 +41,7 @@ type Property = {
   contact_email: string | null;
   status: string;
   is_active: boolean;
+  is_archived?: boolean;
   created_at: string;
   partner: Partner | Partner[] | null;
 };
@@ -134,6 +135,21 @@ export default function AdminPropertiesPage() {
   useEffect(() => {
     loadProperties();
   }, [loadProperties]);
+
+  async function archiveProperty(property: Property) {
+    if (!window.confirm(`Archive "${property.name}"? It will disappear from guest search. Booking and payment history will be retained.`)) return;
+    setProcessingId(property.id); setError(""); setSuccess("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch("/api/admin/properties", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ propertyId: property.id, action: "archive" }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to archive property.");
+      setSuccess(result.message); await loadProperties();
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to archive this property."); }
+    finally { setProcessingId(""); }
+  }
 
   async function reviewProperty(property: Property, action: "approve" | "reject") {
     const actionLabel = action === "approve" ? "approve" : "reject";
@@ -303,7 +319,7 @@ export default function AdminPropertiesPage() {
                           <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${statusStyle(property.status)}`}>
                             {property.status}
                           </span>
-                          {property.is_active && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">Live</span>}
+                          {property.is_archived ? <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">Archived</span> : property.is_active && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">Live</span>}
                         </div>
                         <p className="mt-2 text-sm capitalize text-slate-600">{property.property_type.replaceAll("_", " ")}</p>
                         <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">
@@ -338,8 +354,8 @@ export default function AdminPropertiesPage() {
                           <p className="mt-3 break-all text-xs text-slate-400">Property ID: {property.id}</p>
                         </details>
                       </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
                       {property.status === "pending" && (
-                        <div className="flex shrink-0 flex-wrap gap-2">
                           <button
                             onClick={() => reviewProperty(property, "approve")}
                             disabled={processingId === property.id}
@@ -356,6 +372,12 @@ export default function AdminPropertiesPage() {
                           </button>
                         </div>
                       )}
+                      {!property.is_archived && (
+                        <button onClick={() => archiveProperty(property)} disabled={processingId === property.id} className="inline-flex items-center rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">
+                          {processingId === property.id ? "Processing..." : "Archive property"}
+                        </button>
+                      )}
+                      </div>
                     </div>
                   </article>
                 );
