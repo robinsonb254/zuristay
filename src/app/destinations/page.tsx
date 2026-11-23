@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
+import LocationPhoto from "@/app/components/LocationPhoto";
 
 type Subcounty = { subcounty_code: string; name: string };
 type County = { county_code: number; name: string; subcounties: Subcounty[] };
