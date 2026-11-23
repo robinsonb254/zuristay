@@ -100,13 +100,13 @@ export default function DestinationsPage() {
         {loading ? <p className="py-8 text-sm text-gray-500">Loading destinations…</p> : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredDestinations.map((item) => (
-              <button key={item.id} onClick={() => searchFor(item.city)} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
+              <div key={item.id} role="button" tabIndex={0} onClick={() => searchFor(item.city)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); searchFor(item.city); } }} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
                 <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className="h-32 w-full" compact />
                 <span className="flex items-center justify-between gap-3 px-4 py-3">
                   <span><span className="block text-sm font-semibold">{item.city === "Diani" ? "Diani Beach" : item.city}</span><span className="mt-0.5 block text-xs text-gray-500">{item.county}</span></span>
                   <span className="shrink-0 text-right text-xs tabular-nums text-gray-400">{item.population_2019 !== null ? Number(item.population_2019).toLocaleString("en-KE") : "Tourist destination"}</span>
                 </span>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -135,10 +135,10 @@ export default function DestinationsPage() {
                     <button onClick={() => searchFor(county.name)} className="mb-3 rounded-full bg-[#173b30] px-3 py-1.5 text-xs font-semibold text-white">Search county</button>
                     <div className="grid grid-cols-2 gap-2">
                     {county.subcounties.filter((subcounty) => !query.trim() || subcounty.name.toLowerCase().includes(query.trim().toLowerCase()) || county.name.toLowerCase().includes(query.trim().toLowerCase())).map((subcounty) => (
-                      <button key={subcounty.subcounty_code} onClick={() => searchFor(`${subcounty.name}, ${county.name}`)} className="overflow-hidden rounded-lg bg-white text-left text-xs text-gray-700 hover:bg-[#f4eee2]">
+                      <div key={subcounty.subcounty_code} role="button" tabIndex={0} onClick={() => searchFor(`${subcounty.name}, ${county.name}`)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); searchFor(`${subcounty.name}, ${county.name}`); } }} className="overflow-hidden rounded-lg bg-white text-left text-xs text-gray-700 hover:bg-[#f4eee2]">
                         <LocationPhoto location={`${subcounty.name}, ${county.name}, Kenya`} className="h-20 w-full" compact />
                         <span className="block px-2 py-2">{subcounty.name}</span>
-                      </button>
+                      </div>
                     ))}
                     </div>
                   </div>
