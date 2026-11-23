@@ -77,13 +77,13 @@ begin
       ps.id as settlement_id,
       ps.booking_id,
       ps.partner_id,
-      (((b.check_in::timestamp + time '14:00') at time zone 'Africa/Nairobi') + interval '24 hours') as deadline_at
+      (((b.check_in + time '14:00') at time zone 'Africa/Nairobi') + interval '24 hours') as deadline_at
     from public.partner_settlements ps
     join public.bookings b on b.id = ps.booking_id
     where ps.status = 'awaiting_confirmations'
       and b.payment_status = 'paid'
       and b.booking_status in ('confirmed', 'checked_in')
-      and pg_catalog.now() >= (((b.check_in::timestamp + time '14:00') at time zone 'Africa/Nairobi') + interval '24 hours')
+      and pg_catalog.now() >= (((b.check_in + time '14:00') at time zone 'Africa/Nairobi') + interval '24 hours')
       and exists (
         select 1 from public.booking_items bi
         where bi.booking_id = ps.booking_id and bi.partner_id = ps.partner_id
