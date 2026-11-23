@@ -44,7 +44,7 @@ const commonsPhoto = (filename: string) => ({
 const destinationPhotoFiles: Record<string, string[]> = {
   "Maasai Mara": ["Maasai Mara savanna landscape, Kenya.jpg", "Landscape of northern Maasai Mara Preserve, Kenya.jpg", "Landscape with dirt road in Maasai Mara, Kenya.jpg", "Maasai Mara National Reserve 05.jpg", "Lions Family Portrait Masai Mara.jpg"],
   "Diani Beach": ["Diani Beach Sunrise Kenya.jpg", "Diani Beach overlooking the Indian Ocean.jpg", "Boat at Diani Beach, Kenya.jpg", "Diani Beach 2013 Panorama - panoramio.jpg", "Diani beach white sands.jpg"],
-  "Amboseli": ["Amboseli National Park and Mt. Kilimanjaro.jpg", "African Sunrise, Amboseli National Park.jpg", "Acacia tree in Amboseli National Park.jpg", "Amboseli landscape (47940400847).jpg", "Elephants and mt kilimanjaro.jpg"],
+  "Amboseli": ["Amboseli National Park and Mt. Kilimanjaro.jpg", "Amboseli Park - Kilimanjaro elephant.jpg", "Elephants at Amboseli national park against Mount Kilimanjaro.jpg", "Elephants and mt kilimanjaro.jpg", "Elephants in Amboseli Kenya.jpg"],
   "Mombasa": ["Beach view in Mombasa, Kenya.jpg", "Fort Jesus, Mombasa, view of the Indian Ocean and a new hotel construction.jpg", "Mama ngina drive.jpg", "Mombasa Harbour.jpg", "BAMBURI BEACH.MOMBASA - panoramio.jpg"],
   "Watamu": ["Watamu beach view.jpg", "Watamu Marine Park & Mida Creek.jpg", "White-Sand Beach in Watamu.jpg", "Mangroves -Watamu.jpg", "Watamu (DSC02003).jpg"],
   "Nairobi": ["Nairobi National Park 002.jpg", "Rooftop pool, Nairobi (20250808-P1048999).jpg", "ICRAF Road, Nairobi (20250808-P1048951).jpg", "Nairobi National Park banner Baby elephants at the Sheldrick Elephant Orphanage.jpg", "Nairobi banner.jpg"],
@@ -99,7 +99,10 @@ function DestinationHighlightCard({
           }, 650);
         };
         preload.onerror = () => {
-          if (active) scheduleNext();
+          if (!active) return;
+          // Skip a failed remote image instead of retrying it forever and freezing this card.
+          currentIndex = nextIndex;
+          scheduleNext();
         };
         preload.src = item.images[nextIndex].src;
       }, 4600 + index * 320);
