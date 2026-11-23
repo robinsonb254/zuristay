@@ -145,7 +145,7 @@ export default function Home() {
             Zuri<span className="text-[#c49a52]">Stay</span>
           </Link>
 
-          <nav className="ml-5 hidden items-center gap-6 whitespace-nowrap text-[13px] font-semibold tracking-wide text-[#39574d] md:ml-10 md:flex lg:ml-14 lg:gap-7">
+          <nav className="ml-5 hidden items-center gap-6 whitespace-nowrap text-[13px] font-semibold tracking-wide text-[#39574d] xl:ml-10 xl:flex xl:gap-7">
             <a href="#destinations" className="rounded-full bg-[#f4eee2] px-4 py-2.5 text-[#8b682f] transition hover:bg-[#eee2cc] hover:text-[#6f5124]">
               Explore
             </a>
@@ -161,7 +161,7 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="hidden shrink-0 items-center gap-2 lg:flex">
+          <div className="hidden shrink-0 items-center gap-2 xl:flex">
             <a
               href="/partner/dashboard"
               className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
@@ -196,7 +196,7 @@ export default function Home() {
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-lg p-2 md:hidden"
+            className="rounded-lg p-2 xl:hidden"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
@@ -205,7 +205,7 @@ export default function Home() {
         </div>
 
         {menuOpen && (
-          <nav className="flex flex-col gap-4 border-t bg-white p-5 text-sm md:hidden">
+          <nav className="flex flex-col gap-4 border-t bg-white p-5 text-sm xl:hidden">
             <a href="#destinations" onClick={() => setMenuOpen(false)}>
               Explore
             </a>
@@ -227,6 +227,26 @@ export default function Home() {
           </nav>
         )}
       </header>
+
+      <div className="border-b border-[#e9e3d8] bg-[#f8f5ee] px-4 py-3 xl:hidden">
+        <div className="container flex flex-wrap items-center justify-center gap-2">
+          <a href="/partner/register" className="inline-flex items-center justify-center rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#ae8540]">
+            Become a partner
+          </a>
+          <a href="/partner/dashboard" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
+            Partner login
+          </a>
+          <a href="/admin" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
+            Admin login
+          </a>
+          <a href="/login" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
+            Guest sign in
+          </a>
+          <a href="/register" className="inline-flex items-center justify-center rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#245545]">
+            Create account
+          </a>
+        </div>
+      </div>
 
       <section className="relative flex min-h-[690px] items-center overflow-hidden bg-[#102c24]">
         <div
