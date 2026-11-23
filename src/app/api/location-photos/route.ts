@@ -63,8 +63,14 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    let photos = await search(location);
-    if (!photos.length && location.includes(",")) photos = await search(location.split(",")[0].trim());
+    const cleanLocation = location.replace(/,\\s*(Kenya|Kenya County)$/i, "").trim();
+    const parts = cleanLocation.split(",").map((part) => part.trim()).filter(Boolean);
+    const terms = Array.from(new Set([cleanLocation, parts[0], parts.length > 1 ? `${parts[1]} County` : ""])).filter(Boolean);
+    let photos: ReturnType<typeof search> extends Promise<infer T> ? T : never = [];
+    for (const term of terms) {
+      photos = await search(term);
+      if (photos.length) break;
+    }
     return NextResponse.json(
       { success: true, location, photos },
       { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } }
