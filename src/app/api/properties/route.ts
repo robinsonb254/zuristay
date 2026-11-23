@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   const { data: properties, error: propertiesError } = await supabase
     .from("properties")
     .select(
-      "id, name, property_type, description, address, city, county, sub_county, country, country_code, currency, latitude, longitude"
+      "id, name, property_type, description, address, city, county, sub_county, country, country_code, currency, latitude, longitude, has_conference_rooms, conference_room_capacity, conference_room_details"
     )
     .eq("status", "approved")
     .eq("is_active", true)
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       count: 0,
-      markupPercentage: 30,
+      markupPercentage: 15,
       properties: [],
     });
   }
@@ -170,13 +170,13 @@ export async function GET(request: NextRequest) {
       .map((unit) => {
         const baseRate = Number(unit.base_rate);
         const quote = availableByUnit.get(unit.id);
-        const guestRate = quote && quote.nights > 0 ? quote.totalRate / quote.nights * 1.3 : baseRate * 1.3;
+        const guestRate = quote && quote.nights > 0 ? quote.totalRate / quote.nights * 1.15 : baseRate * 1.15;
         return {
           ...unit,
           base_rate: baseRate,
           customer_rate: Number(guestRate.toFixed(2)),
-          markup_percentage: 30,
-          ...(quote ? { quoted_stay_total: Number((quote.totalRate * 1.3 * rooms).toFixed(2)) } : {}),
+          markup_percentage: 15,
+          ...(quote ? { quoted_stay_total: Number((quote.totalRate * 1.15 * rooms).toFixed(2)) } : {}),
         };
       });
 
