@@ -10,7 +10,7 @@ type Destination = { id: string; name: string; city: string; county: string | nu
 type Property = {
   name: string; property_type: string; destination_id: string; address: string;
   description: string | null; currency: string; contact_phone: string; contact_email: string;
-  status: string; is_active: boolean;
+  status: string; is_active: boolean; has_conference_rooms: boolean;
 };
 
 const types = [
@@ -71,6 +71,7 @@ export default function EditPartnerPropertyPage() {
           name: property.name, propertyType: property.property_type, destinationId: property.destination_id,
           address: property.address, description: property.description || "", currency: property.currency,
           contactPhone: property.contact_phone, contactEmail: property.contact_email,
+          hasConferenceRooms: property.has_conference_rooms,
         }),
       });
       const result = await response.json();
@@ -108,6 +109,7 @@ export default function EditPartnerPropertyPage() {
             <label className="block text-sm font-semibold text-slate-700">Physical address or location
               <input className={field + " mt-2"} required minLength={4} maxLength={250} value={property.address} onChange={(e) => update("address", e.target.value)} />
             </label>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700"><input type="checkbox" checked={Boolean(property.has_conference_rooms)} onChange={(e) => update("has_conference_rooms", e.target.checked)} className="h-4 w-4 accent-blue-900" />This property has conference rooms</label>
             <label className="block text-sm font-semibold text-slate-700">Property description
               <textarea className={field + " mt-2"} rows={5} maxLength={5000} value={property.description || ""} onChange={(e) => update("description", e.target.value)} />
             </label>
