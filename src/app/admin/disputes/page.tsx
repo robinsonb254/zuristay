@@ -81,9 +81,7 @@ export default function AdminSettlementDisputesPage() {
     setDrafts(current => ({
       ...current,
       [id]: {
-        resolution: "partner_paid",
-        notes: "",
-        externalReference: "",
+        ...{ resolution: "partner_paid" as const, notes: "", externalReference: "" },
         ...current[id],
         ...patch,
       },
