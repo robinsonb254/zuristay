@@ -25,7 +25,7 @@ export async function GET(
   const { data: property, error: propertyError } = await supabase
     .from("properties")
     .select(
-      "id, name, property_type, description, address, city, county, country, country_code, currency, latitude, longitude"
+      "id, name, property_type, description, address, city, county, country, country_code, currency, latitude, longitude, has_conference_rooms, conference_room_capacity, conference_room_details"
     )
     .eq("id", id)
     .eq("status", "approved")
@@ -116,8 +116,8 @@ export async function GET(
     return {
       ...unit,
       base_rate: baseRate,
-      customer_rate: Number((baseRate * 1.3).toFixed(2)),
-      markup_percentage: 30,
+      customer_rate: Number((baseRate * 1.15).toFixed(2)),
+      markup_percentage: 15,
     };
   });
 

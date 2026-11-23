@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     let query = admin
       .from("partner_applications")
       .select(
-        "id, business_name, contact_person, email, phone, property_type, location, message, status, applicant_user_id, created_at"
+        "id, business_name, contact_person, email, phone, property_type, location, message, has_conference_rooms, status, applicant_user_id, created_at"
       )
       .order("created_at", { ascending: false })
       .limit(100);

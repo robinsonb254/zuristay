@@ -73,6 +73,12 @@ export async function GET(request: NextRequest) {
       return response({ success: false, error: "Booking status is temporarily unavailable." }, 500);
     }
 
+    const { data: bookingItems, error: itemsError } = await db
+      .from("booking_items")
+      .select("id, partner_room_secured_at, partner_guest_arrived_at, guest_room_access_confirmed_at")
+      .eq("booking_id", bookingId);
+    if (itemsError) return response({ success: false, error: "Booking confirmation status is unavailable." }, 500);
+
     return response({
       success: true,
       booking_reference: booking.booking_reference,
@@ -83,6 +89,7 @@ export async function GET(request: NextRequest) {
       total_amount: booking.total_amount,
       currency: booking.currency,
       hold_active: Boolean(holds?.length),
+      room_confirmations: (bookingItems || []).map((item) => ({ partner_room_secured: Boolean(item.partner_room_secured_at), partner_guest_arrived: Boolean(item.partner_guest_arrived_at), guest_room_access_confirmed: Boolean(item.guest_room_access_confirmed_at) })),
     });
   } catch (error) {
     console.error("Booking status API error:", error);

@@ -35,6 +35,7 @@ export default function PartnerRegistrationPage() {
     location: "",
     message: "",
     website: "",
+    hasConferenceRooms: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -70,6 +71,7 @@ export default function PartnerRegistrationPage() {
         property_type: form.propertyType,
         location: form.location.trim(),
         message: form.message.trim() || null,
+        has_conference_rooms: form.hasConferenceRooms,
         status: "pending",
       };
 
@@ -352,6 +354,12 @@ export default function PartnerRegistrationPage() {
                   </div>
                 </div>
 
+                <div className="rounded-xl border border-gray-200 bg-[#faf9f6] p-4">
+                  <label className="flex items-start gap-3 text-sm font-semibold">
+                    <input type="checkbox" checked={form.hasConferenceRooms} onChange={(e) => setForm((current) => ({ ...current, hasConferenceRooms: e.target.checked }))} className="mt-1 h-4 w-4 accent-[#173b30]" />
+                    <span>Does this property have conference rooms?</span>
+                  </label>
+                </div>
                 <div>
                   <label
                     htmlFor="message"
