@@ -172,7 +172,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b border-[#e9e3d8] bg-white/95 shadow-[0_4px_24px_rgba(23,59,48,0.05)] backdrop-blur-xl">
         <div className="container flex h-20 items-center justify-between gap-5">
           <Link href="/" className="shrink-0 font-serif text-[2rem] font-bold tracking-[-0.06em] md:text-[2.15rem]">
-            Zuri<span className="text-[#c49a52]">Stay</span>
+            Zuri<span className="text-[#c49a52]">Stay</span><span className="ml-2 text-[0.72em] font-sans font-semibold tracking-normal">Worldwide</span>
           </Link>
 
           <nav className="ml-5 hidden items-center gap-6 whitespace-nowrap text-[13px] font-semibold tracking-wide text-[#39574d] xl:ml-10 xl:flex xl:gap-7">
@@ -184,7 +184,7 @@ export default function Home() {
               Featured stays
             </a>
             <a href="#benefits" className="hover:text-[#c49a52]">
-              Why ZuriStay
+              Why ZuriStay Worldwide
             </a>
             <a href="#partners" className="hover:text-[#c49a52]">
               List your property
@@ -239,14 +239,14 @@ export default function Home() {
               Featured stays
             </a>
             <a href="#benefits" onClick={() => setMenuOpen(false)}>
-              Why ZuriStay
+              Why ZuriStay Worldwide
             </a>
             <a href="#partners" onClick={() => setMenuOpen(false)}>
               List your property
             </a>
             <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>
             <a href="/admin/login" onClick={() => setMenuOpen(false)}>Admin Login</a>
-            <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay partner</a>
+            <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay Worldwide partner</a>
             <a href="/login" onClick={() => setMenuOpen(false)}>Sign in</a>
             <a href="/register" onClick={() => setMenuOpen(false)}>Register</a>
           </nav>
@@ -534,7 +534,7 @@ export default function Home() {
               ACCOMMODATION PARTNERS
             </p>
             <h2 className="text-3xl font-bold md:text-4xl">
-              Find your next stay with ZuriStay
+              Find your next stay with ZuriStay Worldwide
             </h2>
             <p className="mt-3 max-w-2xl text-gray-500">
               We are onboarding accommodation partners across Kenya. New properties will appear here as owners complete their listings, room details, rates and availability.
@@ -546,7 +546,7 @@ export default function Home() {
               Are you an accommodation owner?
             </h3>
             <p className="mx-auto mt-4 max-w-2xl leading-7 text-gray-600">
-              Join ZuriStay and submit your hotel, resort, apartment, villa, lodge or guesthouse. You can complete your property profile and make it ready for bookings through your partner dashboard.
+              Join ZuriStay Worldwide and submit your hotel, resort, apartment, villa, lodge or guesthouse. You can complete your property profile and make it ready for bookings through your partner dashboard.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <a href="/partner/register" className="inline-flex items-center gap-2 rounded-full bg-[#c49a52] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#ae8540]">
@@ -564,7 +564,7 @@ export default function Home() {
         <div className="container">
           <div className="mx-auto mb-14 max-w-2xl text-center">
             <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              THE ZURISTAY EXPERIENCE
+              THE ZURISTAY WORLDWIDE EXPERIENCE
             </p>
             <h2 className="text-3xl font-bold md:text-4xl">
               A better way to find your stay
@@ -614,7 +614,7 @@ export default function Home() {
       <section id="partners" className="container py-20">
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#102c24] via-[#173b30] to-[#285b49] px-8 py-16 text-center text-white shadow-[0_22px_60px_rgba(23,59,48,0.18)] md:px-20 md:py-20">
           <p className="mb-4 text-xs font-bold tracking-[0.2em] text-[#d8b879]">
-            PARTNER WITH ZURISTAY
+            PARTNER WITH ZURISTAY WORLDWIDE
           </p>
           <h2 className="text-3xl font-bold md:text-5xl">
             Have a property?
@@ -629,7 +629,7 @@ export default function Home() {
             href="/partner/register"
             className="mt-8 inline-flex rounded-full bg-[#c49a52] px-8 py-4 font-bold text-white hover:bg-[#ae8540]"
           >
-            Become a ZuriStay partner
+            Become a ZuriStay Worldwide partner
           </a>
         </div>
       </section>
@@ -638,7 +638,7 @@ export default function Home() {
         <div className="container flex flex-col justify-between gap-8 md:flex-row">
           <div>
             <h2 className="text-3xl font-bold">
-              Zuri<span className="text-[#c49a52]">Stay</span>
+              Zuri<span className="text-[#c49a52]">Stay</span><span className="ml-2 text-[0.72em] font-sans font-semibold tracking-normal">Worldwide</span>
             </h2>
             <p className="mt-3 text-sm text-white/60">
               Your world. Your stay.
@@ -647,7 +647,7 @@ export default function Home() {
           <div className="text-sm text-white/60">
             <p>Explore stays. Discover experiences.</p>
             <p className="mt-3">
-              © {new Date().getFullYear()} ZuriStay. All rights reserved.
+              © {new Date().getFullYear()} ZuriStay Worldwide. All rights reserved.
             </p>
           </div>
         </div>
