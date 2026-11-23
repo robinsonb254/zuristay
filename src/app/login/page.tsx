@@ -155,6 +155,15 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="-mt-2 text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-semibold text-[#a77e3e] hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             {error && (
               <p
                 role="alert"
