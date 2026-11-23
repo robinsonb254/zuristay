@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
             </p>
             <h1 className="mt-3 text-3xl font-bold">Forgot your password?</h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Enter the email address linked to your ZuriStay account. We’ll send you a secure link to choose a new password.
+              Enter the email address linked to your ZuriStay Worldwide account. We’ll send you a secure link to choose a new password.
             </p>
           </div>
 
