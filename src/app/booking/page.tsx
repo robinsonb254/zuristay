@@ -651,7 +651,7 @@ export default function BookingPage() {
           {paymentState === "paid" && (
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-left">
               <h2 className="font-bold text-emerald-900">Confirm your room access</h2>
-              <p className="mt-2 text-sm leading-6 text-emerald-800">After arriving, checking the room and confirming that it is secured, confirm your access here. ZuriStay will only release the partner's payable amount after both partner confirmations and your confirmation.</p>
+              <p className="mt-2 text-sm leading-6 text-emerald-800">After arriving, checking the room and confirming that it is secured, confirm your access here. ZuriStay will only release the partner’s payable amount after both partner confirmations and your confirmation.</p>
               <button type="button" onClick={confirmGuestRoomAccess} disabled={guestAccessConfirmed || confirmingGuestAccess} className="mt-4 rounded-xl bg-emerald-800 px-5 py-3 text-sm font-bold text-white disabled:opacity-60">{guestAccessConfirmed ? "Room access confirmed ✓" : confirmingGuestAccess ? "Saving confirmation..." : "I have accessed and secured the room"}</button>
             </div>
           )}
