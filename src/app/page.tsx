@@ -60,7 +60,6 @@ const destinationHighlights = destinationHighlightsBase.map((item) => ({
   ...item,
   images: [ { src: item.image, source: item.image }, ...(destinationPhotoFiles[item.name] || []).map(commonsPhoto) ],
 }));
-;
 
 export default function Home() {
   const [destination, setDestination] = useState("");
@@ -487,7 +486,7 @@ export default function Home() {
                 window.location.href = `/search?${params.toString()}`;
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
+                if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
                   event.preventDefault();
                   const params = new URLSearchParams({ destination: item.searchDestination, checkIn, checkOut, guests, rooms, budget });
                   window.location.href = `/search?${params.toString()}`;
