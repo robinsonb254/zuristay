@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       return fail("PayPal did not return a secure approval link.", 502);
     }
     const { error: paymentUpdateError } = await db.from("payments")
-      .update({ provider_reference: order.id })
+      .update({ provider_reference: order.id } as never)
       .eq("id", attemptId).eq("status", "pending");
     if (paymentUpdateError) {
       console.error("Unable to persist PayPal order reference:", paymentUpdateError);
