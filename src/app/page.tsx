@@ -61,6 +61,108 @@ const destinationHighlights = destinationHighlightsBase.map((item) => ({
   images: [ { src: item.image, source: item.image }, ...(destinationPhotoFiles[item.name] || []).map(commonsPhoto) ],
 }));
 
+
+type DestinationHighlight = (typeof destinationHighlights)[number];
+
+function DestinationHighlightCard({
+  item,
+  index,
+  onSelect,
+}: {
+  item: DestinationHighlight;
+  index: number;
+  onSelect: () => void;
+}) {
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [nextPhoto, setNextPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let timer: number | undefined;
+
+    const showNextPhoto = () => {
+      const nextIndex = (photoIndex + 1) % item.images.length;
+      const nextImage = new Image();
+      nextImage.onload = () => {
+        if (!active) return;
+        setNextPhoto(item.images[nextIndex].src);
+        window.setTimeout(() => {
+          if (!active) return;
+          setPhotoIndex(nextIndex);
+          setNextPhoto(null);
+        }, 80);
+      };
+      nextImage.onerror = () => {
+        if (active) timer = window.setTimeout(showNextPhoto, 900);
+      };
+      nextImage.src = item.images[nextIndex].src;
+    };
+
+    timer = window.setTimeout(() => {
+      if (!active) return;
+      const rotate = () => {
+        const nextIndex = (photoIndex + 1) % item.images.length;
+        const nextImage = new Image();
+        nextImage.onload = () => {
+          if (!active) return;
+          setPhotoIndex(nextIndex);
+        };
+        nextImage.src = item.images[nextIndex].src;
+      };
+      rotate();
+      timer = window.setInterval(rotate, 4600);
+    }, index * 380 + 4600);
+
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearTimeout(timer);
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [index, item.images, photoIndex]);
+
+  const photo = item.images[photoIndex];
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white text-left shadow-[0_8px_28px_rgba(23,59,48,0.06)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_rgba(23,59,48,0.14)]"
+    >
+      <div className="relative h-64 overflow-hidden bg-[#e9e3d8]">
+        <img
+          src={photo.src}
+          alt={`${item.name} — ${photoIndex + 1} of ${item.images.length}`}
+          loading={index < 3 ? "eager" : "lazy"}
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110"
+        />
+        {nextPhoto && (
+          <img
+            src={nextPhoto}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full animate-[destinationPop_650ms_ease-out] object-cover"
+          />
+        )}
+        <a
+          href={photo.source}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(event) => event.stopPropagation()}
+          className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm"
+        >
+          Photo source
+        </a>
+      </div>
+      <div className="p-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">KENYA</p>
+        <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-[#173b30]">{item.name}</h3>
+        <p className="mt-2 text-sm text-gray-500">{item.description}</p>
+      </div>
+    </button>
+  );
+}
+
 export default function Home() {
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -70,15 +172,9 @@ export default function Home() {
   const [budget, setBudget] = useState("any");
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [destinationSlide, setDestinationSlide] = useState(0);
   const [destinationSuggestions, setDestinationSuggestions] = useState(
     destinationHighlights.map((item, index) => ({ id: `popular-${index}`, name: item.name }))
   );
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setDestinationSlide((current) => (current + 1) % 6), 3000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -467,14 +563,14 @@ export default function Home() {
           </a>
         </div>
 
-        <style jsx global>{`@keyframes destinationPop { 0% { opacity: .4; transform: scale(.88); } 65% { opacity: 1; transform: scale(1.035); } 100% { opacity: 1; transform: scale(1); } }`}</style>
+        <style jsx global>{`@keyframes destinationPop { 0% { opacity: .35; transform: scale(.96); } 100% { opacity: 1; transform: scale(1); } }`}</style>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {destinationHighlights.map((item) => (
-            <div
-              role="button"
-              tabIndex={0}
+          {destinationHighlights.map((item, index) => (
+            <DestinationHighlightCard
               key={item.name}
-              onClick={() => {
+              item={item}
+              index={index}
+              onSelect={() => {
                 const params = new URLSearchParams({
                   destination: item.searchDestination,
                   checkIn,
@@ -485,35 +581,7 @@ export default function Home() {
                 });
                 window.location.href = `/search?${params.toString()}`;
               }}
-              onKeyDown={(event) => {
-                if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
-                  event.preventDefault();
-                  const params = new URLSearchParams({ destination: item.searchDestination, checkIn, checkOut, guests, rooms, budget });
-                  window.location.href = `/search?${params.toString()}`;
-                }
-              }}
-              className="group overflow-hidden rounded-[1.4rem] border border-[#eee8dd] bg-white text-left shadow-[0_8px_28px_rgba(23,59,48,0.06)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_rgba(23,59,48,0.14)]"
-            >
-              <div className="relative h-64 overflow-hidden">
-                <img
-                  key={`${item.name}-${destinationSlide}`}
-                  src={item.images[destinationSlide].src}
-                  alt={`${item.name} - photo ${destinationSlide + 1} of 6`}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-110 animate-[destinationPop_650ms_ease-out]"
-                />
-                <a href={item.images[destinationSlide].source} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">Photo source</a>
-              </div>
-              <div className="p-6">
-                <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">
-                  KENYA
-                </p>
-                <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-[#173b30]">{item.name}</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {item.description}
-                </p>
-              </div>
-            </div>
+            />
           ))}
         </div>
       </section>
