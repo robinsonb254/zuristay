@@ -169,12 +169,6 @@ export default function Home() {
               Already a partner
             </a>
             <a
-              href="/admin"
-              className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
-            >
-              Admin portal
-            </a>
-            <a
               href="/partner/register"
               className="rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#ae8540]"
             >
@@ -235,9 +229,6 @@ export default function Home() {
           </a>
           <a href="/partner/dashboard" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
             Partner login
-          </a>
-          <a href="/admin" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
-            Admin login
           </a>
           <a href="/login" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
             Guest sign in
