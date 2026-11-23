@@ -28,6 +28,7 @@ type Property = {
   country: string;
   status: string;
   is_active: boolean;
+  is_archived?: boolean;
   created_at: string;
 };
 
@@ -115,6 +116,20 @@ export default function PartnerDashboardPage() {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  async function archiveProperty(property: Property) {
+    if (!window.confirm(`Archive "${property.name}"? It will disappear from guest search. Booking and payment history will be retained.`)) return;
+    setError("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch(`/api/partner/properties/${property.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${session.access_token}` } });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to archive property.");
+      await loadDashboard();
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to archive this property."); }
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -380,10 +395,10 @@ export default function PartnerDashboardPage() {
                     >
                       {property.status}
                     </span>
-                    {property.is_active && (
-                      <span className="text-xs font-semibold text-green-700">
-                        Live
-                      </span>
+                    {property.is_archived ? (
+                      <span className="text-xs font-semibold text-slate-500">Archived</span>
+                    ) : property.is_active && (
+                      <span className="text-xs font-semibold text-green-700">Live</span>
                     )}
                     <Link
                       href={`/partner/properties/${property.id}/edit`}
@@ -391,7 +406,7 @@ export default function PartnerDashboardPage() {
                     >
                       Edit details
                     </Link>
-                    {property.status === "approved" && (
+                    {!property.is_archived && property.status === "approved" && (
                       <Link
                         href={`/partner/properties/${property.id}/rooms`}
                         className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800"
@@ -399,6 +414,9 @@ export default function PartnerDashboardPage() {
                         <Hotel size={15} />
                         Manage rooms
                       </Link>
+                    )}
+                    {!property.is_archived && (
+                      <button onClick={() => archiveProperty(property)} className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">Archive</button>
                     )}
                   </div>
                 </article>
