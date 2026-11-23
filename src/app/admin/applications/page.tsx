@@ -30,6 +30,7 @@ type Application = {
   property_type: string | null;
   location: string;
   message: string | null;
+  has_conference_rooms: boolean;
   status: string;
   applicant_user_id: string | null;
   created_at: string;
@@ -497,6 +498,10 @@ export default function AdminApplicationsPage() {
                         </p>
                       </div>
 
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-slate-400">Conference rooms</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-700">{application.has_conference_rooms ? "Available at this property" : "Not available"}</p>
+                      </div>
                       <div>
                         <p className="text-xs font-semibold uppercase text-slate-400">
                           Registered applicant account
