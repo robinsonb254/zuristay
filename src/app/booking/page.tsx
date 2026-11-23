@@ -323,7 +323,7 @@ export default function BookingPage() {
 
     if (checkIn && checkOut) {
       if (availabilityChecking) {
-        setError("Please wait while ZuriStay checks availability for your dates.");
+        setError("Please wait while ZuriStay Worldwide checks availability for your dates.");
         return;
       }
       if (availabilityError) {
@@ -455,8 +455,8 @@ export default function BookingPage() {
       }
       setBookingAccessToken(result.booking_access_token);
       try {
-        sessionStorage.setItem(`zuristay:booking-access:${createdBooking.booking_id}`, result.booking_access_token);
-        sessionStorage.setItem("zuristay:paypal-booking-id", createdBooking.booking_id);
+        sessionStorage.setItem(`zuristay worldwide:booking-access:${createdBooking.booking_id}`, result.booking_access_token);
+        sessionStorage.setItem("zuristay worldwide:paypal-booking-id", createdBooking.booking_id);
       } catch { /* Session storage may be unavailable; in-memory access remains active. */ }
       setBooking(createdBooking);
     } catch (submitError) {
@@ -474,7 +474,7 @@ export default function BookingPage() {
     if (!booking) return;
     setConfirmingGuestAccess(true); setPaymentError(""); setPaymentMessage("");
     try {
-      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
+      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
       const response = await fetch("/api/bookings/confirm-access", { method: "POST", headers: { "Content-Type": "application/json", "x-booking-access-token": token }, body: JSON.stringify({ booking_id: booking.booking_id }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Room access confirmation could not be saved.");
@@ -497,7 +497,7 @@ export default function BookingPage() {
       try {
         const response = await fetch(
           `/api/bookings/status?booking_id=${encodeURIComponent(pollingBookingId!)}`,
-          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${pollingBookingId!}`) || ""; } catch { return ""; } })() } }
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${pollingBookingId!}`) || ""; } catch { return ""; } })() } }
         );
         const result = await response.json();
         if (cancelled || !response.ok || !result.success) return;
@@ -517,7 +517,7 @@ export default function BookingPage() {
 
         if (!result.hold_active) {
           setPaymentState("expired");
-          setPaymentError("Your 15-minute room hold has expired before payment was confirmed. Please contact ZuriStay support before making another payment.");
+          setPaymentError("Your 15-minute room hold has expired before payment was confirmed. Please contact ZuriStay Worldwide support before making another payment.");
           return;
         }
       } catch (statusError) {
@@ -549,7 +549,7 @@ export default function BookingPage() {
     try {
       const response = await fetch("/api/payments/mpesa/stk", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })() },
+        headers: { "Content-Type": "application/json", "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })() },
         body: JSON.stringify({
           booking_id: booking.booking_id,
           phone: paymentPhone.trim() || phone.trim(),
@@ -574,9 +574,9 @@ export default function BookingPage() {
     setPaymentError("");
     setPaymentMessage("");
     try {
-      try { sessionStorage.setItem("zuristay:paypal-booking-id", booking.booking_id); } catch {}
+      try { sessionStorage.setItem("zuristay worldwide:paypal-booking-id", booking.booking_id); } catch {}
       const accessToken = bookingAccessToken || (() => {
-        try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; }
+        try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${booking.booking_id}`) || ""; } catch { return ""; }
       })();
       const response = await fetch("/api/payments/paypal/create-order", {
         method: "POST",
@@ -651,7 +651,7 @@ export default function BookingPage() {
           {paymentState === "paid" && (
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-left">
               <h2 className="font-bold text-emerald-900">Confirm your room access</h2>
-              <p className="mt-2 text-sm leading-6 text-emerald-800">After arriving, checking the room and confirming that it is secured, confirm your access here. ZuriStay will only release the partner’s payable amount after both partner confirmations and your confirmation.</p>
+              <p className="mt-2 text-sm leading-6 text-emerald-800">After arriving, checking the room and confirming that it is secured, confirm your access here. ZuriStay Worldwide will only release the partner’s payable amount after both partner confirmations and your confirmation.</p>
               <button type="button" onClick={confirmGuestRoomAccess} disabled={guestAccessConfirmed || confirmingGuestAccess} className="mt-4 rounded-xl bg-emerald-800 px-5 py-3 text-sm font-bold text-white disabled:opacity-60">{guestAccessConfirmed ? "Room access confirmed ✓" : confirmingGuestAccess ? "Saving confirmation..." : "I have accessed and secured the room"}</button>
             </div>
           )}
@@ -659,7 +659,7 @@ export default function BookingPage() {
             <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left print:break-inside-avoid">
               <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-300 pb-5">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-[0.18em] text-orange-500">ZuriStay</p>
+                  <p className="text-sm font-black uppercase tracking-[0.18em] text-orange-500">ZuriStay Worldwide</p>
                   <h2 className="mt-2 text-xl font-black text-blue-950">Payment receipt</h2>
                   <p className="mt-1 text-xs text-slate-500">Your World. Your Stay.</p>
                 </div>
@@ -667,7 +667,7 @@ export default function BookingPage() {
               </div>
               <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
                 <div><p className="text-xs text-slate-500">Booking reference</p><p className="mt-1 font-bold text-blue-950">{booking.booking_reference}</p></div>
-                <div><p className="text-xs text-slate-500">M-Pesa receipt</p><p className="mt-1 break-all font-bold text-blue-950">{paymentReference || "Verified by ZuriStay"}</p></div>
+                <div><p className="text-xs text-slate-500">M-Pesa receipt</p><p className="mt-1 break-all font-bold text-blue-950">{paymentReference || "Verified by ZuriStay Worldwide"}</p></div>
                 <div><p className="text-xs text-slate-500">Guest</p><p className="mt-1 font-semibold text-slate-800">{fullName}</p></div>
                 <div><p className="text-xs text-slate-500">Property</p><p className="mt-1 font-semibold text-slate-800">{property.name}</p></div>
                 <div><p className="text-xs text-slate-500">Accommodation</p><p className="mt-1 font-semibold text-slate-800">{selectedUnit?.name}</p></div>
@@ -679,7 +679,7 @@ export default function BookingPage() {
                 <span className="font-bold text-blue-950">Amount paid</span>
                 <span className="text-xl font-black text-green-700">{formatMoney(Number(booking.total_amount), booking.currency)}</span>
               </div>
-              <p className="mt-4 text-center text-xs text-slate-500">Thank you for booking with ZuriStay.</p>
+              <p className="mt-4 text-center text-xs text-slate-500">Thank you for booking with ZuriStay Worldwide.</p>
               <button type="button" onClick={() => window.print()} className="mt-5 w-full rounded-xl bg-blue-950 px-5 py-3 font-bold text-white hover:bg-blue-900 print:hidden">
                 Print / Save receipt
               </button>
@@ -692,7 +692,7 @@ export default function BookingPage() {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               {paymentState === "paid"
-                ? "Your payment was received and verified by ZuriStay."
+                ? "Your payment was received and verified by ZuriStay Worldwide."
                 : "We will send an STK Push to the guest phone number entered for this booking."}
             </p>
             {paymentState !== "paid" && <label className="mt-4 block text-sm font-semibold text-slate-700">
@@ -780,7 +780,7 @@ export default function BookingPage() {
       <section className="bg-blue-950 px-5 py-10 text-white lg:px-8">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-orange-400">
-            ZURISTAY RESERVATIONS
+            ZURISTAY WORLDWIDE RESERVATIONS
           </p>
 
           <h1 className="mt-3 text-3xl font-black md:text-4xl">
@@ -1131,7 +1131,7 @@ export default function BookingPage() {
       </section>
 
       <footer className="bg-blue-950 px-5 py-8 text-center text-sm text-blue-100">
-        © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
+        © {new Date().getFullYear()} ZuriStay Worldwide. Your World. Your Stay.
       </footer>
     </main>
   );
