@@ -64,6 +64,43 @@ export async function GET(request: NextRequest) {
 
   try {
     const cleanLocation = location.replace(/,\s*(Kenya|Kenya County)$/i, "").trim();
+    if (/^bungoma(?: county)?$/i.test(cleanLocation)) {
+      const featuredUrl = new URL("https://commons.wikimedia.org/w/api.php");
+      featuredUrl.search = new URLSearchParams({
+        action: "query",
+        titles: "File:Khetias Euro.jpg",
+        prop: "imageinfo",
+        iiprop: "url|extmetadata",
+        iiurlwidth: "1200",
+        format: "json",
+      }).toString();
+      const featuredResponse = await fetch(featuredUrl, {
+        headers: { "User-Agent": "ZuriStay/1.0 (destination photo discovery)" },
+        next: { revalidate: 86400 },
+      });
+      if (featuredResponse.ok) {
+        const featuredData = (await featuredResponse.json()) as CommonsSearchResponse;
+        const featuredPage = Object.values(featuredData.query?.pages || {})[0];
+        const featuredInfo = featuredPage?.imageinfo?.[0];
+        if (featuredInfo?.thumburl || featuredInfo?.url) {
+          const meta = featuredInfo.extmetadata || {};
+          const plain = (value?: CommonsMetadataValue) => String(value?.value || "").replace(/<[^>]*>/g, "").trim();
+          return NextResponse.json({
+            success: true,
+            location,
+            photos: [{
+              title: String(featuredPage?.title || "Khetias Euro.jpg").replace(/^File:/, ""),
+              imageUrl: featuredInfo.thumburl || featuredInfo.url || "",
+              sourceUrl: featuredInfo.descriptionurl || "https://commons.wikimedia.org/wiki/File:Khetias_Euro.jpg",
+              credit: plain(meta.Artist) || plain(meta.Credit) || "Wikimedia Commons contributor",
+              license: plain(meta.LicenseShortName) || "See source page",
+              licenseUrl: plain(meta.LicenseUrl),
+            }],
+          }, { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } });
+        }
+      }
+    }
+ = location.replace(/,\s*(Kenya|Kenya County)$/i, "").trim();
     const parts = cleanLocation.split(",").map((part) => part.trim()).filter(Boolean);
     const terms = Array.from(new Set([cleanLocation, parts[0], parts.length > 1 ? `${parts[1]} County` : ""])).filter(Boolean);
     let photos: ReturnType<typeof search> extends Promise<infer T> ? T : never = [];
