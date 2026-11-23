@@ -108,7 +108,7 @@ export default function RegisterPage() {
             </div>
 
             <p className="mt-6 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              JOIN ZURISTAY
+              JOIN ZURISTAY WORLDWIDE
             </p>
 
             <h1 className="mt-3 text-3xl font-bold">
@@ -263,7 +263,7 @@ export default function RegisterPage() {
             </button>
 
             <p className="text-center text-xs leading-6 text-gray-500">
-              By creating an account, you agree to use ZuriStay
+              By creating an account, you agree to use ZuriStay Worldwide
               responsibly and provide accurate information.
             </p>
           </form>
@@ -281,7 +281,7 @@ export default function RegisterPage() {
       </section>
 
       <footer className="py-8 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} ZuriStay. Your World. Your Stay.
+        © {new Date().getFullYear()} ZuriStay Worldwide. Your World. Your Stay.
       </footer>
     </main>
   );
