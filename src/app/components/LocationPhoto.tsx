@@ -46,9 +46,6 @@ export default function LocationPhoto({
       {photo ? (
         <>
           <img src={photo.imageUrl} alt={`${location} — ${photo.title}`} loading="lazy" className="h-full w-full object-cover" />
-          <a href={photo.sourceUrl} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-black/85">
-            Photo source
-          </a>
           {!compact && <span className="absolute bottom-2 left-2 max-w-[70%] truncate rounded bg-black/60 px-2 py-1 text-[10px] text-white">{photo.license} · {photo.credit}</span>}
         </>
       ) : (
