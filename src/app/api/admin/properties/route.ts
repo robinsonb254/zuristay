@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     let query = context.admin
       .from("properties")
       .select(
-        "id, partner_id, destination_id, name, property_type, description, address, city, sub_county, county, country, currency, contact_phone, contact_email, status, is_active, created_at, partner:property_partners(business_name, contact_person, email, phone)"
+        "id, partner_id, destination_id, name, property_type, description, address, city, sub_county, county, country, currency, contact_phone, contact_email, status, is_active, is_archived, created_at, partner:property_partners(business_name, contact_person, email, phone)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -114,8 +114,18 @@ export async function POST(request: NextRequest) {
     if (typeof propertyId !== "string" || !uuidPattern.test(propertyId)) {
       return fail("Invalid property ID.", 400);
     }
-    if (action !== "approve" && action !== "reject") {
-      return fail("Choose either approve or reject.", 400);
+    if (action !== "approve" && action !== "reject" && action !== "archive") {
+      return fail("Choose approve, reject or archive.", 400);
+    }
+
+    if (action === "archive") {
+      const { data: archived, error: archiveError } = await context.admin.from("properties")
+        .update({ is_active: false, is_archived: true, archived_at: new Date().toISOString(), archived_by: context.user.id })
+        .eq("id", propertyId).eq("is_archived", false)
+        .select("id, name, status, is_active, is_archived").maybeSingle();
+      if (archiveError) { console.error("Property archive failed:", archiveError); return fail("Unable to archive this property. Please try again.", 500); }
+      if (!archived) return fail("This property is already archived or no longer exists.", 409);
+      return NextResponse.json({ success: true, message: "Property archived. It is hidden from guests; booking and payment history is retained.", property: archived }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const { data: property, error: updateError } = await context.admin
