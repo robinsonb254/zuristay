@@ -60,7 +60,10 @@ export default function AdminLoginPage() {
         .select("role")
         .eq("id", data.user.id)
         .maybeSingle();
-      if (profileError) throw profileError;
+      if (profileError) {
+        await supabase.auth.signOut();
+        throw profileError;
+      }
       if (profile?.role !== "admin") {
         await supabase.auth.signOut();
         setPassword("");
