@@ -100,7 +100,6 @@ export async function GET(request: NextRequest) {
         }
       }
     }
- = location.replace(/,\s*(Kenya|Kenya County)$/i, "").trim();
     const parts = cleanLocation.split(",").map((part) => part.trim()).filter(Boolean);
     const terms = Array.from(new Set([cleanLocation, parts[0], parts.length > 1 ? `${parts[1]} County` : ""])).filter(Boolean);
     let photos: ReturnType<typeof search> extends Promise<infer T> ? T : never = [];
