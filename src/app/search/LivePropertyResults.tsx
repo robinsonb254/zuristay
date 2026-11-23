@@ -30,6 +30,7 @@ type LiveProperty = {
     name: string;
   }[];
   starting_rate: number | null;
+  has_conference_rooms: boolean;
 };
 
 type ApiResponse = {
@@ -85,6 +86,7 @@ export default function LivePropertyResults({
   const [properties, setProperties] = useState<LiveProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [conferenceFilter, setConferenceFilter] = useState<"any" | "with" | "without">("any");
 
   useEffect(() => {
     let cancelled = false;
@@ -173,10 +175,11 @@ export default function LivePropertyResults({
         property.units.length > 0 &&
         property.starting_rate !== null &&
         matchesDestination &&
-        matchesBudget
+        matchesBudget &&
+        (conferenceFilter === "any" || (conferenceFilter === "with" ? property.has_conference_rooms : !property.has_conference_rooms))
       );
     });
-  }, [properties, destination, budget]);
+  }, [properties, destination, budget, conferenceFilter]);
 
   return (
     <section className="mt-12">
@@ -192,6 +195,7 @@ export default function LivePropertyResults({
         </p>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3"><span className="mr-2 text-sm font-semibold text-slate-700">Conference rooms:</span><button type="button" onClick={() => setConferenceFilter("any")} className={`rounded-full px-4 py-2 text-sm font-semibold ${conferenceFilter === "any" ? "bg-blue-950 text-white" : "bg-slate-100 text-slate-700"}`}>Any</button><button type="button" onClick={() => setConferenceFilter("with")} className={`rounded-full px-4 py-2 text-sm font-semibold ${conferenceFilter === "with" ? "bg-blue-950 text-white" : "bg-slate-100 text-slate-700"}`}>With conference rooms</button><button type="button" onClick={() => setConferenceFilter("without")} className={`rounded-full px-4 py-2 text-sm font-semibold ${conferenceFilter === "without" ? "bg-blue-950 text-white" : "bg-slate-100 text-slate-700"}`}>Without conference rooms</button></div>
       {loading && (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           Loading live accommodation listings...
@@ -264,9 +268,9 @@ export default function LivePropertyResults({
                       </span>
                     </div>
 
-                    <h3 className="mt-3 text-xl font-black text-blue-950">
+                    <div className="mt-3 flex flex-wrap items-center gap-2"><h3 className="text-xl font-black text-blue-950">
                       {property.name}
-                    </h3>
+                    </h3><span className={`rounded-full px-3 py-1 text-xs font-bold ${property.has_conference_rooms ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{property.has_conference_rooms ? "Conference rooms available" : "No conference rooms"}</span></div>
 
                     <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
                       {property.amenities.slice(0, 6).map((amenity) => {
