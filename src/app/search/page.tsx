@@ -185,6 +185,17 @@ export default async function SearchPage({
 
         </div>
 
+        {destination && (
+          <div className="mb-8 grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[minmax(0,360px)_1fr]">
+            <LocationPhoto location={`${destination}, Kenya`} className="h-56 w-full md:h-full" />
+            <div className="flex flex-col justify-center p-6">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-500">Your selected destination</p>
+              <h2 className="mt-2 text-2xl font-black text-blue-950">{destination}</h2>
+              <p className="mt-2 text-sm text-slate-600">Explore this location before choosing your accommodation.</p>
+            </div>
+          </div>
+        )}
+
         <LivePropertyResults
           destination={destination}
           budget={budget}
