@@ -214,7 +214,7 @@ export default function AdminSettlementDisputesPage() {
                         <select value={draft.resolution} onChange={e => updateDraft(dispute.id, { resolution: e.target.value as Draft["resolution"] })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900">
                           <option value="partner_paid">Release to partner</option>
                           <option value="guest_refunded">Refund guest</option>
-                          <option value="admin_personal_account">Request release to administrator's personal account</option>
+                          <option value="admin_personal_account">Request release to administrator&apos;s personal account</option>
                         </select>
                       </label>
 
