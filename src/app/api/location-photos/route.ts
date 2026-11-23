@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+type CommonsMetadataValue = { value?: string };
+type CommonsImageInfo = {
+  thumburl?: string;
+  url?: string;
+  descriptionurl?: string;
+  extmetadata?: Record<string, CommonsMetadataValue>;
+};
+type CommonsPage = {
+  title?: string;
+  imageinfo?: CommonsImageInfo[];
+};
+type CommonsSearchResponse = {
+  query?: { pages?: Record<string, CommonsPage> };
+};
+
 export async function GET(request: NextRequest) {
   const location = (request.nextUrl.searchParams.get("location") || "").trim();
   if (!location || location.length > 120) {
@@ -28,11 +43,14 @@ export async function GET(request: NextRequest) {
       next: { revalidate: 86400 },
     });
     if (!response.ok) return [];
-    const data = await response.json();
-    return Object.values(data.query?.pages || {}).map((page: any) => {
+    const data = (await response.json()) as CommonsSearchResponse;
+    const pages = Object.values(data.query?.pages || {});
+    const plain = (value?: CommonsMetadataValue) =>
+      String(value?.value || "").replace(/<[^>]*>/g, "").trim();
+
+    return pages.map((page) => {
       const info = page.imageinfo?.[0];
       const meta = info?.extmetadata || {};
-      const plain = (value: any) => String(value?.value || "").replace(/<[^>]*>/g, "").trim();
       return {
         title: String(page.title || "").replace(/^File:/, ""),
         imageUrl: info?.thumburl || info?.url || "",
@@ -41,7 +59,7 @@ export async function GET(request: NextRequest) {
         license: plain(meta.LicenseShortName) || "See source page",
         licenseUrl: plain(meta.LicenseUrl),
       };
-    }).filter((item: any) => item.imageUrl && item.sourceUrl);
+    }).filter((item) => item.imageUrl && item.sourceUrl);
   };
 
   try {
