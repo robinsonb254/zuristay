@@ -66,9 +66,6 @@ export async function initiateDarajaB2CPayout(input: {
   reference: string;
   remarks: string;
 }) {
-  if (process.env.MPESA_B2C_ENABLED !== "true") {
-    throw new Error("M-Pesa B2C payouts are disabled until Safaricom approves and ZuriStay activates the service.");
-  }
   const amount = Math.floor(input.amount);
   if (!Number.isSafeInteger(amount) || amount < 10 || amount !== input.amount) {
     throw new Error("M-Pesa phone payouts must be whole KES and at least KES 10.");
@@ -94,9 +91,6 @@ export async function initiateDarajaB2BPayout(input: {
   reference: string;
   remarks: string;
 }) {
-  if (process.env.MPESA_B2B_ENABLED !== "true") {
-    throw new Error("M-Pesa business payouts are disabled until Safaricom approves and ZuriStay activates the service.");
-  }
   const amount = Math.floor(input.amount);
   if (!Number.isSafeInteger(amount) || amount < 1 || amount !== input.amount) {
     throw new Error("M-Pesa business payouts must be a whole KES amount.");
