@@ -455,8 +455,8 @@ export default function BookingPage() {
       }
       setBookingAccessToken(result.booking_access_token);
       try {
-        sessionStorage.setItem(`zuristay worldwide:booking-access:${createdBooking.booking_id}`, result.booking_access_token);
-        sessionStorage.setItem("zuristay worldwide:paypal-booking-id", createdBooking.booking_id);
+        sessionStorage.setItem(`zuristay:booking-access:${createdBooking.booking_id}`, result.booking_access_token);
+        sessionStorage.setItem("zuristay:paypal-booking-id", createdBooking.booking_id);
       } catch { /* Session storage may be unavailable; in-memory access remains active. */ }
       setBooking(createdBooking);
     } catch (submitError) {
@@ -474,7 +474,7 @@ export default function BookingPage() {
     if (!booking) return;
     setConfirmingGuestAccess(true); setPaymentError(""); setPaymentMessage("");
     try {
-      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
+      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
       const response = await fetch("/api/bookings/confirm-access", { method: "POST", headers: { "Content-Type": "application/json", "x-booking-access-token": token }, body: JSON.stringify({ booking_id: booking.booking_id }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Room access confirmation could not be saved.");
@@ -497,7 +497,7 @@ export default function BookingPage() {
       try {
         const response = await fetch(
           `/api/bookings/status?booking_id=${encodeURIComponent(pollingBookingId!)}`,
-          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${pollingBookingId!}`) || ""; } catch { return ""; } })() } }
+          { cache: "no-store", headers: { "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${pollingBookingId!}`) || ""; } catch { return ""; } })() } }
         );
         const result = await response.json();
         if (cancelled || !response.ok || !result.success) return;
@@ -549,7 +549,7 @@ export default function BookingPage() {
     try {
       const response = await fetch("/api/payments/mpesa/stk", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })() },
+        headers: { "Content-Type": "application/json", "x-booking-access-token": bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })() },
         body: JSON.stringify({
           booking_id: booking.booking_id,
           phone: paymentPhone.trim() || phone.trim(),
@@ -574,9 +574,9 @@ export default function BookingPage() {
     setPaymentError("");
     setPaymentMessage("");
     try {
-      try { sessionStorage.setItem("zuristay worldwide:paypal-booking-id", booking.booking_id); } catch {}
+      try { sessionStorage.setItem("zuristay:paypal-booking-id", booking.booking_id); } catch {}
       const accessToken = bookingAccessToken || (() => {
-        try { return sessionStorage.getItem(`zuristay worldwide:booking-access:${booking.booking_id}`) || ""; } catch { return ""; }
+        try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; }
       })();
       const response = await fetch("/api/payments/paypal/create-order", {
         method: "POST",
