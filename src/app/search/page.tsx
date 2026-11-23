@@ -1,6 +1,7 @@
 
 import Link from "next/link";
 import LivePropertyResults from "./LivePropertyResults";
+import LocationPhoto from "@/app/components/LocationPhoto";
 import {
   Search,
   MapPin,
