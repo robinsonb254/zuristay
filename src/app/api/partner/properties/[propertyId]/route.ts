@@ -122,3 +122,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return fail("An unexpected error occurred.", 500);
   }
 }
+
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
+  try {
+    const { propertyId } = await params;
+    const context = await ownedProperty(request, propertyId);
+    if ("error" in context) return context.error;
+    const { data: archived, error } = await context.admin.from("properties")
+      .update({ is_active: false, is_archived: true, archived_at: new Date().toISOString() })
+      .eq("id", propertyId).eq("partner_id", context.partner.id).eq("is_archived", false)
+      .select("id, name, is_active, is_archived").maybeSingle();
+    if (error) { console.error("Partner property archive failed:", error); return fail("Unable to archive this property. Please try again.", 500); }
+    if (!archived) return fail("This property is already archived or no longer exists.", 409);
+    return NextResponse.json({ success: true, message: "Property archived. It is hidden from guests while its booking and payment history is retained.", property: archived }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Partner property archive error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
