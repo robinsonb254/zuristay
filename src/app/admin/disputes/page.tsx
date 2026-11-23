@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, CheckCircle2, Clock3, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, Clock3, Loader2, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Dispute = {
@@ -11,14 +11,37 @@ type Dispute = {
   settlement_id: string;
   booking_id: string;
   reason: string;
+  status: "open" | "awaiting_second_approval" | "approved_for_payment";
+  resolution: string | null;
   check_in_deadline_at: string;
-  created_at: string;
+  personal_destination_type: string | null;
+  personal_destination_masked: string | null;
+  personal_release_requested_by: string | null;
+  personal_release_approved_by: string | null;
   bookings: { booking_reference: string; guest_name: string; guest_email: string | null; guest_phone: string | null; check_in: string };
   property_partners: { business_name: string };
   partner_settlements: { amount_due: number; currency: string; status: string };
 };
 
-type Draft = { resolution: "partner_paid" | "guest_refunded"; notes: string; externalReference: string };
+type Draft = {
+  resolution: "partner_paid" | "guest_refunded" | "admin_personal_account";
+  notes: string;
+  externalReference: string;
+  destinationType: "mpesa" | "bank" | "paypal";
+  destinationMasked: string;
+  approvalNotes: string;
+  completionNotes: string;
+};
+
+const emptyDraft: Draft = {
+  resolution: "partner_paid",
+  notes: "",
+  externalReference: "",
+  destinationType: "mpesa",
+  destinationMasked: "",
+  approvalNotes: "",
+  completionNotes: "",
+};
 
 function dateTime(value: string) {
   return new Date(value).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" });
@@ -31,6 +54,7 @@ function money(amount: number, currency: string) {
 export default function AdminSettlementDisputesPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
+  const [adminId, setAdminId] = useState("");
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(true);
@@ -71,6 +95,7 @@ export default function AdminSettlementDisputesPage() {
       }
       if (!active) return;
       setToken(session.access_token);
+      setAdminId(session.user.id);
       await load(session.access_token);
     }
     start();
@@ -78,42 +103,47 @@ export default function AdminSettlementDisputesPage() {
   }, [load, router]);
 
   function updateDraft(id: string, patch: Partial<Draft>) {
-    setDrafts(current => ({
-      ...current,
-      [id]: {
-        ...{ resolution: "partner_paid" as const, notes: "", externalReference: "" },
-        ...current[id],
-        ...patch,
-      },
-    }));
+    setDrafts(current => ({ ...current, [id]: { ...emptyDraft, ...current[id], ...patch } }));
   }
 
-  async function resolve(event: FormEvent<HTMLFormElement>, dispute: Dispute) {
-    event.preventDefault();
-    const draft = drafts[dispute.id] || { resolution: "partner_paid", notes: "", externalReference: "" };
-    setBusyId(dispute.id);
+  async function submitAction(disputeId: string, payload: Record<string, unknown>) {
+    setBusyId(disputeId);
     setError("");
     setNotice("");
     try {
       const response = await fetch("/api/admin/settlement-disputes", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          disputeId: dispute.id,
-          resolution: draft.resolution,
-          notes: draft.notes,
-          externalReference: draft.externalReference,
-        }),
+        body: JSON.stringify({ disputeId, ...payload }),
       });
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Unable to record resolution.");
-      setNotice(`Dispute ${dispute.bookings.booking_reference} was recorded as resolved.`);
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to process this action.");
+      setNotice("The dispute action was recorded successfully.");
       await load(token);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to record resolution.");
+      setError(e instanceof Error ? e.message : "Unable to process this action.");
     } finally {
       setBusyId("");
     }
+  }
+
+  async function resolve(event: FormEvent<HTMLFormElement>, dispute: Dispute) {
+    event.preventDefault();
+    const draft = drafts[dispute.id] || emptyDraft;
+    if (draft.resolution === "admin_personal_account") {
+      await submitAction(dispute.id, {
+        action: "request_admin_personal_release",
+        destinationType: draft.destinationType,
+        destinationMasked: draft.destinationMasked,
+        notes: draft.notes,
+      });
+      return;
+    }
+    await submitAction(dispute.id, {
+      resolution: draft.resolution,
+      notes: draft.notes,
+      externalReference: draft.externalReference,
+    });
   }
 
   return (
@@ -140,7 +170,7 @@ export default function AdminSettlementDisputesPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <div className="flex items-start gap-3"><ShieldCheck size={20} className="mt-0.5 shrink-0"/><p><strong>Funds remain held by ZuriStay.</strong> This dashboard records an external manual payment or refund after the investigation. It does not move money or initiate a transfer.</p></div>
+          <div className="flex items-start gap-3"><ShieldCheck size={20} className="mt-0.5 shrink-0"/><p><strong>Funds remain held by ZuriStay until a verified resolution.</strong> Partner and guest releases are recorded only after the external transfer/refund is complete. A personal-account release requires approval by a different administrator and a completed-transfer reference.</p></div>
         </div>
 
         {error && <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
@@ -157,7 +187,8 @@ export default function AdminSettlementDisputesPage() {
         ) : (
           <div className="mt-8 space-y-5">
             {disputes.map(dispute => {
-              const draft = drafts[dispute.id] || { resolution: "partner_paid" as const, notes: "", externalReference: "" };
+              const draft = drafts[dispute.id] || emptyDraft;
+              const isBusy = busyId === dispute.id;
               return (
                 <article key={dispute.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -166,7 +197,7 @@ export default function AdminSettlementDisputesPage() {
                       <h2 className="mt-1 text-xl font-black text-blue-950">{dispute.bookings.guest_name}</h2>
                       <p className="mt-1 text-sm text-slate-600">{dispute.property_partners.business_name}</p>
                     </div>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800"><AlertTriangle size={14}/> Funds held for review</span>
+                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800"><AlertTriangle size={14}/>{dispute.status === "open" ? "Funds held for review" : dispute.status === "awaiting_second_approval" ? "Awaiting independent approval" : "Approved — transfer pending"}</span>
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -176,27 +207,76 @@ export default function AdminSettlementDisputesPage() {
                     <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Guest contact</p><p className="mt-1 break-all text-sm font-bold text-slate-800">{dispute.bookings.guest_phone || dispute.bookings.guest_email || "Not provided"}</p></div>
                   </div>
 
-                  <form onSubmit={event => resolve(event, dispute)} className="mt-6 border-t border-slate-100 pt-5">
-                    <h3 className="font-bold text-blue-950">Record manual investigation outcome</h3>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <label className="text-sm font-semibold text-slate-700">Decision
+                  {dispute.status === "open" && (
+                    <form onSubmit={event => resolve(event, dispute)} className="mt-6 border-t border-slate-100 pt-5">
+                      <h3 className="font-bold text-blue-950">Resolve dispute and choose fund destination</h3>
+                      <label className="mt-3 block text-sm font-semibold text-slate-700">Release decision
                         <select value={draft.resolution} onChange={e => updateDraft(dispute.id, { resolution: e.target.value as Draft["resolution"] })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900">
-                          <option value="partner_paid">Partner was paid after agreement</option>
-                          <option value="guest_refunded">Guest was refunded after agreement</option>
+                          <option value="partner_paid">Release to partner</option>
+                          <option value="guest_refunded">Refund guest</option>
+                          <option value="admin_personal_account">Request release to administrator&apos;s personal account</option>
                         </select>
                       </label>
-                      <label className="text-sm font-semibold text-slate-700">External payment / refund reference
-                        <input value={draft.externalReference} onChange={e => updateDraft(dispute.id, { externalReference: e.target.value })} required minLength={3} maxLength={160} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="Bank, M-Pesa or refund reference"/>
+
+                      {draft.resolution === "admin_personal_account" ? (
+                        <>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <label className="text-sm font-semibold text-slate-700">Personal account type
+                              <select value={draft.destinationType} onChange={e => updateDraft(dispute.id, { destinationType: e.target.value as Draft["destinationType"] })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900">
+                                <option value="mpesa">M-Pesa</option><option value="bank">Bank account</option><option value="paypal">PayPal</option>
+                              </select>
+                            </label>
+                            <label className="text-sm font-semibold text-slate-700">Masked destination identifier
+                              <input value={draft.destinationMasked} onChange={e => updateDraft(dispute.id, { destinationMasked: e.target.value })} required minLength={4} maxLength={100} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="e.g. •••• 4821 or r•••@mail.com"/>
+                            </label>
+                          </div>
+                          <p className="mt-2 text-xs text-amber-700">Full account credentials must not be entered here. This request is not a payment. A different administrator must independently approve it before a transfer can be recorded as complete.</p>
+                        </>
+                      ) : (
+                        <label className="mt-3 block text-sm font-semibold text-slate-700">Completed payment / refund reference
+                          <input value={draft.externalReference} onChange={e => updateDraft(dispute.id, { externalReference: e.target.value })} required minLength={3} maxLength={160} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="Bank, M-Pesa or refund reference"/>
+                        </label>
+                      )}
+
+                      <label className="mt-3 block text-sm font-semibold text-slate-700">{draft.resolution === "admin_personal_account" ? "Reason funds are legally payable to the administrator" : "Investigation notes"}
+                        <textarea value={draft.notes} onChange={e => updateDraft(dispute.id, { notes: e.target.value })} required minLength={draft.resolution === "admin_personal_account" ? 20 : 10} maxLength={4000} rows={3} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="Record the agreement, evidence reviewed and reason for the decision."/>
                       </label>
-                    </div>
-                    <label className="mt-3 block text-sm font-semibold text-slate-700">Investigation notes
-                      <textarea value={draft.notes} onChange={e => updateDraft(dispute.id, { notes: e.target.value })} required minLength={10} maxLength={4000} rows={3} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="Record the agreement, evidence reviewed and reason for the decision."/>
-                    </label>
-                    <p className="mt-2 text-xs leading-5 text-slate-500">Only submit after the agreed external payment or refund has actually been completed. ZuriStay records the reference and closes the held settlement; it does not send funds from this screen.</p>
-                    <button type="submit" disabled={busyId === dispute.id} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white hover:bg-blue-900 disabled:opacity-50">
-                      {busyId === dispute.id ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle2 size={16}/>} Record completed resolution
-                    </button>
-                  </form>
+                      <button type="submit" disabled={isBusy} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white hover:bg-blue-900 disabled:opacity-50">
+                        {isBusy ? <Loader2 size={16} className="animate-spin"/> : <Wallet size={16}/>} {draft.resolution === "admin_personal_account" ? "Submit for independent approval" : "Record completed resolution"}
+                      </button>
+                    </form>
+                  )}
+
+                  {dispute.status === "awaiting_second_approval" && (
+                    <form onSubmit={event => { event.preventDefault(); submitAction(dispute.id, { action: "approve_admin_personal_release", notes: draft.approvalNotes }); }} className="mt-6 border-t border-slate-100 pt-5">
+                      <h3 className="font-bold text-blue-950">Independent administrator approval required</h3>
+                      <p className="mt-2 text-sm text-slate-600">Requested destination: {dispute.personal_destination_type} · {dispute.personal_destination_masked}. Requesting admin: {dispute.personal_release_requested_by === adminId ? "You (self-approval blocked)" : "Another administrator"}.</p>
+                      <label className="mt-3 block text-sm font-semibold text-slate-700">Independent review notes
+                        <textarea value={draft.approvalNotes} onChange={e => updateDraft(dispute.id, { approvalNotes: e.target.value })} required minLength={20} maxLength={4000} rows={3} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="Explain the independent evidence and why the release is authorized."/>
+                      </label>
+                      <button type="submit" disabled={isBusy || dispute.personal_release_requested_by === adminId} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+                        {isBusy ? <Loader2 size={16} className="animate-spin"/> : <ShieldCheck size={16}/>} Approve personal-account release
+                      </button>
+                      {dispute.personal_release_requested_by === adminId && <p className="mt-2 text-xs text-amber-700">A different administrator must sign in to approve this request. Only one administrator account is currently registered.</p>}
+                    </form>
+                  )}
+
+                  {dispute.status === "approved_for_payment" && (
+                    <form onSubmit={event => { event.preventDefault(); submitAction(dispute.id, { action: "complete_admin_personal_release", externalReference: draft.externalReference, notes: draft.completionNotes }); }} className="mt-6 border-t border-slate-100 pt-5">
+                      <h3 className="font-bold text-blue-950">Approved personal-account transfer</h3>
+                      <p className="mt-2 text-sm text-slate-600">Destination: {dispute.personal_destination_type} · {dispute.personal_destination_masked}. Approval recorded from another administrator.</p>
+                      <label className="mt-3 block text-sm font-semibold text-slate-700">Completed transfer reference
+                        <input value={draft.externalReference} onChange={e => updateDraft(dispute.id, { externalReference: e.target.value })} required minLength={3} maxLength={160} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="M-Pesa, bank or PayPal transaction reference"/>
+                      </label>
+                      <label className="mt-3 block text-sm font-semibold text-slate-700">Transfer completion notes
+                        <textarea value={draft.completionNotes} onChange={e => updateDraft(dispute.id, { completionNotes: e.target.value })} required minLength={10} maxLength={4000} rows={2} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-slate-900" placeholder="Confirm amount, date and completion evidence."/>
+                      </label>
+                      <button type="submit" disabled={isBusy} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+                        {isBusy ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle2 size={16}/>} Record completed personal transfer
+                      </button>
+                      <p className="mt-2 text-xs text-slate-500">Only use this after the money has actually been transferred. ZuriStay does not initiate the transfer from this screen.</p>
+                    </form>
+                  )}
                 </article>
               );
             })}
