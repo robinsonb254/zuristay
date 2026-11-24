@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -21,7 +22,7 @@ async function authenticatePartner(request: NextRequest) {
   const { data: { user }, error: authError } = await auth.auth.getUser(token);
   if (authError || !user) return { error: fail("Your session has expired. Please sign in again.", 401) };
   const admin = createClient(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-  const { data: partner, error } = await admin.from("property_partners").select("id")
+  const { data: partner, error } = await admin.from("property_partners").select("id, email, contact_person, business_name")
     .eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
   if (error) {
     console.error("Partner verification failed:", error);
@@ -39,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!uuidPattern.test(propertyId) || !uuidPattern.test(unitId)) return fail("Invalid property or room ID.", 400);
 
     const { data: property, error: propertyError } = await context.admin.from("properties")
-      .select("id, status").eq("id", propertyId).eq("partner_id", context.partner.id).maybeSingle();
+      .select("id, name, status").eq("id", propertyId).eq("partner_id", context.partner.id).maybeSingle();
     if (propertyError) {
       console.error("Property ownership check failed:", propertyError);
       return fail("Unable to verify this property.", 500);
@@ -83,7 +84,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       console.error("Room category update failed:", updateError);
       return fail("Unable to update this room category.", 500);
     }
-    return NextResponse.json({ success: true, message: "Room category updated.", unit: updated }, { headers: { "Cache-Control": "no-store" } });
+    if (context.partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: context.partner.email,
+          contactPerson: context.partner.contact_person,
+          businessName: context.partner.business_name,
+          propertyName: property.name,
+          changeType: "room category",
+        });
+      } catch (mailError) {
+        console.error("Partner room edit acknowledgement failed:", mailError);
+      }
+    }
+    return NextResponse.json({ success: true, message: "Room category updated. A confirmation email will be sent to your registered partner address.", unit: updated }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Partner room update error:", error);
     return fail("An unexpected error occurred.", 500);

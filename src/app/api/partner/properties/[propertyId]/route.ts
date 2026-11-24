@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ async function authenticatePartner(request: NextRequest) {
 
   const admin = createClient(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
   const { data: partner, error: partnerError } = await admin.from("property_partners")
-    .select("id").eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
+    .select("id, email, contact_person, business_name").eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
   if (partnerError) {
     console.error("Partner verification failed:", partnerError);
     return { error: fail("Unable to verify your partner account.", 500) };
@@ -116,7 +117,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       console.error("Property update failed:", updateError);
       return fail("Unable to update this property. Please check the details.", 500);
     }
-    return NextResponse.json({ success: true, message: "Property details updated.", property: updated }, { headers: { "Cache-Control": "no-store" } });
+    if (context.partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: context.partner.email,
+          contactPerson: context.partner.contact_person,
+          businessName: context.partner.business_name,
+          propertyName: updated.name,
+          changeType: "property details",
+        });
+      } catch (mailError) {
+        console.error("Partner property edit acknowledgement failed:", mailError);
+      }
+    }
+    return NextResponse.json({ success: true, message: "Property details updated. A confirmation email will be sent to your registered partner address.", property: updated }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Partner property update error:", error);
     return fail("An unexpected error occurred.", 500);

@@ -11,7 +11,6 @@ import {
   MapPin,
   ShieldCheck,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const propertyTypes = [
   "Hotel",
@@ -61,28 +60,25 @@ export default function PartnerRegistrationPage() {
     setLoading(true);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-
-      const application = {
-        business_name: form.businessName.trim(),
-        contact_person: form.contactPerson.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim(),
-        property_type: form.propertyType,
-        location: form.location.trim(),
-        message: form.message.trim() || null,
-        has_conference_rooms: form.hasConferenceRooms,
-        status: "pending",
-      };
-
-      const { error: insertError } = await supabase
-        .from("partner_applications")
-        .insert(application as never);
-
-      if (insertError) {
-        throw insertError;
+      const response = await fetch("/api/partner/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: form.businessName.trim(),
+          contactPerson: form.contactPerson.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone.trim(),
+          propertyType: form.propertyType,
+          location: form.location.trim(),
+          message: form.message.trim(),
+          hasConferenceRooms: form.hasConferenceRooms,
+          website: form.website,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "We could not submit your application.");
       }
-
       setSubmitted(true);
     } catch (err) {
       console.error("Partner application error:", err);
