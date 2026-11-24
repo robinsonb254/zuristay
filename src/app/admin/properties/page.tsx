@@ -41,6 +41,8 @@ type Property = {
   contact_email: string | null;
   status: string;
   is_active: boolean;
+  publication_status: string;
+  publication_submitted_at?: string | null;
   is_archived?: boolean;
   created_at: string;
   partner: Partner | Partner[] | null;
@@ -151,8 +153,9 @@ export default function AdminPropertiesPage() {
     finally { setProcessingId(""); }
   }
 
-  async function reviewProperty(property: Property, action: "approve" | "reject") {
-    const actionLabel = action === "approve" ? "approve" : "reject";
+  async function reviewProperty(property: Property, action: "approve" | "reject" | "publish_approve" | "publish_reject") {
+    const actionLabels = { approve: "approve", reject: "reject", publish_approve: "give final publication approval to", publish_reject: "return for changes" };
+    const actionLabel = actionLabels[action];
     const confirmed = window.confirm(
       `Are you sure you want to ${actionLabel} "${property.name}"?`
     );
@@ -319,6 +322,7 @@ export default function AdminPropertiesPage() {
                           <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${statusStyle(property.status)}`}>
                             {property.status}
                           </span>
+                          {property.status === "approved" && <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${property.publication_status === "pending_review" ? "bg-amber-100 text-amber-800" : property.publication_status === "published" ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600"}`}>{property.publication_status.replaceAll("_", " ")}</span>}
                           {property.is_archived ? <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">Archived</span> : property.is_active && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">Live</span>}
                         </div>
                         <p className="mt-2 text-sm capitalize text-slate-600">{property.property_type.replaceAll("_", " ")}</p>
@@ -373,6 +377,24 @@ export default function AdminPropertiesPage() {
                           </button>
                         </>
                       )}
+                      {property.status === "approved" && property.publication_status === "pending_review" && (
+                        <>
+                          <button
+                            onClick={() => reviewProperty(property, "publish_approve")}
+                            disabled={processingId === property.id}
+                            className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={16} /> {processingId === property.id ? "Processing..." : "Approve & publish"}
+                          </button>
+                          <button
+                            onClick={() => reviewProperty(property, "publish_reject")}
+                            disabled={processingId === property.id}
+                            className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                          >
+                            <XCircle size={16} /> Request changes
+                          </button>
+                        </>
+                      )}
                       {!property.is_archived && (
                         <button onClick={() => archiveProperty(property)} disabled={processingId === property.id} className="inline-flex items-center rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">
                           {processingId === property.id ? "Processing..." : "Archive property"}
@@ -391,7 +413,7 @@ export default function AdminPropertiesPage() {
           <div className="flex items-start gap-3">
             <ShieldCheck size={21} className="mt-0.5 shrink-0 text-blue-700" />
             <div>
-              <h3 className="font-bold text-blue-950">Approval does not automatically publish a property</h3>
+              <h3 className="font-bold text-blue-950">Final publication requires a second review</h3>
               <p className="mt-1 text-sm leading-6 text-blue-900/75">
                 Approved listings remain inactive until room types, prices, photos and availability are configured. This prevents incomplete properties from appearing as bookable stays. We will build the partner inventory tools and a separate publishing control next.
               </p>
