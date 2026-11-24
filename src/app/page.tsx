@@ -142,7 +142,6 @@ function DestinationHighlightCard({
         )}
       </div>
       <div className="p-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#c49a52]">KENYA</p>
         <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-[#173b30]">{item.name}</h3>
         <p className="mt-2 text-sm text-gray-500">{item.description}</p>
       </div>
