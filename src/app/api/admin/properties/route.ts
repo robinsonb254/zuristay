@@ -95,7 +95,8 @@ async function sendPartnerPropertyApprovalEmail(input: { to: string; contactName
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) return false;
   const dashboardUrl = "https://zuristay-worldwide.vercel.app/partner/dashboard";
-  const safe = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] || char));
+  const htmlEntities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const safe = (value: string) => value.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
   const name = safe(input.contactName || "Partner");
   const property = safe(input.propertyName);
   const response = await fetch("https://api.resend.com/emails", {
