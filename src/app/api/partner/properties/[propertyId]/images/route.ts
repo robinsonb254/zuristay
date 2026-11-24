@@ -243,7 +243,7 @@ export async function DELETE(
     });
     const { data: partner, error: partnerError } = await admin
       .from("property_partners")
-      .select("id")
+      .select("id, email, contact_person, business_name")
       .eq("owner_user_id", user.id)
       .eq("status", "approved")
       .maybeSingle();
