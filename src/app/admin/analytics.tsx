@@ -87,7 +87,8 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
   const today = startOfDay(now);
   const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const paymentDate = (p: Payment) => new Date(p.verified_at || p.created_at);\n  const dailyPayments = useMemo(() => payments.filter((p) => paymentDate(p) >= today), [payments, today.toDateString()]);
+  const paymentDate = (p: Payment) => new Date(p.verified_at || p.created_at);
+  const dailyPayments = useMemo(() => payments.filter((p) => paymentDate(p) >= today), [payments, today.toDateString()]);
   const weeklyPayments = payments.filter((p) => paymentDate(p) >= weekStart);
   const monthlyPayments = payments.filter((p) => paymentDate(p) >= monthStart);
   const dailyEarnings = commissions.filter((c) => new Date(c.created_at) >= today);
