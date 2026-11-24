@@ -33,15 +33,12 @@ export default function LocationPhoto({
       setShouldLoad(true);
       return;
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setShouldLoad(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "300px" }
-    );
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldLoad(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: "700px" });
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
@@ -54,7 +51,7 @@ export default function LocationPhoto({
       try {
         const response = await fetch(
           `/api/location-photos?location=${encodeURIComponent(location)}`,
-          { signal: controller.signal }
+          { signal: controller.signal, cache: "force-cache" }
         );
         if (!response.ok) throw new Error("Destination photo lookup failed");
         const result = await response.json();
@@ -63,7 +60,7 @@ export default function LocationPhoto({
           setPhotoIndex(0);
         }
       } catch {
-        // Keep the accessible destination placeholder if the image source is unavailable.
+        // Keep the accessible placeholder if the photo service is unavailable.
       } finally {
         if (active) setLoaded(true);
       }
@@ -86,7 +83,9 @@ export default function LocationPhoto({
         <img
           src={photo.imageUrl}
           alt={`${location} — ${photo.title}`}
-          loading="lazy"
+          loading={shouldLoad ? "eager" : "lazy"}
+          decoding="async"
+          fetchPriority="high"
           onError={() => {
             if (photoIndex + 1 < photos.length) setPhotoIndex((index) => index + 1);
             else setPhotos([]);
