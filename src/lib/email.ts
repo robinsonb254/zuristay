@@ -90,3 +90,37 @@ export async function createReceiptPdf(snapshot: Record<string, unknown>) {
   document.end();
   return completed;
 }
+
+function safeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character] || character);
+}
+
+export async function sendPartnerApplicationAcknowledgement(input: {
+  email: string; contactPerson: string; businessName: string;
+}) {
+  const name = safeHtml(input.contactPerson);
+  const business = safeHtml(input.businessName);
+  await sendZuriStayEmail({
+    to: input.email,
+    subject: "We have received your ZuriStay Worldwide partner application",
+    text: `Hello ${input.contactPerson},\n\nThank you for applying to partner with ZuriStay Worldwide on behalf of ${input.businessName}. We have received your application and it is pending review. Our team will contact you using the details you supplied if further information is needed.\n\nThis email confirms receipt only; it is not an approval or a confirmation that your property is published.\n\nFor assistance, reply to this email or contact ${process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com"}.\n\nZuriStay Worldwide`,
+    html: `<p>Hello ${name},</p><p>Thank you for applying to partner with <strong>ZuriStay Worldwide</strong> on behalf of <strong>${business}</strong>.</p><p>We have received your application and it is <strong>pending review</strong>. Our team will contact you using the details you supplied if further information is needed.</p><p>This email confirms receipt only; it is not an approval or confirmation that your property is published.</p><p>For assistance, reply to this email or contact ${safeHtml(process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com")}.</p><p>ZuriStay Worldwide</p>`,
+  });
+}
+
+export async function sendPartnerPropertyEditAcknowledgement(input: {
+  email: string; contactPerson?: string | null; businessName?: string | null; propertyName: string; changeType?: string;
+}) {
+  const contact = input.contactPerson ? safeHtml(input.contactPerson) : "Partner";
+  const business = input.businessName ? safeHtml(input.businessName) : "your property";
+  const property = safeHtml(input.propertyName);
+  const action = input.changeType || "property details";
+  await sendZuriStayEmail({
+    to: input.email,
+    subject: `ZuriStay received your ${action} update — ${input.propertyName}`,
+    text: `Hello ${input.contactPerson || "Partner"},\n\nWe have successfully saved your ${action} update for ${input.propertyName} (${input.businessName || "your partner account"}). The update is recorded in your partner dashboard. If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.\n\nThis is an automatic confirmation that your update was saved, not a publication or approval notice.\n\nFor assistance, contact ${process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com"}.\n\nZuriStay Worldwide`,
+    html: `<p>Hello ${contact},</p><p>We have successfully saved your <strong>${safeHtml(action)}</strong> update for <strong>${property}</strong> (${business}). The update is recorded in your partner dashboard.</p><p>If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.</p><p>This is an automatic confirmation that your update was saved, not a publication or approval notice.</p><p>For assistance, contact ${safeHtml(process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com")}.</p><p>ZuriStay Worldwide</p>`,
+  });
+}
