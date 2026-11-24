@@ -124,3 +124,20 @@ export async function sendPartnerPropertyEditAcknowledgement(input: {
     html: `<p>Hello ${contact},</p><p>We have successfully saved your <strong>${safeHtml(action)}</strong> update for <strong>${property}</strong> (${business}). The update is recorded in your partner dashboard.</p><p>If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.</p><p>This is an automatic confirmation that your update was saved, not a publication or approval notice.</p><p>For assistance, contact ${safeHtml(process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com")}.</p><p>ZuriStay Worldwide</p>`,
   });
 }
+
+export async function sendPartnerApplicationDecision(input: {
+  email: string; contactPerson: string; businessName: string; approved: boolean;
+}) {
+  const name = safeHtml(input.contactPerson);
+  const business = safeHtml(input.businessName);
+  const status = input.approved ? "approved" : "not approved";
+  const nextStep = input.approved
+    ? "You can now sign in to your partner account and continue adding your property details, rooms, photos and availability."
+    : "If you would like clarification or wish to discuss a future application, please contact our team.";
+  await sendZuriStayEmail({
+    to: input.email,
+    subject: `ZuriStay Worldwide partner application update — ${input.approved ? "Approved" : "Review update"}`,
+    text: `Hello ${input.contactPerson},\n\nYour partner application for ${input.businessName} has been reviewed. Its current status is: ${status.toUpperCase()}.\n\n${input.approved ? "You can now sign in to your partner account and continue adding your property details, rooms, photos and availability." : "If you would like clarification or wish to discuss a future application, please contact our team."}\n\nFor assistance, contact ${process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com"}.\n\nZuriStay Worldwide`,
+    html: `<p>Hello ${name},</p><p>Your partner application for <strong>${business}</strong> has been reviewed. Its current status is: <strong>${status.toUpperCase()}</strong>.</p><p>${safeHtml(nextStep)}</p><p>For assistance, contact ${safeHtml(process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com")}.</p><p>ZuriStay Worldwide</p>`,
+  });
+}
