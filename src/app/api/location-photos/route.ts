@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const cleanLocation = location.replace(/,\s*(Kenya|Kenya County)$/i, "").trim();
-    if (/^bungoma(?: county)?(?:\\s*,|$)/i.test(cleanLocation)) {
+    if (/^bungoma(?: county)?(?:\s*,|$)/i.test(cleanLocation)) {
       const featuredUrl = new URL("https://commons.wikimedia.org/w/api.php");
       featuredUrl.search = new URLSearchParams({
         action: "query",
