@@ -40,13 +40,14 @@ async function contextFor(request: NextRequest) {
 async function checkReadiness(adminClient: unknown, propertyId: string, partnerId: string) {
   const admin = adminClient as ReturnType<typeof createClient>;
   const { data: propertyData, error: propertyError } = await admin.from("properties")
-    .select("id, status, is_active, name, description, address, contact_phone, contact_email")
+    .select("id, status, is_active, publication_status, name, description, address, contact_phone, contact_email")
     .eq("id", propertyId).eq("partner_id", partnerId).maybeSingle();
   if (propertyError) throw new Error("Unable to load property details.");
   const property = propertyData as {
     id: string;
     status: string;
     is_active: boolean;
+    publication_status: string;
     name: string | null;
     description: string | null;
     address: string | null;
@@ -101,6 +102,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!result) return fail("Property not found in your partner account.", 404);
     return NextResponse.json({
       success: true, status: result.property.status, isActive: result.property.is_active,
+      publicationStatus: result.property.publication_status,
       ready: result.ready, checks: result.checks,
       approvalRequired: result.property.status !== "approved",
     }, { headers: { "Cache-Control": "no-store" } });
@@ -124,14 +126,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       success: false, error: "Complete all property setup requirements before publishing.",
       checks: result.checks, incomplete: incomplete.map((check) => check.label),
     }, { status: 409, headers: { "Cache-Control": "no-store" } });
-    const { data: updated, error } = await context.admin.from("properties").update({ is_active: true })
-      .eq("id", propertyId).eq("partner_id", context.partner.id).eq("status", "approved")
-      .select("id, is_active").single();
-    if (error || !updated) {
-      console.error("Property publication failed:", error);
-      return fail("Unable to publish this property. Please try again.", 500);
+    if (result.property.publication_status === "pending_review") return fail("Your property is already awaiting final ZuriStay approval.", 409);
+    if (result.property.publication_status === "published" && result.property.is_active) {
+      return NextResponse.json({ success: true, message: "Your property is already live on ZuriStay.", isActive: true, publicationStatus: "published" }, { headers: { "Cache-Control": "no-store" } });
     }
-    return NextResponse.json({ success: true, message: "Your property is now published on ZuriStay.", isActive: true }, { headers: { "Cache-Control": "no-store" } });
+    const { data: updated, error } = await context.admin.from("properties").update({
+      is_active: false, publication_status: "pending_review", publication_submitted_at: new Date().toISOString(),
+      publication_reviewed_at: null, publication_reviewed_by: null,
+    }).eq("id", propertyId).eq("partner_id", context.partner.id).eq("status", "approved")
+      .select("id, is_active, publication_status").single();
+    if (error || !updated) {
+      console.error("Property final review submission failed:", error);
+      return fail("Unable to submit this property for final review. Please try again.", 500);
+    }
+    return NextResponse.json({ success: true, message: "Submitted for final approval. Your property will become publicly visible automatically once the ZuriStay team completes its final review.", isActive: false, publicationStatus: "pending_review" }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Property publication error:", error);
     return fail("An unexpected error occurred.", 500);
