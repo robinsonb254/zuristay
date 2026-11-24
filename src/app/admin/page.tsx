@@ -21,6 +21,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import AdminAnalytics from "./analytics";
 
 type AdminProfile = {
   id: string;
@@ -593,6 +594,8 @@ export default function AdminPage() {
               })}
             </div>
           </section>
+
+          <AdminAnalytics />
 
           <section
             id="applications"
