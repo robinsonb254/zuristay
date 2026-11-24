@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -32,7 +33,7 @@ async function authorize(request: NextRequest, propertyId: string) {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   const { data: partner, error: partnerError } = await admin.from("property_partners")
-    .select("id").eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
+    .select("id, email, contact_person, business_name").eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
   if (partnerError) {
     console.error("Partner facilities authorization failed:", partnerError);
     return { error: fail("Unable to verify your partner account.", 500) };
@@ -41,14 +42,14 @@ async function authorize(request: NextRequest, propertyId: string) {
   if (!UUID_PATTERN.test(propertyId)) return { error: fail("Invalid property ID.", 400) };
 
   const { data: property, error: propertyError } = await admin.from("properties")
-    .select("id, status").eq("id", propertyId).eq("partner_id", partner.id).maybeSingle();
+    .select("id, name, status").eq("id", propertyId).eq("partner_id", partner.id).maybeSingle();
   if (propertyError) {
     console.error("Partner facilities property lookup failed:", propertyError);
     return { error: fail("Unable to verify this property.", 500) };
   }
   if (!property) return { error: fail("Property not found in your partner account.", 404) };
   if (property.status !== "approved") return { error: fail("Facilities can be managed after property approval.", 409) };
-  return { admin, property };
+  return { admin, property, partner };
 }
 
 export async function GET(
@@ -121,7 +122,20 @@ export async function PUT(
         return fail("Unable to save selected facilities.", 500);
       }
     }
-    return NextResponse.json({ success: true, message: "Property facilities saved.", selectedIds: amenityIds }, {
+    if (auth.partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: auth.partner.email,
+          contactPerson: auth.partner.contact_person,
+          businessName: auth.partner.business_name,
+          propertyName: auth.property.name,
+          changeType: "property facilities",
+        });
+      } catch (mailError) {
+        console.error("Partner facilities acknowledgement failed:", mailError);
+      }
+    }
+    return NextResponse.json({ success: true, message: "Property facilities saved. A confirmation email will be sent to your registered partner address.", selectedIds: amenityIds }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
