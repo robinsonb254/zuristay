@@ -266,9 +266,9 @@ export default function PartnerDashboardPage() {
               <div>
                 <h2 className="font-bold text-amber-950">Payment route approval notice</h2>
                 <p className="mt-2 text-sm leading-6 text-amber-900">
-                  The additional bank/card payment route is still awaiting final approval and is not available yet.
-                  For now, please select one of the approved and working options — <strong>M-Pesa or PayPal</strong> —
-                  under Payout preferences. Any partner payout destination must still pass ZuriStay verification before transfers are enabled.
+                  The additional bank/card guest-checkout route is still awaiting final approval and is not available yet.
+                  For guest bookings, please direct customers to choose one of the active payment options — <strong>M-Pesa or PayPal</strong> — at checkout.
+                  Partner payout preferences are separate: saving a payout destination does not initiate a transfer. Partner transfers remain subject to ZuriStay verification and the required payout-provider approvals.
                 </p>
                 <Link href="/partner/payouts" className="mt-3 inline-flex items-center rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100">
                   Review payout preferences
