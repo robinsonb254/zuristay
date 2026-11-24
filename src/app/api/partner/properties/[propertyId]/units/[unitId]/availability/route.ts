@@ -263,7 +263,7 @@ export async function POST(
       {
         success: true,
         message: availableUnits === 0
-          ? `Room availability blocked for ${dayCount} date(s).`
+          ? `Room availability blocked for ${dayCount} date(s). A confirmation email will be sent to your registered partner address.`
           : `Availability saved for ${dayCount} date(s). A confirmation email will be sent to your registered partner address.`,
         updatedDates: typeof updatedDates === "number" ? updatedDates : dayCount,
       },
