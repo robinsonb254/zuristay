@@ -28,6 +28,8 @@ type Property = {
   country: string;
   status: string;
   is_active: boolean;
+  publication_status: string;
+  publication_submitted_at?: string | null;
   is_archived?: boolean;
   created_at: string;
 };
@@ -150,7 +152,7 @@ export default function PartnerDashboardPage() {
   ).length;
 
   const pendingCount = properties.filter(
-    (property) => property.status === "pending"
+    (property) => property.status === "pending" || property.publication_status === "pending_review"
   ).length;
 
   if (loading) {
@@ -257,6 +259,13 @@ export default function PartnerDashboardPage() {
           </div>
         )}
 
+        {partner?.status === "approved" && (
+          <section className="mb-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <h2 className="font-bold text-emerald-950">Your partner account is approved</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-900">You can now complete each property listing, add more properties, and manage or improve existing listings here. When a property is complete, its Publish button will activate automatically. Submitting sends it to ZuriStay for final review; it becomes visible to guests only after our team approves it. Whenever you edit property details, rooms, facilities or photographs, submit it again for verification before the updated listing is released.</p>
+          </section>
+        )}
+
         {partner && (
           <section className="mb-7 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -311,7 +320,7 @@ export default function PartnerDashboardPage() {
             <p className="text-3xl font-bold text-slate-900 mt-3">
               {pendingCount}
             </p>
-            <p className="text-xs text-slate-500 mt-1">Pending approval</p>
+            <p className="text-xs text-slate-500 mt-1">Initial or final review pending</p>
           </div>
         </section>
 
@@ -388,13 +397,10 @@ export default function PartnerDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${statusStyle(
-                        property.status
-                      )}`}
-                    >
-                      {property.status}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${statusStyle(property.status)}`}>{property.status}</span>
+                      {property.status === "approved" && <span className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${property.publication_status === "pending_review" ? "bg-amber-100 text-amber-800" : property.publication_status === "published" ? "bg-green-100 text-green-800" : property.publication_status === "changes_requested" ? "bg-orange-100 text-orange-800" : "bg-slate-100 text-slate-700"}`}>{property.publication_status.replaceAll("_", " ")}</span>}
+                    </div>
                     {property.is_archived ? (
                       <span className="text-xs font-semibold text-slate-500">Archived</span>
                     ) : property.is_active && (
