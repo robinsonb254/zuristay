@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     const { data: properties, error } = await context.admin
       .from("properties")
       .select(
-        "id, name, property_type, city, county, sub_county, country, status, is_active, is_archived, has_conference_rooms, created_at"
+        "id, name, property_type, city, county, sub_county, country, status, is_active, publication_status, publication_submitted_at, is_archived, has_conference_rooms, created_at"
       )
       .eq("partner_id", context.partner.id)
       .order("created_at", { ascending: false });
