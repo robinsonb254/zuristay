@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Photo = {
   title: string;
@@ -20,36 +20,84 @@ export default function LocationPhoto({
   className?: string;
   compact?: boolean;
 }) {
-  const [photo, setPhoto] = useState<Photo | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldLoad) return;
     let active = true;
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(`/api/location-photos?location=${encodeURIComponent(location)}`, { signal: controller.signal });
+        const response = await fetch(
+          `/api/location-photos?location=${encodeURIComponent(location)}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) throw new Error("Destination photo lookup failed");
         const result = await response.json();
-        if (active && result.photos?.length) setPhoto(result.photos[0]);
+        if (active && Array.isArray(result.photos) && result.photos.length) {
+          setPhotos(result.photos);
+          setPhotoIndex(0);
+        }
       } catch {
-        // Keep the accessible location placeholder if the external source is unavailable.
+        // Keep the accessible destination placeholder if the image source is unavailable.
       } finally {
         if (active) setLoaded(true);
       }
     }
     load();
-    return () => { active = false; controller.abort(); };
-  }, [location]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [location, shouldLoad]);
+
+  const photo = photos[photoIndex];
 
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br from-[#e7e2d6] to-[#cbd8ce] ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden bg-gradient-to-br from-[#e7e2d6] to-[#cbd8ce] ${className}`}
+    >
       {photo ? (
-        <>
-          <img src={photo.imageUrl} alt={`${location} — ${photo.title}`} loading="lazy" className="h-full w-full object-cover" />
-        </>
+        <img
+          src={photo.imageUrl}
+          alt={`${location} — ${photo.title}`}
+          loading="lazy"
+          onError={() => {
+            if (photoIndex + 1 < photos.length) setPhotoIndex((index) => index + 1);
+            else setPhotos([]);
+          }}
+          className="h-full w-full object-cover"
+        />
       ) : (
         <div className="flex h-full min-h-20 items-center justify-center p-3 text-center text-xs font-semibold text-[#496457]">
-          {loaded ? `Photo for ${location} coming soon` : `Finding a photo of ${location}…`}
+          {!shouldLoad || !loaded
+            ? `Finding a photo of ${location}…`
+            : `Photo for ${location} coming soon`}
         </div>
       )}
     </div>
