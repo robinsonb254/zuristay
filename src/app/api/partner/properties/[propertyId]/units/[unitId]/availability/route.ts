@@ -236,6 +236,14 @@ export async function POST(
       return fail(safeMessage, isInventoryConflict ? 409 : isInputError ? 400 : 500);
     }
 
+    const { error: publicationResetError } = await context.admin.from("properties")
+      .update({ publication_status: "draft", publication_submitted_at: null, publication_reviewed_at: null, publication_reviewed_by: null, is_active: false })
+      .eq("id", propertyId).eq("partner_id", context.partner.id).eq("status", "approved");
+    if (publicationResetError) {
+      console.error("Availability saved but publication review reset failed:", publicationResetError);
+      return fail("Availability was saved, but the listing review status could not be updated. Please contact support before accepting bookings.", 500);
+    }
+
     return NextResponse.json(
       {
         success: true,
