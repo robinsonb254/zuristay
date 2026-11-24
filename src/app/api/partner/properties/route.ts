@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -285,6 +286,20 @@ export async function POST(request: NextRequest) {
     if (insertError || !property) {
       console.error("Property creation failed:", insertError);
       return fail("Unable to save this property. Please check the details.", 500);
+    }
+
+    if (context.partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: context.partner.email,
+          contactPerson: context.partner.contact_person,
+          businessName: context.partner.business_name,
+          propertyName: property.name,
+          changeType: "new property submission",
+        });
+      } catch (mailError) {
+        console.error("Partner property submission acknowledgement failed:", mailError);
+      }
     }
 
     return NextResponse.json(
