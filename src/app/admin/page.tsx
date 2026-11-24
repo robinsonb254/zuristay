@@ -407,6 +407,14 @@ export default function AdminPage() {
           </a>
 
           <a
+            href="#business-analytics"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-100 hover:bg-white/10"
+          >
+            <CreditCard size={18} />
+            Business analytics
+          </a>
+
+          <a
             href="#applications"
             className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-100 hover:bg-white/10"
           >
@@ -503,6 +511,7 @@ export default function AdminPage() {
           <div className="flex gap-2 overflow-x-auto px-5 pb-3 lg:hidden">
             {[
               ["Overview", "#overview"],
+              ["Analytics", "#business-analytics"],
               ["Applications", "#applications"],
               ["Properties", "#properties"],
               ["Partners", "#partners"],
