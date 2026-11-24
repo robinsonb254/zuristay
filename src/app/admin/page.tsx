@@ -595,7 +595,7 @@ export default function AdminPage() {
             </div>
           </section>
 
-          <AdminAnalytics />
+          <AdminAnalytics enabled={!!profile} />
 
           <section
             id="applications"
