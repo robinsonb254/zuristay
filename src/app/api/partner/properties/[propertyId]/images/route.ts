@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function GET(
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
     const { data: partner, error: partnerError } = await admin
-      .from("property_partners").select("id")
+      .from("property_partners").select("id, email, contact_person, business_name")
       .eq("owner_user_id", user.id).eq("status", "approved").maybeSingle();
     if (partnerError) return fail("Unable to verify your partner account.", 500);
     if (!partner) return fail("An approved partner account is required.", 403);
@@ -95,7 +96,7 @@ export async function POST(
 
     const { data: partner, error: partnerError } = await admin
       .from("property_partners")
-      .select("id")
+      .select("id, email, contact_person, business_name")
       .eq("owner_user_id", user.id)
       .eq("status", "approved")
       .maybeSingle();
@@ -110,7 +111,7 @@ export async function POST(
 
     const { data: property, error: propertyError } = await admin
       .from("properties")
-      .select("id, status, currency")
+      .select("id, name, status, currency")
       .eq("id", propertyId)
       .eq("partner_id", partner.id)
       .maybeSingle();
@@ -195,8 +196,21 @@ export async function POST(
       return fail("Unable to save this property photo.", 500);
     }
 
+    if (partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: partner.email,
+          contactPerson: partner.contact_person,
+          businessName: partner.business_name,
+          propertyName: property.name,
+          changeType: "property photo",
+        });
+      } catch (mailError) {
+        console.error("Partner photo upload acknowledgement failed:", mailError);
+      }
+    }
     return NextResponse.json(
-      { success: true, message: "Photo uploaded successfully.", image },
+      { success: true, message: "Photo uploaded successfully. A confirmation email will be sent to your registered partner address.", image },
       { status: 201, headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
@@ -246,7 +260,7 @@ export async function DELETE(
 
     const { data: property } = await admin
       .from("properties")
-      .select("id")
+      .select("id, name")
       .eq("id", propertyId)
       .eq("partner_id", partner.id)
       .eq("status", "approved")
@@ -298,8 +312,21 @@ export async function DELETE(
       }
     }
 
+    if (partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: partner.email,
+          contactPerson: partner.contact_person,
+          businessName: partner.business_name,
+          propertyName: property.name,
+          changeType: "property photo removal",
+        });
+      } catch (mailError) {
+        console.error("Partner photo removal acknowledgement failed:", mailError);
+      }
+    }
     return NextResponse.json(
-      { success: true, message: "Photo removed." },
+      { success: true, message: "Photo removed. A confirmation email will be sent to your registered partner address." },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
