@@ -90,6 +90,32 @@ export async function GET(request: NextRequest) {
   }
 }
 
+async function sendPartnerPropertyApprovalEmail(input: { to: string; contactName: string; propertyName: string }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!apiKey || !from) return false;
+  const dashboardUrl = "https://zuristay-worldwide.vercel.app/partner/dashboard";
+  const safe = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] || char));
+  const name = safe(input.contactName || "Partner");
+  const property = safe(input.propertyName);
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from,
+      to: [input.to],
+      subject: "Your ZuriStay property has been approved — complete your listing",
+      html: `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172554;max-width:640px;margin:auto"><h2 style="color:#173b70">Your property has been approved!</h2><p>Hello ${name},</p><p>Good news: <strong>${property}</strong> has passed its initial ZuriStay review.</p><p>Please sign in to your Partner Portal and complete the remaining listing requirements:</p><ol><li>Add your room categories and room counts.</li><li>Enter your nightly rates and availability dates.</li><li>Upload clear property photographs.</li><li>Select the facilities and amenities available to guests.</li><li>Check that your property description and contact details are complete.</li></ol><p>When every checklist item is complete, the <strong>Publish my property</strong> button will activate automatically. Tap it to submit your listing for <strong>final ZuriStay approval</strong>. It will not become public immediately; once our team completes the final review and approves it, the listing will become visible to guests automatically.</p><p>Your Partner Portal lets you manage this property, add more properties, edit existing listings whenever you make improvements, and manage your accommodation details. After every change—such as editing details, rooms, facilities or photos—submit the property again using the Publish button so our team can verify and release the updated listing.</p><p><a href="${dashboardUrl}" style="display:inline-block;background:#173b70;color:#fff;padding:13px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Open Partner Dashboard</a></p><p>Thank you for partnering with ZuriStay Worldwide.</p></div>`,
+    }),
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    console.error("Partner approval email could not be sent:", response.status, detail.slice(0, 500));
+    return false;
+  }
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const context = await authenticateAdmin(request);
@@ -128,6 +154,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: "Property archived. It is hidden from guests; booking and payment history is retained.", property: archived }, { headers: { "Cache-Control": "no-store" } });
     }
 
+    const { data: propertyForNotice, error: noticeLookupError } = await context.admin
+      .from("properties")
+      .select("id, name, contact_email, partner:property_partners(email, contact_person)")
+      .eq("id", propertyId)
+      .maybeSingle();
+    if (noticeLookupError) console.error("Property approval email lookup failed:", noticeLookupError);
+
     const { data: property, error: updateError } = await context.admin
       .from("properties")
       .update(
@@ -148,13 +181,29 @@ export async function POST(request: NextRequest) {
       return fail("This property was already reviewed or no longer exists. Refresh the list.", 409);
     }
 
+    let emailSent = false;
+    if (action === "approve" && propertyForNotice) {
+      const partnerValue = Array.isArray(propertyForNotice.partner) ? propertyForNotice.partner[0] : propertyForNotice.partner;
+      const recipient = String(propertyForNotice.contact_email || partnerValue?.email || "").trim();
+      if (recipient) {
+        emailSent = await sendPartnerPropertyApprovalEmail({
+          to: recipient,
+          contactName: String(partnerValue?.contact_person || "Partner"),
+          propertyName: String(propertyForNotice.name || "your property"),
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,
-        message:
-          action === "approve"
-            ? "Property approved. It remains unpublished until its rooms, rates and availability are configured."
-            : "Property submission rejected successfully.",
+        message: action === "approve"
+          ? "Property approved. The partner can now complete the listing and submit it for final publication review."
+          : "Property submission rejected successfully.",
+        emailSent,
+        emailNotice: action === "approve" && !emailSent
+          ? "The approval is saved, but the automatic email could not be sent. Configure RESEND_API_KEY and RESEND_FROM_EMAIL to enable email delivery."
+          : undefined,
         property,
       },
       { headers: { "Cache-Control": "no-store" } }
