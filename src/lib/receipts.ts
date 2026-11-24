@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createReceiptPdf, sendZuriStayEmail } from "@/lib/email";
 
-type Database = SupabaseClient<any>;
+type Database = SupabaseClient;
 
 function receiptSignature(receiptId: string, expires: string) {
   const secret = process.env.SUPABASE_SECRET_KEY;
@@ -27,7 +27,8 @@ export function verifyReceiptLink(receiptId: string, expires: string, signature:
   return expected.length === supplied.length && timingSafeEqual(expected, supplied);
 }
 
-export async function deliverBookingReceipt(db: Database, bookingId: string, paymentId: string) {
+export async function deliverBookingReceipt(database: unknown, bookingId: string, paymentId: string) {
+  const db = database as Database;
   try {
     const { data: payment, error: paymentError } = await db.from("payments")
       .select("id, payment_method, provider_reference, amount, currency, status, verified_at, created_at")
