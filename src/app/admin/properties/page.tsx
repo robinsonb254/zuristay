@@ -194,7 +194,7 @@ export default function AdminPropertiesPage() {
         throw new Error(result.error || "The property could not be reviewed.");
       }
 
-      setSuccess(result.message);
+      setSuccess([result.message, result.emailNotice].filter(Boolean).join(" "));
       await loadProperties();
     } catch (err) {
       console.error("Property review action failed:", err);
