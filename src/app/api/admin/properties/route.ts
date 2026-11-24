@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     let query = context.admin
       .from("properties")
       .select(
-        "id, partner_id, destination_id, name, property_type, description, address, city, sub_county, county, country, currency, contact_phone, contact_email, status, is_active, is_archived, created_at, partner:property_partners(business_name, contact_person, email, phone)"
+        "id, partner_id, destination_id, name, property_type, description, address, city, sub_county, county, country, currency, contact_phone, contact_email, status, is_active, publication_status, publication_submitted_at, is_archived, created_at, partner:property_partners(business_name, contact_person, email, phone)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -140,8 +140,36 @@ export async function POST(request: NextRequest) {
     if (typeof propertyId !== "string" || !uuidPattern.test(propertyId)) {
       return fail("Invalid property ID.", 400);
     }
-    if (action !== "approve" && action !== "reject" && action !== "archive") {
-      return fail("Choose approve, reject or archive.", 400);
+    if (!["approve", "reject", "archive", "publish_approve", "publish_reject"].includes(String(action))) {
+      return fail("Choose a valid property review action.", 400);
+    }
+
+    if (action === "publish_approve" || action === "publish_reject") {
+      const approved = action === "publish_approve";
+      const { data: reviewed, error: reviewError } = await context.admin.from("properties")
+        .update({
+          publication_status: approved ? "published" : "changes_requested",
+          is_active: approved,
+          publication_reviewed_at: new Date().toISOString(),
+          publication_reviewed_by: context.user.id,
+        })
+        .eq("id", propertyId)
+        .eq("status", "approved")
+        .eq("publication_status", "pending_review")
+        .select("id, name, status, is_active, publication_status")
+        .maybeSingle();
+      if (reviewError) {
+        console.error("Final publication review failed:", reviewError);
+        return fail("Unable to complete the final publication review.", 500);
+      }
+      if (!reviewed) return fail("This listing is no longer awaiting final review. Refresh the submissions.", 409);
+      return NextResponse.json({
+        success: true,
+        message: approved
+          ? "Final review approved. The property is now publicly visible on ZuriStay."
+          : "Final review returned the property to the partner for changes. It remains hidden from guests.",
+        property: reviewed,
+      }, { headers: { "Cache-Control": "no-store" } });
     }
 
     if (action === "archive") {
