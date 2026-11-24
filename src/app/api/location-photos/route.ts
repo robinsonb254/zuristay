@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     url.search = new URLSearchParams({
       action: "query",
       generator: "search",
-      gsrsearch: `filetype:bitmap ${term} Kenya`,
+      gsrsearch: term,
       gsrnamespace: "6",
       gsrlimit: "8",
       prop: "imageinfo",
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const cleanLocation = location.replace(/,\s*(Kenya|Kenya County)$/i, "").trim();
-    if (/^bungoma(?: county)?$/i.test(cleanLocation)) {
+    if (/^bungoma(?: county)?(?:\\s*,|$)/i.test(cleanLocation)) {
       const featuredUrl = new URL("https://commons.wikimedia.org/w/api.php");
       featuredUrl.search = new URLSearchParams({
         action: "query",
@@ -140,11 +140,24 @@ export async function GET(request: NextRequest) {
     const parts = cleanLocation.split(",").map((part) => part.trim()).filter(Boolean);
     const placeKey = (parts[0] || cleanLocation).toLowerCase();
     const curatedTerm = curatedSearchTerms[placeKey];
-    const terms = Array.from(new Set([...(curatedTerm ? [curatedTerm] : []), cleanLocation, parts[0], parts.length > 1 ? `${parts[1]} County` : ""])).filter(Boolean);
+    const countyPart = parts.find((part) => !/^kenya$/i.test(part) && part.toLowerCase() !== placeKey);
+    const terms = Array.from(new Set([
+      ...(curatedTerm ? [curatedTerm] : []),
+      `${placeKey} Kenya`,
+      cleanLocation,
+      parts[0] ? `${parts[0]} town Kenya` : "",
+      countyPart ? `${countyPart} County Kenya` : "",
+      `${placeKey} landscape Kenya`,
+    ])).filter(Boolean);
     let photos: ReturnType<typeof search> extends Promise<infer T> ? T : never = [];
     for (const term of terms) {
       photos = await search(term);
       if (photos.length) break;
+    }
+    // If a small town has no Commons photograph of its own, use a relevant
+    // photograph of its county rather than leaving the destination card blank.
+    if (!photos.length && countyPart) {
+      photos = await search(`${countyPart} County Kenya`);
     }
     return NextResponse.json(
       { success: true, location, photos },
