@@ -566,7 +566,7 @@ function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: st
     <section className="mb-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div><h2 className="text-lg font-bold text-slate-900">Listing readiness</h2><p className="mt-1 text-sm text-slate-500">Complete these steps to submit your approved property for final review.</p></div>
-        <button type="button" onClick={load} disabled={loading} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50">{loading ? "Checking..." : "Refresh checklist"}</button>
+        <button type="button" onClick={() => load()} disabled={loading} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50">{loading ? "Checking..." : "Refresh checklist"}</button>
       </div>
       {status !== "approved" && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your property must first be approved by the ZuriStay admin team.</p>}
       {loading ? <p className="mt-4 text-sm text-slate-500">Checking your listing setup...</p> :
