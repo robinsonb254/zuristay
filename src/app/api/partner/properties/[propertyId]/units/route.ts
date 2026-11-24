@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ async function authenticatePartner(request: NextRequest) {
   });
   const { data: partner, error: partnerError } = await admin
     .from("property_partners")
-    .select("id, business_name")
+    .select("id, business_name, contact_person, email")
     .eq("owner_user_id", user.id)
     .eq("status", "approved")
     .maybeSingle();
@@ -114,7 +115,7 @@ export async function POST(
 
     const { data: property, error: propertyError } = await context.admin
       .from("properties")
-      .select("id, currency, status")
+      .select("id, name, currency, status")
       .eq("id", propertyId)
       .eq("partner_id", context.partner.id)
       .maybeSingle();
@@ -182,10 +183,23 @@ export async function POST(
       return fail("Unable to save this room category. Please check the details.", 500);
     }
 
+    if (context.partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: context.partner.email,
+          contactPerson: context.partner.contact_person,
+          businessName: context.partner.business_name,
+          propertyName: property.name,
+          changeType: "room category addition",
+        });
+      } catch (mailError) {
+        console.error("Partner room category acknowledgement failed:", mailError);
+      }
+    }
     return NextResponse.json(
       {
         success: true,
-        message: "Room category saved. Set availability dates before accepting bookings.",
+        message: "Room category saved. Set availability dates before accepting bookings. A confirmation email will be sent to your registered partner address.",
         unit,
       },
       { status: 201, headers: { "Cache-Control": "no-store" } }
