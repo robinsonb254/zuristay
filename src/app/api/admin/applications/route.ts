@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerApplicationDecision } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -183,6 +184,16 @@ export async function POST(request: NextRequest) {
           409
         );
       }
+      try {
+        await sendPartnerApplicationDecision({
+          email: application.email,
+          contactPerson: application.contact_person,
+          businessName: application.business_name,
+          approved: false,
+        });
+      } catch (mailError) {
+        console.error("Partner rejection notification failed:", mailError);
+      }
 
       return respond(
         true,
@@ -272,6 +283,17 @@ export async function POST(request: NextRequest) {
         "Approval could not be completed. Check the applicant's account, email verification and existing partner records.",
         409
       );
+    }
+
+    try {
+      await sendPartnerApplicationDecision({
+        email: application.email,
+        contactPerson: application.contact_person,
+        businessName: application.business_name,
+        approved: true,
+      });
+    } catch (mailError) {
+      console.error("Partner approval notification failed:", mailError);
     }
 
     return respond(
