@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { BarChart3, BedDouble, CreditCard, Globe2, TrendingUp, Wallet } from "lucide-react";
 
-type Payment = { id: string; amount: number; currency: string; status: string; payment_method: string; created_at: string };
+type Payment = { id: string; amount: number; currency: string; status: string; payment_method: string; created_at: string; verified_at: string | null };
 type Commission = { amount: number; currency: string; status: string; created_at: string };
 type Unit = { total_units: number | null; active: boolean; property_id: string };
 type Property = { id: string; city: string | null; county: string | null; country: string | null; status: string; is_active: boolean };
@@ -19,7 +19,7 @@ const sumByCurrency = (rows: { amount: number; currency: string }[]) => {
   return Array.from(totals.entries()).map(([currency, amount]) => ({ currency, amount }));
 };
 
-export default function AdminAnalytics() {
+export default function AdminAnalytics({ enabled = false }: { enabled?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -37,7 +37,7 @@ export default function AdminAnalytics() {
       const since = new Date();
       since.setDate(since.getDate() - 31);
       const [paymentResult, commissionResult, unitResult, propertyResult, bookingResult, itemResult, pendingResult] = await Promise.all([
-        supabase.from("payments").select("id, amount, currency, status, payment_method, created_at").gte("created_at", since.toISOString()).order("created_at", { ascending: false }),
+        supabase.from("payments").select("id, amount, currency, status, payment_method, created_at, verified_at").gte("created_at", since.toISOString()).order("created_at", { ascending: false }),
         supabase.from("platform_commissions").select("amount, currency, status, created_at").gte("created_at", since.toISOString()),
         supabase.from("property_units").select("total_units, active, property_id").eq("active", true),
         supabase.from("properties").select("id, city, county, country, status, is_active"),
@@ -81,15 +81,15 @@ export default function AdminAnalytics() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (enabled) load(); }, [enabled]);
 
   const now = new Date();
   const today = startOfDay(now);
   const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const dailyPayments = useMemo(() => payments.filter((p) => new Date(p.created_at) >= today), [payments, today.toDateString()]);
-  const weeklyPayments = payments.filter((p) => new Date(p.created_at) >= weekStart);
-  const monthlyPayments = payments.filter((p) => new Date(p.created_at) >= monthStart);
+  const paymentDate = (p: Payment) => new Date(p.verified_at || p.created_at);\n  const dailyPayments = useMemo(() => payments.filter((p) => paymentDate(p) >= today), [payments, today.toDateString()]);
+  const weeklyPayments = payments.filter((p) => paymentDate(p) >= weekStart);
+  const monthlyPayments = payments.filter((p) => paymentDate(p) >= monthStart);
   const dailyEarnings = commissions.filter((c) => new Date(c.created_at) >= today);
   const weeklyEarnings = commissions.filter((c) => new Date(c.created_at) >= weekStart);
   const monthlyEarnings = commissions.filter((c) => new Date(c.created_at) >= monthStart);
