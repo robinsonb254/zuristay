@@ -76,16 +76,16 @@ const curatedSearchTerms: Record<string, string> = {
 };
 
 const plain = (value?: CommonsMetadataValue) =>
-  String(value?.value || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+  String(value?.value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 function isLikelyMap(title: string, description: string) {
-  return /\\b(map|locator|location map|street map|road map|topographic|topographical|plan of|outline map|blank map|svg map|map of)\\b/i.test(
+  return /\b(map|locator|location map|street map|road map|topographic|topographical|plan of|outline map|blank map|svg map|map of)\b/i.test(
     `${title} ${description}`
   );
 }
 
 function isNonPhoto(title: string, description: string, filetype = "") {
-  return /\\b(flag|coat of arms|logo|icon|symbol|diagram|chart|screenshot|satellite view)\\b/i.test(
+  return /\b(flag|coat of arms|logo|icon|symbol|diagram|chart|screenshot|satellite view)\b/i.test(
     `${title} ${description}`
   ) || /^(svg|gif)$/i.test(filetype);
 }
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const cleanLocation = location.replace(/,\\s*(Kenya|Kenya County)$/i, "").trim();
+    const cleanLocation = location.replace(/,\s*(Kenya|Kenya County)$/i, "").trim();
     const parts = cleanLocation.split(",").map((part) => part.trim()).filter(Boolean);
     const placeName = parts[0] || cleanLocation;
     const placeKey = placeName.toLowerCase();
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
       !/^kenya$/i.test(part) &&
       part.toLowerCase() !== placeKey &&
       !/county$/i.test(part)
-    ) || (parts.some((part) => /county$/i.test(part)) ? placeName.replace(/\\s+county$/i, "") : "");
+    ) || (parts.some((part) => /county$/i.test(part)) ? placeName.replace(/\s+county$/i, "") : "");
     const curated = curatedSearchTerms[placeKey];
     const terms = Array.from(new Set([
       `"${placeName}" Kenya`,
