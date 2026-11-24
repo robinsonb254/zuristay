@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const db = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: receipt, error } = await db.from("booking_receipts")
     .select("receipt_number, receipt_snapshot")
-    .eq("id", receiptId).eq("email_status", "sent").maybeSingle();
+    .eq("id", receiptId).in("email_status", ["sent", "sending"]).maybeSingle();
   if (error || !receipt) return NextResponse.json({ success: false, error: "Receipt could not be found." }, { status: 404 });
   const pdf = await createReceiptPdf(receipt.receipt_snapshot as Record<string, unknown>);
   return new NextResponse(new Uint8Array(pdf), {
