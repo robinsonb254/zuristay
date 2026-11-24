@@ -622,7 +622,7 @@ export default function PartnerPropertyRoomsPage() {
       }
       if (!response.ok || !result.success) throw new Error(result.error || "Unable to load room categories.");
       setProperty(result.property);
-      setUnits(result.units || []);
+      setUnits((result.units || []).filter((unit: Unit) => unit.name !== "TEMPORARY TEST ROOM — NOT FOR GUEST BOOKINGS"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load room management.");
     } finally {
