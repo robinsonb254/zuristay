@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createReceiptPdf, sendZuriStayEmail } from "@/lib/email";
 
-type Database = ReturnType<typeof import("@supabase/supabase-js").createClient>;
+type Database = SupabaseClient<any>;
 
 function receiptSignature(receiptId: string, expires: string) {
   const secret = process.env.SUPABASE_SECRET_KEY;
