@@ -260,6 +260,25 @@ export default function PartnerDashboardPage() {
         )}
 
         {partner?.status === "approved" && (
+          <section className="mb-7 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 shrink-0 text-amber-700" size={21} />
+              <div>
+                <h2 className="font-bold text-amber-950">Payment route approval notice</h2>
+                <p className="mt-2 text-sm leading-6 text-amber-900">
+                  The additional bank/card payment route is still awaiting final approval and is not available yet.
+                  For now, please select one of the approved and working options — <strong>M-Pesa or PayPal</strong> —
+                  under Payout preferences. Any partner payout destination must still pass ZuriStay verification before transfers are enabled.
+                </p>
+                <Link href="/partner/payouts" className="mt-3 inline-flex items-center rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100">
+                  Review payout preferences
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {partner?.status === "approved" && (
           <section className="mb-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <h2 className="font-bold text-emerald-950">Your partner account is approved</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">You can now complete each property listing, add more properties, and manage or improve existing listings here. When a property is complete, its Publish button will activate automatically. Submitting sends it to ZuriStay for final review; it becomes visible to guests only after our team approves it. Whenever you edit property details, rooms, facilities or photographs, submit it again for verification before the updated listing is released.</p>
@@ -396,7 +415,7 @@ export default function PartnerDashboardPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 md:w-auto md:justify-end">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${statusStyle(property.status)}`}>{property.status}</span>
                       {property.status === "approved" && <span className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${property.publication_status === "pending_review" ? "bg-amber-100 text-amber-800" : property.publication_status === "published" ? "bg-green-100 text-green-800" : property.publication_status === "changes_requested" ? "bg-orange-100 text-orange-800" : "bg-slate-100 text-slate-700"}`}>{property.publication_status.replaceAll("_", " ")}</span>}
@@ -422,7 +441,7 @@ export default function PartnerDashboardPage() {
                       </Link>
                     )}
                     {!property.is_archived && (
-                      <button onClick={() => archiveProperty(property)} className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">Archive</button>
+                      <button onClick={() => archiveProperty(property)} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-red-300 bg-white px-4 py-2.5 text-xs font-bold text-red-700 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2">Archive</button>
                     )}
                   </div>
                 </article>
