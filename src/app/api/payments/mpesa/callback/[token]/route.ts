@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { deliverBookingReceipt } from "@/lib/receipts";
 import {
   getMpesaAccessToken,
   getMpesaConfig,
@@ -206,6 +207,9 @@ export async function POST(
     }
 
     await markProcessed();
+    if (typeof confirmed.payment_id === "string") {
+      await deliverBookingReceipt(db, pendingPayment.booking_id, confirmed.payment_id);
+    }
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (error) {
