@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyGuestToken, paypalAccessToken, paypalBaseUrl } from "@/lib/payments/paypal";
 import { deliverBookingReceipt } from "@/lib/receipts";
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       return fail("Your payment was confirmed, but its audit record needs reconciliation.", 503);
     }
     if (typeof confirmed.payment_id === "string") {
-      await deliverBookingReceipt(db, session.booking_id, confirmed.payment_id);
+      after(async () => { await deliverBookingReceipt(db, session.booking_id, confirmed.payment_id); });
     }
     return NextResponse.json({
       success: true, booking_id: session.booking_id, payment_status: "paid",
