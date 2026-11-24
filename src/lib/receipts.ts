@@ -29,7 +29,7 @@ export function verifyReceiptLink(receiptId: string, expires: string, signature:
 export async function deliverBookingReceipt(db: Database, bookingId: string, paymentId: string) {
   try {
     const { data: payment, error: paymentError } = await db.from("payments")
-      .select("id, payment_method, provider_reference, amount, currency, status, verified_at")
+      .select("id, payment_method, provider_reference, amount, currency, status, verified_at, created_at")
       .eq("id", paymentId).eq("booking_id", bookingId).eq("status", "successful").maybeSingle();
     if (paymentError || !payment) throw new Error("Verified payment record could not be loaded.");
 
