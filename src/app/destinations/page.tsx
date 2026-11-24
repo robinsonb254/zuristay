@@ -92,8 +92,8 @@ export default function DestinationsPage() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="mb-2 text-xs font-bold tracking-[0.2em] text-[#c49a52]">NATIONWIDE DIRECTORY</p>
-            <h2 className="text-3xl font-bold">Major towns and urban centres</h2>
-            <p className="mt-2 text-sm text-gray-500">148 urban centres ranked by KNBS 2019 census population, plus additional destinations.</p>
+            <h2 className="text-3xl font-bold">Major Towns &amp; Urban Destinations</h2>
+            <p className="mt-2 text-sm text-gray-500">Explore 148 towns, cities and urban centres across Kenya, alongside additional destinations worth discovering.</p>
           </div>
           <span className="text-sm font-semibold text-gray-500">{filteredDestinations.length} places</span>
         </div>
@@ -101,7 +101,7 @@ export default function DestinationsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredDestinations.map((item) => (
               <div key={item.id} role="button" tabIndex={0} onClick={() => searchFor(item.city)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); searchFor(item.city); } }} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
-                <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className="h-32 w-full" compact />
+                <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className={`${item.city.toLowerCase() === "diani" ? "h-52 sm:h-60" : "h-32"} w-full`} compact />
                 <span className="flex items-center justify-between gap-3 px-4 py-3">
                   <span><span className="block text-sm font-semibold">{item.city === "Diani" ? "Diani Beach" : item.city}</span><span className="mt-0.5 block text-xs text-gray-500">{item.county}</span></span>
                   <span className="shrink-0 text-right text-xs tabular-nums text-gray-400">{item.population_2019 !== null ? Number(item.population_2019).toLocaleString("en-KE") : "Tourist destination"}</span>
