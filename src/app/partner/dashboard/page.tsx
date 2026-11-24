@@ -418,7 +418,7 @@ export default function PartnerDashboardPage() {
                         className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800"
                       >
                         <Hotel size={15} />
-                        Manage rooms
+                        {property.publication_status === "published" ? "Manage rooms" : "Complete listing"}
                       </Link>
                     )}
                     {!property.is_archived && (
