@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     let emailSent = false;
     if (action === "approve" && propertyForNotice) {
       const partnerValue = Array.isArray(propertyForNotice.partner) ? propertyForNotice.partner[0] : propertyForNotice.partner;
-      const recipient = String(propertyForNotice.contact_email || partnerValue?.email || "").trim();
+      const recipient = String(partnerValue?.email || propertyForNotice.contact_email || "").trim();
       if (recipient) {
         emailSent = await sendPartnerPropertyApprovalEmail({
           to: recipient,
