@@ -307,11 +307,11 @@ export default function Home() {
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-lg p-2 xl:hidden"
+            className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#173b30]/35 bg-[#f4eee2] text-[#173b30] shadow-md transition hover:bg-[#eadfc9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52] dark:border-[#dba91d] dark:bg-[#14213b] dark:text-white dark:hover:bg-[#1c3156] xl:hidden"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
-            {menuOpen ? <X size={25} /> : <Menu size={25} />}
+            {menuOpen ? <X size={30} strokeWidth={3} /> : <Menu size={30} strokeWidth={3} />}
           </button>
         </div>
 
