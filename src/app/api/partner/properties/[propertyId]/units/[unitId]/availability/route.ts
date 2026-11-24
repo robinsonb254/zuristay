@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ async function authenticatePartner(request: NextRequest) {
   });
   const { data: partner, error: partnerError } = await admin
     .from("property_partners")
-    .select("id")
+    .select("id, email, contact_person, business_name")
     .eq("owner_user_id", user.id)
     .eq("status", "approved")
     .maybeSingle();
@@ -84,7 +85,7 @@ export async function GET(
       return fail("Invalid property or room category ID.", 400);
     }
     const { data: property, error: propertyError } = await context.admin
-      .from("properties").select("id, status")
+      .from("properties").select("id, name, status")
       .eq("id", propertyId).eq("partner_id", context.partner.id).maybeSingle();
     if (propertyError) {
       console.error("Partner property lookup failed:", propertyError);
@@ -145,7 +146,7 @@ export async function POST(
 
     const { data: property, error: propertyError } = await context.admin
       .from("properties")
-      .select("id, status")
+      .select("id, name, status")
       .eq("id", propertyId)
       .eq("partner_id", context.partner.id)
       .maybeSingle();
@@ -244,12 +245,26 @@ export async function POST(
       return fail("Availability was saved, but the listing review status could not be updated. Please contact support before accepting bookings.", 500);
     }
 
+    if (context.partner.email) {
+      try {
+        await sendPartnerPropertyEditAcknowledgement({
+          email: context.partner.email,
+          contactPerson: context.partner.contact_person,
+          businessName: context.partner.business_name,
+          propertyName: property.name,
+          changeType: "room availability and rates",
+        });
+      } catch (mailError) {
+        console.error("Partner availability acknowledgement failed:", mailError);
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,
         message: availableUnits === 0
-          ? `Room availability blocked for ${dayCount} date(s).`
-          : `Availability saved for ${dayCount} date(s).`,
+          ? `Room availability blocked for ${dayCount} date(s). A confirmation email will be sent to your registered partner address.`
+          : `Availability saved for ${dayCount} date(s). A confirmation email will be sent to your registered partner address.`,
         updatedDates: typeof updatedDates === "number" ? updatedDates : dayCount,
       },
       { headers: { "Cache-Control": "no-store" } }
