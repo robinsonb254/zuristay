@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { deliverBookingReceipt } from "@/lib/receipts";
 import {
@@ -208,7 +208,7 @@ export async function POST(
 
     await markProcessed();
     if (typeof confirmed.payment_id === "string") {
-      await deliverBookingReceipt(db, pendingPayment.booking_id, confirmed.payment_id);
+      after(async () => { await deliverBookingReceipt(db, pendingPayment.booking_id, confirmed.payment_id); });
     }
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
