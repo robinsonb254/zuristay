@@ -17,6 +17,43 @@ type CommonsSearchResponse = {
   query?: { pages?: Record<string, CommonsPage> };
 };
 
+const curatedSearchTerms: Record<string, string> = {
+  thika: "Thika town Kenya skyline buildings",
+  wajir: "Wajir town Kenya town centre buildings",
+  isiolo: "Isiolo town Kenya town centre",
+  osiolo: "Isiolo town Kenya town centre",
+  busia: "Busia Kenya border town streets",
+  "el wak": "El Wak Kenya town",
+  gilgil: "Gilgil town Kenya",
+  wanguru: "Wanguru Mwea Kenya rice fields town",
+  turi: "Turi Kenya town Nakuru",
+  moyale: "Moyale Kenya Ethiopia border town",
+  mumias: "Mumias Sugar Company sugar factory Kenya",
+  kerugoya: "Kerugoya town Kenya Mount Kenya",
+  kitui: "Kitui town Kenya town centre",
+  elburgon: "Elburgon town Kenya",
+  nyamira: "Nyamira town Kenya",
+  kakuma: "Kakuma town Kenya Turkana",
+  lafey: "Lafey town Mandera Kenya",
+  taveta: "Taveta town Kenya",
+  wote: "Wote town Makueni Kenya",
+  kiminini: "Kiminini town Trans Nzoia Kenya",
+  mbita: "Mbita town Lake Victoria Kenya",
+  bura: "Bura Tana irrigation scheme rice fields Kenya",
+  suneka: "Suneka town Kisii Kenya",
+  luanda: "Luanda town Vihiga Kenya",
+  "ol kalou": "Ol Kalou town Nyandarua Kenya",
+  rumuruti: "Rumuruti town Laikipia Kenya",
+  chavakali: "Chavakali town Vihiga Kenya",
+  vipingo: "Vipingo Kenya coastline",
+  modogashe: "Modogashe town Kenya",
+  "mau narok": "Mau Narok town farms Kenya",
+  ahero: "Ahero rice irrigation scheme rice fields Kisumu Kenya",
+  bomet: "Bomet town Kenya",
+  kinna: "Kinna town Isiolo County Kenya",
+  kwale: "Kwale town Kenya",
+  diani: "Diani Beach Kenya white sand Indian Ocean aerial coastline",
+};
 export async function GET(request: NextRequest) {
   const location = (request.nextUrl.searchParams.get("location") || "").trim();
   if (!location || location.length > 120) {
@@ -101,7 +138,9 @@ export async function GET(request: NextRequest) {
       }
     }
     const parts = cleanLocation.split(",").map((part) => part.trim()).filter(Boolean);
-    const terms = Array.from(new Set([cleanLocation, parts[0], parts.length > 1 ? `${parts[1]} County` : ""])).filter(Boolean);
+    const placeKey = (parts[0] || cleanLocation).toLowerCase();
+    const curatedTerm = curatedSearchTerms[placeKey];
+    const terms = Array.from(new Set([...(curatedTerm ? [curatedTerm] : []), cleanLocation, parts[0], parts.length > 1 ? `${parts[1]} County` : ""])).filter(Boolean);
     let photos: ReturnType<typeof search> extends Promise<infer T> ? T : never = [];
     for (const term of terms) {
       photos = await search(term);
