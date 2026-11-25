@@ -252,61 +252,47 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#fbfaf7] text-[#173b30] antialiased">
       <header className="sticky top-0 z-50 border-b border-[#e9e3d8] bg-white/95 shadow-[0_4px_24px_rgba(23,59,48,0.05)] backdrop-blur-xl dark:border-white/10 dark:bg-[#030b20]/95">
-        <div className="container flex h-20 items-center justify-between gap-5">
+        <div className="container flex min-h-20 items-center justify-between gap-4 py-2">
           <Link href="/" aria-label="ZuriStay Worldwide home" className="shrink-0">
             <picture>
               <source media="(prefers-color-scheme: dark)" srcSet="/brand/zuristay-dark.svg" />
-              <img src="/brand/zuristay-light.svg" alt="ZuriStay Worldwide — Your Next Stay, Anywhere" className="h-[4.4rem] w-[12.5rem] object-contain sm:w-[14rem]" />
+              <img src="/brand/zuristay-light.svg" alt="ZuriStay Worldwide — Your Next Stay, Anywhere" className="h-16 w-[10.5rem] object-contain sm:w-[11.5rem]" />
             </picture>
           </Link>
 
-          <nav className="ml-5 hidden items-center gap-6 whitespace-nowrap text-[13px] font-semibold tracking-wide text-[#39574d] xl:ml-10 xl:flex xl:gap-7">
-            <a href="#destinations" className="rounded-full bg-[#f4eee2] px-4 py-2.5 text-[#8b682f] transition hover:bg-[#eee2cc] hover:text-[#6f5124]">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-4 whitespace-nowrap text-xs font-semibold tracking-wide text-[#39574d] lg:flex">
+            <a href="#destinations" className="rounded-full bg-[#f4eee2] px-3 py-2.5 text-[#8b682f] transition hover:bg-[#eee2cc] hover:text-[#6f5124]">
               Explore
             </a>
-            <a href="/destinations" className="hover:text-[#c49a52]">All destinations</a>
-            <a href="#featured" className="hover:text-[#c49a52]">
-              Featured stays
-            </a>
-            <a href="#benefits" className="hover:text-[#c49a52]">
-              Why ZuriStay Worldwide
-            </a>
-            <a href="#partners" className="hover:text-[#c49a52]">
-              List your property
-            </a>
+            <a href="/destinations" className="hover:text-[#c49a52]">Destinations</a>
+            <a href="#featured" className="hover:text-[#c49a52]">Featured stays</a>
+            <a href="#partners" className="hover:text-[#c49a52]">List your property</a>
           </nav>
 
-          <div className="hidden shrink-0 items-center gap-2 xl:flex">
+          <div className="hidden shrink-0 items-center gap-2 lg:flex">
             <a
               href="/partner/dashboard"
-              className="rounded-full border border-[#173b30]/20 px-4 py-2.5 text-xs font-semibold text-[#173b30] hover:bg-[#f4eee2]"
+              className="rounded-full px-2 py-2.5 text-xs font-semibold text-[#39574d] transition hover:bg-[#f4eee2] hover:text-[#173b30]"
             >
-              Already a partner
-            </a>
-            <a
-              href="/partner/register"
-              className="rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#ae8540]"
-            >
-              Become a partner
+              Partner login
             </a>
             <a
               href="/login"
-              className="rounded-full px-3 py-2.5 text-xs font-semibold hover:bg-gray-100"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-white px-4 py-2.5 text-sm font-bold text-[#173b30] shadow-sm transition hover:bg-[#f4eee2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52]"
             >
               Sign in
             </a>
             <a
               href="/register"
-              className="rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#245545]"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-[#173b30] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:border-[#245545] hover:bg-[#245545] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52]"
             >
-              Register
+              Sign up
             </a>
-            <a href="/admin/login" className="rounded-full border border-[#c49a52]/40 px-3 py-2.5 text-xs font-semibold text-[#8b682f] hover:bg-[#f4eee2]">Admin Login</a>
           </div>
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#173b30]/35 bg-[#f4eee2] text-[#173b30] shadow-md transition hover:bg-[#eadfc9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52] dark:border-[#dba91d] dark:bg-[#14213b] dark:text-white dark:hover:bg-[#1c3156] xl:hidden"
+            className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#173b30]/35 bg-[#f4eee2] text-[#173b30] shadow-md transition hover:bg-[#eadfc9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52] dark:border-[#dba91d] dark:bg-[#14213b] dark:text-white dark:hover:bg-[#1c3156] lg:hidden"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
@@ -315,7 +301,7 @@ export default function Home() {
         </div>
 
         {menuOpen && (
-          <nav className="flex flex-col gap-4 border-t bg-white p-5 text-sm xl:hidden">
+          <nav className="flex flex-col gap-4 border-t bg-white p-5 text-sm lg:hidden">
             <a href="#destinations" onClick={() => setMenuOpen(false)}>
               Explore
             </a>
@@ -338,7 +324,7 @@ export default function Home() {
         )}
       </header>
 
-      <div className="border-b border-[#e9e3d8] bg-[#f8f5ee] px-4 py-3 xl:hidden">
+      <div className="border-b border-[#e9e3d8] bg-[#f8f5ee] px-4 py-3 lg:hidden">
         <div className="container flex flex-wrap items-center justify-center gap-2">
           <a href="/partner/register" className="inline-flex items-center justify-center rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#ae8540]">
             Become a partner
