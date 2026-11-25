@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Kenya Destinations | Explore Counties, Cities & Towns",
@@ -14,3 +15,11 @@ export const metadata: Metadata = {
       "Browse Kenya's counties, towns and travel destinations to discover places to stay.",
   },
 };
+
+export default function DestinationsLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return children;
+}
