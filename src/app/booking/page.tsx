@@ -1096,7 +1096,7 @@ export default function BookingPage() {
                 className="mt-1 h-4 w-4 shrink-0 accent-orange-500"
               />
               <span>
-                I have read and agree to the <Link href="/cancellation-refund-policy" target="_blank" className="font-bold text-orange-600 underline">ZuriStay Worldwide Cancellation and Refund Policy</Link>, which applies uniformly to all properties. Standard check-in is 2:00 PM EAT.
+                I have read and agree to the <Link href="/terms-and-conditions" target="_blank" className="font-extrabold text-[#173b30] transition hover:text-[#a77e3e]">Terms &amp; Conditions</Link> and the <Link href="/cancellation-refund-policy" target="_blank" className="font-extrabold text-[#173b30] transition hover:text-[#a77e3e]">Cancellation &amp; Refund Policy</Link>. These terms apply uniformly to all properties. Standard check-in is 2:00 PM EAT.
               </span>
             </label>
           </div>
