@@ -124,6 +124,9 @@ export default function BookingPage() {
   const [paymentReference, setPaymentReference] = useState("");
   const [guestAccessConfirmed, setGuestAccessConfirmed] = useState(false);
   const [confirmingGuestAccess, setConfirmingGuestAccess] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [cancellationSubmitting, setCancellationSubmitting] = useState(false);
+  const [cancellationNotice, setCancellationNotice] = useState("");
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -476,6 +479,35 @@ export default function BookingPage() {
     }
   }
 
+  async function requestBookingCancellation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!booking) return;
+    const reason = cancellationReason.trim();
+    if (reason.length < 5 || reason.length > 2000) {
+      setPaymentError("Please provide a cancellation reason between 5 and 2,000 characters.");
+      return;
+    }
+    setCancellationSubmitting(true);
+    setPaymentError("");
+    setCancellationNotice("");
+    try {
+      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
+      const response = await fetch("/api/bookings/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-booking-access-token": token },
+        body: JSON.stringify({ booking_id: booking.booking_id, reason }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Cancellation request could not be submitted.");
+      setCancellationNotice("Your cancellation request has been received. ZuriStay Worldwide will review it under the standard cancellation and refund policy. Your booking is not marked cancelled until the review is completed.");
+      setCancellationReason("");
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Cancellation request could not be submitted.");
+    } finally {
+      setCancellationSubmitting(false);
+    }
+  }
+
   async function confirmGuestRoomAccess() {
     if (!booking) return;
     setConfirmingGuestAccess(true); setPaymentError(""); setPaymentMessage("");
@@ -653,6 +685,20 @@ export default function BookingPage() {
               </p>
             </div>
           </div>
+
+          {paymentState === "paid" && (
+            <form onSubmit={requestBookingCancellation} className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-left print:hidden">
+              <h2 className="font-bold text-blue-950">Need to cancel this booking?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Submit a cancellation request for review under the <Link href="/cancellation-refund-policy" target="_blank" className="font-semibold text-orange-600 underline">standard cancellation and refund policy</Link>. Refunds are reviewed before being processed.</p>
+              <label className="mt-4 block text-sm font-semibold text-slate-700">Reason for cancellation
+                <textarea value={cancellationReason} onChange={event => setCancellationReason(event.target.value)} minLength={5} maxLength={2000} rows={3} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-orange-500" placeholder="Tell us why you need to cancel." />
+              </label>
+              <button type="submit" disabled={cancellationSubmitting || !!cancellationNotice} className="mt-4 w-full rounded-xl border border-blue-950 px-5 py-3 text-sm font-bold text-blue-950 disabled:opacity-50">
+                {cancellationSubmitting ? "Submitting request…" : cancellationNotice ? "Request received" : "Submit cancellation request"}
+              </button>
+              {cancellationNotice && <p role="status" className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-800">{cancellationNotice}</p>}
+            </form>
+          )}
 
           {paymentState === "paid" && (
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-left">
