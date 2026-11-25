@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Clock3, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Refund = { id: string; payment_method: "mpesa" | "paypal"; amount: number; currency: string; status: string; provider_reference: string | null };
