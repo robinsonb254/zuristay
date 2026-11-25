@@ -109,6 +109,7 @@ export default function BookingPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
+  const [acceptedCancellationPolicy, setAcceptedCancellationPolicy] = useState(false);
   const [error, setError] = useState("");
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -382,6 +383,11 @@ export default function BookingPage() {
 
     if (specialRequests.length > 2000) {
       setError("Special requests cannot exceed 2000 characters.");
+      return;
+    }
+
+    if (!acceptedCancellationPolicy) {
+      setError("Please read and accept the ZuriStay Worldwide cancellation and refund policy before continuing.");
       return;
     }
 
@@ -1032,6 +1038,21 @@ export default function BookingPage() {
               {error}
             </p>
           )}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <label className="flex items-start gap-3 text-sm leading-6 text-slate-700">
+              <input
+                type="checkbox"
+                checked={acceptedCancellationPolicy}
+                onChange={(event) => setAcceptedCancellationPolicy(event.target.checked)}
+                required
+                className="mt-1 h-4 w-4 shrink-0 accent-orange-500"
+              />
+              <span>
+                I have read and agree to the <Link href="/cancellation-refund-policy" target="_blank" className="font-bold text-orange-600 underline">ZuriStay Worldwide Cancellation and Refund Policy</Link>, which applies uniformly to all properties.
+              </span>
+            </label>
+          </div>
 
           <button
             type="submit"
