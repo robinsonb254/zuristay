@@ -104,6 +104,9 @@ export default function AdminCancellationsPage() {
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <div className="flex items-start gap-3"><ShieldCheck size={20} className="mt-0.5 shrink-0"/><p><strong>Refunds are not sent from this screen.</strong> First complete the refund through the original M-Pesa or PayPal provider, then record its genuine provider reference here. Partner settlements remain held for reconciliation after any refund.</p></div>
         </div>
+        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+          <strong>Policy calculation note:</strong> The booking currently stores check-in dates but not a property check-in clock time. Verify the applicable scheduled check-in time before applying the 48-hour cutoff; this screen deliberately does not guess or calculate the cutoff automatically.
+        </div>
         {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
         {notice && <p role="status" className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
         {loading ? <div className="flex justify-center py-24"><Loader2 className="animate-spin text-blue-900" size={28}/></div> :
