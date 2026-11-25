@@ -411,6 +411,7 @@ export default function BookingPage() {
         guest_email: email.trim().toLowerCase(),
         guest_phone: phone.trim(),
         special_requests: specialRequests.trim() || null,
+        cancellation_policy_accepted: acceptedCancellationPolicy,
       };
 
       const fingerprint = JSON.stringify(payload);
