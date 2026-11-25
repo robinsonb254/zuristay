@@ -13,7 +13,6 @@ export const metadata: Metadata = {
     "Discover hotels, resorts, apartments, villas, lodges and guesthouses across Kenya. Explore Nairobi, Mombasa, Diani, Malindi and destinations nationwide with ZuriStay Worldwide.",
   applicationName: "ZuriStay Worldwide",
   category: "travel",
-  alternates: { canonical: "/" },
   icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" },
   keywords: [
     "ZuriStay Worldwide",
