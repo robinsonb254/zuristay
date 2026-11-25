@@ -678,7 +678,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-white/10 bg-[#0c251e] py-14 text-white">
-        <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-[1fr_0.8fr_1.8fr_1.2fr]">
           <div>
             <img src="/brand/zuristay-dark.svg" alt="ZuriStay Worldwide — Your Next Stay, Anywhere" className="h-auto w-64 max-w-full rounded-lg" />
             <p className="mt-3 text-sm font-semibold text-white/75">Your world. Your stay.</p>
@@ -692,13 +692,13 @@ export default function Home() {
               <a href="/partner/register" className="transition hover:text-[#d8b879]">List your property</a>
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-sm font-extrabold tracking-wide text-white">Contact</h2>
-            <div className="mt-4 flex flex-col gap-3 text-sm font-semibold text-white/70">
-              <a href="mailto:bookings@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">Bookings: bookings@zuristayworldwide.com</a>
-              <a href="mailto:info@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">General: info@zuristayworldwide.com</a>
-              <a href="mailto:support@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">Support: support@zuristayworldwide.com</a>
-              <a href="mailto:partners@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">Partners: partners@zuristayworldwide.com</a>
+            <div className="mt-4 flex flex-col gap-3 text-[13px] font-semibold text-white/70">
+              <a href="mailto:bookings@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">Bookings: bookings@zuristayworldwide.com</a>
+              <a href="mailto:info@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">General: info@zuristayworldwide.com</a>
+              <a href="mailto:support@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">Support: support@zuristayworldwide.com</a>
+              <a href="mailto:partners@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">Partners: partners@zuristayworldwide.com</a>
             </div>
           </div>
           <div>
