@@ -263,3 +263,58 @@ revoke all on function public.record_booking_refund_result(uuid,uuid,text,text,t
 grant execute on function public.submit_booking_cancellation_request(uuid,text,text) to service_role;
 grant execute on function public.admin_review_booking_cancellation(uuid,uuid,text,numeric,text) to service_role;
 grant execute on function public.record_booking_refund_result(uuid,uuid,text,text,text) to service_role;
+
+-- Record explicit policy acceptance atomically with the booking hold.
+alter table public.bookings
+  add column if not exists cancellation_policy_version text,
+  add column if not exists cancellation_policy_accepted_at timestamptz;
+
+revoke execute on function public.create_booking_hold_secure(uuid,date,date,integer,integer,text,text,text,uuid,uuid,text,text) from service_role;
+
+create or replace function public.create_booking_hold_with_policy_secure(
+  p_unit_id uuid,
+  p_check_in date,
+  p_check_out date,
+  p_quantity integer,
+  p_guests integer,
+  p_guest_name text,
+  p_guest_email text,
+  p_guest_phone text,
+  p_idempotency_key uuid,
+  p_customer_user_id uuid,
+  p_special_requests text,
+  p_guest_access_token_hash text,
+  p_policy_version text,
+  p_policy_accepted boolean
+) returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare v_result jsonb; v_booking_id uuid;
+begin
+  if p_policy_accepted is not true or p_policy_version <> '2026-11-25' then
+    raise exception 'You must accept the current ZuriStay Worldwide cancellation and refund policy before booking.';
+  end if;
+  if p_guest_access_token_hash is null or p_guest_access_token_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'A valid guest access token hash is required.';
+  end if;
+  v_result := public.create_booking_hold(
+    p_unit_id,p_check_in,p_check_out,p_quantity,p_guests,p_guest_name,
+    p_guest_email,p_guest_phone,p_idempotency_key,p_customer_user_id,p_special_requests
+  );
+  if coalesce((v_result ->> 'success')::boolean,false) is not true
+     or v_result ->> 'booking_id' is null then
+    raise exception 'The booking hold could not be secured.';
+  end if;
+  v_booking_id := (v_result ->> 'booking_id')::uuid;
+  update public.bookings
+    set guest_access_token_hash=p_guest_access_token_hash,
+        cancellation_policy_version=p_policy_version,
+        cancellation_policy_accepted_at=now()
+    where id=v_booking_id;
+  if not found then raise exception 'The booking access credential and policy acceptance could not be stored.'; end if;
+  return v_result;
+end;
+$$;
+
+revoke all on function public.create_booking_hold_with_policy_secure(uuid,date,date,integer,integer,text,text,text,uuid,uuid,text,text,text,boolean) from public,anon,authenticated;
+grant execute on function public.create_booking_hold_with_policy_secure(uuid,date,date,integer,integer,text,text,text,uuid,uuid,text,text,text,boolean) to service_role;
