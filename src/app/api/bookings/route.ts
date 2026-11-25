@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
     }
 
     const input = body as Record<string, unknown>;
+    if (input.cancellation_policy_accepted !== true) {
+      return errorResponse("Please accept the current ZuriStay Worldwide cancellation and refund policy before booking.", 400);
+    }
 
     const {
       unit_id,
@@ -167,7 +170,7 @@ export async function POST(request: NextRequest) {
     // database wrapper stores its hash in the same transaction as the booking.
     const bookingAccessToken = randomBytes(32).toString("hex");
     const { data, error } = await supabaseAdmin.rpc(
-      "create_booking_hold_secure",
+      "create_booking_hold_with_policy_secure",
       {
         p_unit_id: unit_id,
         p_check_in: check_in,
@@ -184,6 +187,8 @@ export async function POST(request: NextRequest) {
             ? special_requests.trim() || null
             : null,
         p_guest_access_token_hash: hashBookingAccessToken(bookingAccessToken),
+        p_policy_version: "2026-11-25",
+        p_policy_accepted: true,
       }
     );
 
