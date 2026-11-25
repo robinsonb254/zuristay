@@ -271,8 +271,6 @@ alter table public.bookings
   add column if not exists cancellation_policy_version text,
   add column if not exists cancellation_policy_accepted_at timestamptz;
 
-revoke all on function public.create_booking_hold_secure(uuid,date,date,integer,integer,text,text,text,uuid,uuid,text,text) from public,anon,authenticated,service_role;
-
 create or replace function public.create_booking_hold_with_policy_secure(
   p_unit_id uuid,
   p_check_in date,
