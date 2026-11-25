@@ -525,6 +525,7 @@ export default function AdminPage() {
               ["Partners", "#partners"],
               ["Bookings", "#bookings"],
               ["Arrival disputes", "/admin/disputes"],
+              ["Cancellations & refunds", "/admin/cancellations"],
             ].map(([label, href]) => (
               <a
                 key={href}
