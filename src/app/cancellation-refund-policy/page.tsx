@@ -25,7 +25,7 @@ export default function CancellationRefundPolicyPage() {
           This is the standard ZuriStay Worldwide policy and applies consistently to every accommodation booked through the platform.
         </p>
 
-        <section className="mt-8 space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <section className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-6"><h2 className="font-black text-blue-950">Standard check-in time</h2><p className="mt-2 text-sm leading-6 text-blue-900">All ZuriStay Worldwide properties use a universal check-in time of <strong>2:00 PM East Africa Time (EAT)</strong>. The 48-hour cancellation deadline is calculated from 2:00 PM EAT, two days before the scheduled arrival date.</p></section>\n\n        <section className="mt-6 space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div>
             <h2 className="text-lg font-black text-blue-950">1. Cancellation 48 hours or more before check-in</h2>
             <p className="mt-2 leading-7 text-slate-600">If you cancel at least 48 hours before your scheduled check-in time, you are eligible for a full refund of the amount paid for the booking.</p>
