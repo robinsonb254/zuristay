@@ -10,7 +10,7 @@ type Refund = { id: string; payment_method: "mpesa" | "paypal"; amount: number; 
 type Cancellation = {
   id: string; booking_id: string; reason: string; status: string; requested_at: string;
   refund_amount: number | null; retained_amount: number | null; decision_notes: string | null;
-  bookings: { booking_reference: string; guest_name: string; guest_email: string; guest_phone: string; check_in: string; check_out: string; total_amount: number; currency: string; payment_status: string; booking_status: string };
+  bookings: { booking_reference: string; guest_name: string; guest_email: string; guest_phone: string; check_in: string; check_out: string; scheduled_check_in_at: string; total_amount: number; currency: string; payment_status: string; booking_status: string };
   booking_refund_transactions: Refund[];
   partner_settlements: { id: string; status: string; amount_due: number; currency: string; paid_at: string | null; payment_reference: string | null }[];
 };
@@ -105,7 +105,7 @@ export default function AdminCancellationsPage() {
           <div className="flex items-start gap-3"><ShieldCheck size={20} className="mt-0.5 shrink-0"/><p><strong>Refunds are not sent from this screen.</strong> First complete the refund through the original M-Pesa or PayPal provider, then record its genuine provider reference here. Partner settlements remain held for reconciliation after any refund.</p></div>
         </div>
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
-          <strong>Policy calculation note:</strong> The booking currently stores check-in dates but not a property check-in clock time. Verify the applicable scheduled check-in time before applying the 48-hour cutoff; this screen deliberately does not guess or calculate the cutoff automatically.
+          <strong>Universal check-in:</strong> 2:00 PM East Africa Time (EAT) for every property. The 48-hour full-refund deadline is calculated from the scheduled check-in instant saved with each booking.
         </div>
         {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
         {notice && <p role="status" className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
@@ -121,7 +121,7 @@ export default function AdminCancellationsPage() {
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Booking total</p><p className="mt-1 font-black text-blue-950">{money(item.bookings.total_amount,item.bookings.currency)}</p></div>
-                <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Travel dates</p><p className="mt-1 text-sm font-bold">{item.bookings.check_in} – {item.bookings.check_out}</p></div>
+                <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Travel dates</p><p className="mt-1 text-sm font-bold">{item.bookings.check_in} – {item.bookings.check_out}</p><p className="mt-1 text-xs text-slate-500">Check-in: 2:00 PM EAT · Full-refund cutoff: {new Date(new Date(item.bookings.scheduled_check_in_at).getTime() - 48 * 60 * 60 * 1000).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" })}</p></div>
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Payment / booking</p><p className="mt-1 text-sm font-bold">{item.bookings.payment_status} / {item.bookings.booking_status}</p></div>
               </div>
               <div className="mt-4 rounded-xl border border-slate-100 p-4"><p className="text-xs font-bold uppercase text-slate-500">Guest reason</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.reason}</p></div>
