@@ -109,6 +109,7 @@ export default function BookingPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
+  const [acceptedCancellationPolicy, setAcceptedCancellationPolicy] = useState(false);
   const [error, setError] = useState("");
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -123,6 +124,9 @@ export default function BookingPage() {
   const [paymentReference, setPaymentReference] = useState("");
   const [guestAccessConfirmed, setGuestAccessConfirmed] = useState(false);
   const [confirmingGuestAccess, setConfirmingGuestAccess] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [cancellationSubmitting, setCancellationSubmitting] = useState(false);
+  const [cancellationNotice, setCancellationNotice] = useState("");
 
   const idempotencyRef = useRef<{
     fingerprint: string;
@@ -385,6 +389,11 @@ export default function BookingPage() {
       return;
     }
 
+    if (!acceptedCancellationPolicy) {
+      setError("Please read and accept the ZuriStay Worldwide cancellation and refund policy before continuing.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -402,6 +411,7 @@ export default function BookingPage() {
         guest_email: email.trim().toLowerCase(),
         guest_phone: phone.trim(),
         special_requests: specialRequests.trim() || null,
+        cancellation_policy_accepted: acceptedCancellationPolicy,
       };
 
       const fingerprint = JSON.stringify(payload);
@@ -467,6 +477,35 @@ export default function BookingPage() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function requestBookingCancellation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!booking) return;
+    const reason = cancellationReason.trim();
+    if (reason.length < 5 || reason.length > 2000) {
+      setPaymentError("Please provide a cancellation reason between 5 and 2,000 characters.");
+      return;
+    }
+    setCancellationSubmitting(true);
+    setPaymentError("");
+    setCancellationNotice("");
+    try {
+      const token = bookingAccessToken || (() => { try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; } })();
+      const response = await fetch("/api/bookings/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-booking-access-token": token },
+        body: JSON.stringify({ booking_id: booking.booking_id, reason }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Cancellation request could not be submitted.");
+      setCancellationNotice("Your cancellation request has been received. ZuriStay Worldwide will review it under the standard cancellation and refund policy. Your booking is not marked cancelled until the review is completed.");
+      setCancellationReason("");
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Cancellation request could not be submitted.");
+    } finally {
+      setCancellationSubmitting(false);
     }
   }
 
@@ -627,7 +666,7 @@ export default function BookingPage() {
               <p><strong>Property:</strong> {property.name}</p>
               <p><strong>Accommodation:</strong> {selectedUnit?.name}</p>
               <p><strong>Guest:</strong> {fullName}</p>
-              <p><strong>Check-in:</strong> {checkIn}</p>
+              <p><strong>Check-in:</strong> {checkIn} at 2:00 PM EAT</p>
               <p><strong>Check-out:</strong> {checkOut}</p>
               <p><strong>Nights:</strong> {nights}</p>
               <p><strong>Guests:</strong> {guests}</p>
@@ -647,6 +686,20 @@ export default function BookingPage() {
               </p>
             </div>
           </div>
+
+          {paymentState === "paid" && (
+            <form onSubmit={requestBookingCancellation} className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-left print:hidden">
+              <h2 className="font-bold text-blue-950">Need to cancel this booking?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Submit a cancellation request for review under the <Link href="/cancellation-refund-policy" target="_blank" className="font-semibold text-orange-600 underline">standard cancellation and refund policy</Link>. Refunds are reviewed before being processed.</p>
+              <label className="mt-4 block text-sm font-semibold text-slate-700">Reason for cancellation
+                <textarea value={cancellationReason} onChange={event => setCancellationReason(event.target.value)} minLength={5} maxLength={2000} rows={3} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-orange-500" placeholder="Tell us why you need to cancel." />
+              </label>
+              <button type="submit" disabled={cancellationSubmitting || !!cancellationNotice} className="mt-4 w-full rounded-xl border border-blue-950 px-5 py-3 text-sm font-bold text-blue-950 disabled:opacity-50">
+                {cancellationSubmitting ? "Submitting request…" : cancellationNotice ? "Request received" : "Submit cancellation request"}
+              </button>
+              {cancellationNotice && <p role="status" className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-800">{cancellationNotice}</p>}
+            </form>
+          )}
 
           {paymentState === "paid" && (
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-left">
@@ -903,7 +956,7 @@ export default function BookingPage() {
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <label className="block text-sm font-bold text-slate-700">
-                Check-in date
+                Check-in date · arrival at 2:00 PM EAT
                 <span className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3">
                   <CalendarDays size={18} className="text-orange-500" />
                   <input
@@ -1032,6 +1085,21 @@ export default function BookingPage() {
               {error}
             </p>
           )}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <label className="flex items-start gap-3 text-sm leading-6 text-slate-700">
+              <input
+                type="checkbox"
+                checked={acceptedCancellationPolicy}
+                onChange={(event) => setAcceptedCancellationPolicy(event.target.checked)}
+                required
+                className="mt-1 h-4 w-4 shrink-0 accent-orange-500"
+              />
+              <span>
+                I have read and agree to the <Link href="/cancellation-refund-policy" target="_blank" className="font-bold text-orange-600 underline">ZuriStay Worldwide Cancellation and Refund Policy</Link>, which applies uniformly to all properties. Standard check-in is 2:00 PM EAT.
+              </span>
+            </label>
+          </div>
 
           <button
             type="submit"

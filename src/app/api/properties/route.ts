@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   const { data: properties, error: propertiesError } = await supabase
     .from("properties")
     .select(
-      "id, name, property_type, description, address, city, county, sub_county, country, country_code, currency, latitude, longitude, has_conference_rooms, conference_room_capacity, conference_room_details"
+      "id, name, property_type, description, address, city, county, sub_county, country, country_code, currency, check_in_time, latitude, longitude, has_conference_rooms, conference_room_capacity, conference_room_details"
     )
     .eq("status", "approved")
     .eq("is_active", true)

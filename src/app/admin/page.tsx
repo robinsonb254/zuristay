@@ -453,6 +453,14 @@ export default function AdminPage() {
             <AlertCircle size={18} />
             Arrival disputes
           </Link>
+
+          <Link
+            href="/admin/cancellations"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-100 hover:bg-white/10"
+          >
+            <ShieldCheck size={18} />
+            Cancellations & refunds
+          </Link>
         </nav>
 
         <div className="border-t border-white/10 p-5">
@@ -517,6 +525,7 @@ export default function AdminPage() {
               ["Partners", "#partners"],
               ["Bookings", "#bookings"],
               ["Arrival disputes", "/admin/disputes"],
+              ["Cancellations & refunds", "/admin/cancellations"],
             ].map(([label, href]) => (
               <a
                 key={href}
