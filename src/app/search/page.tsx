@@ -1,4 +1,5 @@
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import LivePropertyResults from "./LivePropertyResults";
 import LocationPhoto from "@/app/components/LocationPhoto";
@@ -10,6 +11,12 @@ import {
 } from "lucide-react";
 
 
+
+export const metadata: Metadata = {
+  title: "Search accommodation across Kenya",
+  description: "Search available hotels, apartments, villas and other accommodation across Kenya.",
+  robots: { index: false, follow: true },
+};
 
 type SearchParams = {
   destination?: string;
