@@ -38,6 +38,7 @@ create table if not exists public.booking_refund_transactions (
   initiated_by uuid references auth.users(id),
   completed_by uuid references auth.users(id),
   failure_reason text,
+  reconciliation_notes text,
   created_at timestamptz not null default now(),
   completed_at timestamptz
 );
@@ -227,6 +228,7 @@ begin
   update public.booking_refund_transactions
     set status=p_result, provider_reference=nullif(btrim(p_provider_reference),''),
         failure_reason=case when p_result='failed' then btrim(p_notes) else null end,
+        reconciliation_notes=btrim(p_notes),
         completed_by=p_admin_user_id, completed_at=now()
     where id=p_refund_transaction_id;
 
@@ -269,7 +271,7 @@ alter table public.bookings
   add column if not exists cancellation_policy_version text,
   add column if not exists cancellation_policy_accepted_at timestamptz;
 
-revoke execute on function public.create_booking_hold_secure(uuid,date,date,integer,integer,text,text,text,uuid,uuid,text,text) from service_role;
+revoke all on function public.create_booking_hold_secure(uuid,date,date,integer,integer,text,text,text,uuid,uuid,text,text) from public,anon,authenticated,service_role;
 
 create or replace function public.create_booking_hold_with_policy_secure(
   p_unit_id uuid,
