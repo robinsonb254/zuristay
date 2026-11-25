@@ -956,7 +956,7 @@ export default function BookingPage() {
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <label className="block text-sm font-bold text-slate-700">
-                Check-in date
+                Check-in date · arrival at 2:00 PM EAT
                 <span className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3">
                   <CalendarDays size={18} className="text-orange-500" />
                   <input
