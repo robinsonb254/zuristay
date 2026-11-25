@@ -24,7 +24,7 @@ export default function ContactPage() {
         </div>
       </header>
       <section className="mx-auto max-w-6xl px-5 py-16 sm:py-20">
-        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#a77e3e]">We're here to help</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#a77e3e]">We&apos;re here to help</p>
         <h1 className="mt-3 text-4xl font-black tracking-tight text-[#173b30] sm:text-5xl">Contact ZuriStay Worldwide</h1>
         <p className="mt-5 max-w-2xl leading-8 text-[#52665d]">Choose the team that best matches your enquiry. Our official contact addresses are listed below.</p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2">
