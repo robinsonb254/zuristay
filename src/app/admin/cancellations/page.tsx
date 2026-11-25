@@ -12,6 +12,7 @@ type Cancellation = {
   refund_amount: number | null; retained_amount: number | null; decision_notes: string | null;
   bookings: { booking_reference: string; guest_name: string; guest_email: string; guest_phone: string; check_in: string; check_out: string; total_amount: number; currency: string; payment_status: string; booking_status: string };
   booking_refund_transactions: Refund[];
+  partner_settlements: { id: string; status: string; amount_due: number; currency: string; paid_at: string | null; payment_reference: string | null }[];
 };
 type Draft = { refundAmount: string; notes: string; providerReference: string; result: "succeeded" | "failed" };
 const blank: Draft = { refundAmount: "", notes: "", providerReference: "", result: "succeeded" };
@@ -121,6 +122,7 @@ export default function AdminCancellationsPage() {
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Payment / booking</p><p className="mt-1 text-sm font-bold">{item.bookings.payment_status} / {item.bookings.booking_status}</p></div>
               </div>
               <div className="mt-4 rounded-xl border border-slate-100 p-4"><p className="text-xs font-bold uppercase text-slate-500">Guest reason</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.reason}</p></div>
+              {item.partner_settlements?.length > 0 && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="text-xs font-bold uppercase text-amber-800">Partner settlement reconciliation</p>{item.partner_settlements.map(settlement => <p key={settlement.id} className="mt-2 text-sm text-amber-950">{money(settlement.amount_due,settlement.currency)} · {settlement.status}{settlement.payment_reference ? ` · Ref ${settlement.payment_reference}` : ""}</p>)}<p className="mt-2 text-xs text-amber-800">If any settlement was already paid to a partner, resolve that amount separately before closing the refund case.</p></div>}
               {item.status === "pending_review" && <form onSubmit={e => review(e,item,"approve")} className="mt-5 border-t border-slate-100 pt-5">
                 <h3 className="font-bold text-blue-950">Review under the standard platform policy</h3>
                 <label className="mt-3 block text-sm font-semibold">Approved refund amount ({item.bookings.currency})
