@@ -70,6 +70,12 @@ const structuredData = {
         "@type": "Country",
         name: "Kenya",
       },
+      email: "bookings@zuristayworldwide.com",
+      contactPoint: [
+        { "@type": "ContactPoint", contactType: "reservations", email: "bookings@zuristayworldwide.com", availableLanguage: ["English", "Swahili"] },
+        { "@type": "ContactPoint", contactType: "customer support", email: "support@zuristayworldwide.com", availableLanguage: ["English", "Swahili"] },
+        { "@type": "ContactPoint", contactType: "business partnerships", email: "partners@zuristayworldwide.com", availableLanguage: ["English", "Swahili"] },
+      ],
       sameAs: [],
     },
     {

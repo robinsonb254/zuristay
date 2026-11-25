@@ -678,17 +678,40 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-white/10 bg-[#0c251e] py-14 text-white">
-        <div className="container flex flex-col justify-between gap-8 md:flex-row">
+        <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <img src="/brand/zuristay-dark.svg" alt="ZuriStay Worldwide — Your Next Stay, Anywhere" className="h-auto w-64 max-w-full rounded-lg" />
-            <p className="mt-3 text-sm text-white/70">Your world. Your stay.</p>
+            <p className="mt-3 text-sm font-semibold text-white/75">Your world. Your stay.</p>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-white/60">Discover places to stay across Kenya and beyond.</p>
           </div>
-          <div className="text-sm text-white/60">
-            <p>Explore stays. Discover experiences.</p>
-            <p className="mt-3">
-              © {new Date().getFullYear()} ZuriStay Worldwide. All rights reserved.
-            </p>
+          <div>
+            <h2 className="text-sm font-extrabold tracking-wide text-white">Explore</h2>
+            <div className="mt-4 flex flex-col gap-3 text-sm font-semibold text-white/70">
+              <a href="/destinations" className="transition hover:text-[#d8b879]">Destinations</a>
+              <a href="/search" className="transition hover:text-[#d8b879]">Find accommodation</a>
+              <a href="/partner/register" className="transition hover:text-[#d8b879]">List your property</a>
+            </div>
           </div>
+          <div>
+            <h2 className="text-sm font-extrabold tracking-wide text-white">Contact</h2>
+            <div className="mt-4 flex flex-col gap-3 text-sm font-semibold text-white/70">
+              <a href="mailto:bookings@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">Bookings: bookings@zuristayworldwide.com</a>
+              <a href="mailto:info@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">General: info@zuristayworldwide.com</a>
+              <a href="mailto:support@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">Support: support@zuristayworldwide.com</a>
+              <a href="mailto:partners@zuristayworldwide.com" className="break-all transition hover:text-[#d8b879]">Partners: partners@zuristayworldwide.com</a>
+            </div>
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold tracking-wide text-white">Help &amp; Legal</h2>
+            <div className="mt-4 flex flex-col gap-3 text-sm font-semibold text-white/70">
+              <a href="/contact" className="transition hover:text-[#d8b879]">Contact us</a>
+              <a href="/terms-and-conditions" className="transition hover:text-[#d8b879]">Terms &amp; Conditions</a>
+              <a href="/cancellation-refund-policy" className="transition hover:text-[#d8b879]">Cancellation &amp; Refund Policy</a>
+            </div>
+          </div>
+        </div>
+        <div className="container mt-10 border-t border-white/10 pt-6 text-xs font-semibold text-white/55">
+          © {new Date().getFullYear()} ZuriStay Worldwide. All rights reserved.
         </div>
       </footer>
     </main>
