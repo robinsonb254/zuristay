@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const context = await getAdmin(request);
     if ("response" in context) return context.response;
     const { data, error } = await context.db.from("booking_cancellation_requests")
-      .select("id,booking_id,reason,status,policy_version,requested_at,reviewed_at,refund_amount,retained_amount,decision_notes,bookings!inner(booking_reference,guest_name,guest_email,guest_phone,check_in,check_out,total_amount,currency,payment_status,booking_status),booking_refund_transactions(id,payment_method,amount,currency,status,provider_reference,created_at,completed_at),partner_settlements(id,status,amount_due,currency,paid_at,payment_reference)")
+      .select("id,booking_id,reason,status,policy_version,requested_at,reviewed_at,refund_amount,retained_amount,decision_notes,bookings!inner(booking_reference,guest_name,guest_email,guest_phone,check_in,check_out,scheduled_check_in_at,total_amount,currency,payment_status,booking_status),booking_refund_transactions(id,payment_method,amount,currency,status,provider_reference,created_at,completed_at),partner_settlements(id,status,amount_due,currency,paid_at,payment_reference)")
       .in("status", ["pending_review","approved","refund_pending","refunded","denied"])
       .order("requested_at", { ascending: false });
     if (error) {
