@@ -122,6 +122,7 @@ export default function BookingPage() {
   const [paymentError, setPaymentError] = useState("");
   const [paymentState, setPaymentState] = useState<"idle" | "waiting" | "paid" | "failed" | "expired" | "timeout">("idle");
   const [paymentReference, setPaymentReference] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "paypal" | null>(null);
   const [guestAccessConfirmed, setGuestAccessConfirmed] = useState(false);
   const [confirmingGuestAccess, setConfirmingGuestAccess] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
@@ -544,6 +545,7 @@ export default function BookingPage() {
         if (result.payment_status === "paid" && result.booking_status === "confirmed") {
           setPaymentState("paid");
           setPaymentReference(result.payment_reference || "");
+          setPaymentMethod(result.payment_method === "paypal" ? "paypal" : "mpesa");
           setPaymentMessage("Payment received and verified. Your reservation is confirmed.");
           return;
         }
@@ -720,13 +722,13 @@ export default function BookingPage() {
               </div>
               <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
                 <div><p className="text-xs text-slate-500">Booking reference</p><p className="mt-1 font-bold text-blue-950">{booking.booking_reference}</p></div>
-                <div><p className="text-xs text-slate-500">M-Pesa receipt</p><p className="mt-1 break-all font-bold text-blue-950">{paymentReference || "Verified by ZuriStay Worldwide"}</p></div>
+                <div><p className="text-xs text-slate-500">{paymentMethod === "paypal" ? "PayPal capture reference" : "M-Pesa receipt number"}</p><p className="mt-1 break-all font-bold text-blue-950">{paymentReference || "Verified by ZuriStay Worldwide"}</p></div>
                 <div><p className="text-xs text-slate-500">Guest</p><p className="mt-1 font-semibold text-slate-800">{fullName}</p></div>
                 <div><p className="text-xs text-slate-500">Property</p><p className="mt-1 font-semibold text-slate-800">{property.name}</p></div>
                 <div><p className="text-xs text-slate-500">Accommodation</p><p className="mt-1 font-semibold text-slate-800">{selectedUnit?.name}</p></div>
                 <div><p className="text-xs text-slate-500">Travel dates</p><p className="mt-1 font-semibold text-slate-800">{checkIn} – {checkOut}</p></div>
                 <div><p className="text-xs text-slate-500">Guests / rooms</p><p className="mt-1 font-semibold text-slate-800">{guests} guests · {rooms} room(s)</p></div>
-                <div><p className="text-xs text-slate-500">Payment method</p><p className="mt-1 font-semibold text-slate-800">M-Pesa</p></div>
+                <div><p className="text-xs text-slate-500">Payment method</p><p className="mt-1 font-semibold text-slate-800">{paymentMethod === "paypal" ? "PayPal" : "M-Pesa"}</p></div>
               </div>
               <div className="mt-5 flex items-center justify-between border-t border-dashed border-slate-300 pt-5">
                 <span className="font-bold text-blue-950">Amount paid</span>
@@ -741,12 +743,12 @@ export default function BookingPage() {
 
           <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-left print:hidden">
             <h2 className="font-bold text-blue-950">
-              {paymentState === "paid" ? "M-Pesa payment confirmed" : "Pay securely with M-Pesa"}
+              {paymentState === "paid" ? `${paymentMethod === "paypal" ? "PayPal" : "M-Pesa"} payment confirmed` : "Choose your payment method"}
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               {paymentState === "paid"
-                ? "Your payment was received and verified by ZuriStay Worldwide."
-                : "We will send an STK Push to the guest phone number entered for this booking."}
+                ? `Your ${paymentMethod === "paypal" ? "PayPal" : "M-Pesa"} payment was received and verified by ZuriStay Worldwide.`
+                : "Choose M-Pesa or PayPal to complete your reservation securely."}
             </p>
             {paymentState !== "paid" && <label className="mt-4 block text-sm font-semibold text-slate-700">
               M-Pesa phone number

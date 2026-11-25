@@ -48,15 +48,24 @@ export async function GET(request: NextRequest) {
 
     const { data: latestPayment, error: paymentError } = await db
       .from("payments")
-      .select("status, provider_reference")
+      .select("status, provider_reference, payment_method")
+      .eq("booking_id", bookingId)
+      .eq("status", "successful")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: latestMpesaAttempt, error: mpesaError } = await db
+      .from("payments")
+      .select("status")
       .eq("booking_id", bookingId)
       .eq("payment_method", "mpesa")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (paymentError) {
-      console.error("Payment status lookup failed:", paymentError);
+    if (paymentError || mpesaError) {
+      console.error("Payment status lookup failed:", paymentError || mpesaError);
       return response({ success: false, error: "Payment status is temporarily unavailable." }, 500);
     }
 
@@ -84,8 +93,9 @@ export async function GET(request: NextRequest) {
       booking_reference: booking.booking_reference,
       booking_status: booking.booking_status,
       payment_status: booking.payment_status,
-      mpesa_status: latestPayment?.status ?? null,
-      payment_reference: latestPayment?.status === "successful" ? latestPayment.provider_reference : null,
+      mpesa_status: latestMpesaAttempt?.status ?? null,
+      payment_method: latestPayment?.payment_method ?? null,
+      payment_reference: latestPayment?.provider_reference ?? null,
       total_amount: booking.total_amount,
       currency: booking.currency,
       hold_active: Boolean(holds?.length),
