@@ -45,6 +45,18 @@ create table if not exists public.booking_refund_transactions (
 create index if not exists booking_refund_transactions_booking
   on public.booking_refund_transactions(booking_id, created_at desc);
 
+create table if not exists public.booking_cancellation_settlement_holds (
+  cancellation_request_id uuid not null references public.booking_cancellation_requests(id) on delete restrict,
+  settlement_id uuid not null references public.partner_settlements(id) on delete restrict,
+  previous_status text not null,
+  previous_eligible_at timestamptz,
+  created_at timestamptz not null default now(),
+  primary key (cancellation_request_id, settlement_id)
+);
+alter table public.booking_cancellation_settlement_holds enable row level security;
+revoke all on public.booking_cancellation_settlement_holds from anon, authenticated;
+grant all on public.booking_cancellation_settlement_holds to service_role;
+
 alter table public.booking_cancellation_requests enable row level security;
 alter table public.booking_refund_transactions enable row level security;
 revoke all on public.booking_cancellation_requests from anon, authenticated;
@@ -79,6 +91,14 @@ begin
   insert into public.booking_cancellation_requests(booking_id,reason)
   values (p_booking_id,btrim(p_reason))
   returning id into v_request_id;
+  insert into public.booking_cancellation_settlement_holds(
+    cancellation_request_id, settlement_id, previous_status, previous_eligible_at
+  )
+  select v_request_id, ps.id, ps.status, ps.eligible_at
+    from public.partner_settlements ps
+    where ps.booking_id=p_booking_id
+      and ps.status in ('awaiting_checkout','awaiting_confirmations','pending','processing')
+  on conflict do nothing;
   update public.partner_settlements
     set status='held', eligible_at=null
     where booking_id=p_booking_id
@@ -119,12 +139,12 @@ begin
       set status='denied', reviewed_by=p_admin_user_id, reviewed_at=now(),
           decision_notes=btrim(p_notes), updated_at=now()
       where id=p_request_id;
-    -- Only release held settlements if the booking is still eligible under
-    -- the existing confirmation and payout checks.
-    update public.partner_settlements
-      set status='awaiting_confirmations'
-      where booking_id=v_req.booking_id and status='held'
-        and v_booking.payment_status='paid';
+    -- Restore each settlement to its exact prior state after a denied request.
+    update public.partner_settlements ps
+      set status=h.previous_status, eligible_at=h.previous_eligible_at
+      from public.booking_cancellation_settlement_holds h
+      where h.cancellation_request_id=v_req.id
+        and ps.id=h.settlement_id and ps.status='held';
     return jsonb_build_object('success',true,'status','denied');
   end if;
 
