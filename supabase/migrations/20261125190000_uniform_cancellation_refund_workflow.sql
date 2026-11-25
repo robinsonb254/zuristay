@@ -139,7 +139,7 @@ begin
   select payment_method into v_method from public.payments
     where booking_id=v_req.booking_id and status='successful'
     order by verified_at desc nulls last, created_at desc limit 1;
-  if p_refund_amount > 0 and v_method not in ('mpesa','paypal') then
+  if p_refund_amount > 0 and (v_method is null or v_method not in ('mpesa','paypal')) then
     raise exception 'The original payment method could not be verified for refund recording.';
   end if;
 
