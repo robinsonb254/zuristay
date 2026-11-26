@@ -60,6 +60,7 @@ function statusStyle(status: string) {
 export default function PartnerDashboardPage() {
   const router = useRouter();
   const [partner, setPartner] = useState<Partner | null>(null);
+  const [partnerState, setPartnerState] = useState("loading");
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,6 +104,7 @@ export default function PartnerDashboardPage() {
       }
 
       setPartner(result.partner);
+      setPartnerState(result.partnerState || result.partner?.status || "approved");
       setProperties(result.properties || []);
     } catch (err) {
       setError(
@@ -203,18 +205,18 @@ export default function PartnerDashboardPage() {
               Welcome{partner?.contact_person ? `, ${partner.contact_person}` : ""}
             </h1>
             <p className="text-slate-600 mt-2">
-              Manage your accommodation listings and property information.
+              {partnerState === "approved" ? "Manage your accommodation listings and property information." : "View your partner registration and account status."}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Link
+            {partnerState === "approved" && <Link
               href="#property-listings"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
             >
               <Building2 size={19} />
               Manage properties
-            </Link>
+            </Link>}
             {partner?.status === "approved" && (
               <Link
                 href="/partner/properties/new"
@@ -226,21 +228,21 @@ export default function PartnerDashboardPage() {
             )}
           </div>
 
-          <Link
+          {partnerState === "approved" && <Link
             href="/partner/confirmations"
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-5 py-3 font-semibold text-emerald-800 hover:bg-emerald-50"
           >
             <CalendarDays size={18} />
             Guest confirmations
-          </Link>
+          </Link>}
 
-          <Link
+          {partnerState === "approved" && <Link
             href="/partner/payouts"
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
           >
             <Banknote size={18} />
             Payout preferences
-          </Link>
+          </Link>}
         </div>
 
         {error && (
@@ -257,6 +259,37 @@ export default function PartnerDashboardPage() {
               </button>
             </div>
           </div>
+        )}
+
+        {partnerState !== "approved" && (
+          <section className="mb-7 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-1 shrink-0 text-blue-700" size={22} />
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-slate-900">
+                  {partnerState === "pending" ? "Your partner application is under review" :
+                   partnerState === "rejected" ? "Your partner application was not approved" :
+                   partnerState === "suspended" ? "Your partner account is temporarily suspended" :
+                   "Welcome to the ZuriStay partner portal"}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {partnerState === "pending"
+                    ? "Thank you for applying to partner with ZuriStay Worldwide. Our team is reviewing your application. Property-management tools will become available once your account is approved."
+                    : partnerState === "rejected"
+                    ? "Your application was not approved. Please contact partner support if you need clarification or would like to discuss a new application."
+                    : partnerState === "suspended"
+                    ? "Your partner access is currently paused. Please contact partner support for assistance."
+                    : "Your account is signed in successfully, but no partner application is linked to this email yet. You can submit your accommodation business for review below."}
+                </p>
+                {partnerState === "not_applied" && (
+                  <Link href="/partner/register" className="mt-4 inline-flex items-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">
+                    Register as a partner
+                  </Link>
+                )}
+                <p className="mt-3 text-xs text-slate-500">Use the same email address on your ZuriStay account and partner application so we can match your registration.</p>
+              </div>
+            </div>
+          </section>
         )}
 
         {partner?.status === "approved" && (
@@ -285,7 +318,7 @@ export default function PartnerDashboardPage() {
           </section>
         )}
 
-        {partner && (
+        {partner?.status === "approved" && (
           <section className="mb-7 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-900">
@@ -308,7 +341,8 @@ export default function PartnerDashboardPage() {
           </section>
         )}
 
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {partnerState === "approved" && (
+        <><section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-500">My properties</p>
@@ -449,6 +483,8 @@ export default function PartnerDashboardPage() {
             </div>
           )}
         </section>
+
+        </>)}
 
         <p className="text-center text-xs text-slate-400 mt-8">
           ZuriStay Worldwide Partner Portal · Your World. Your Stay.
