@@ -54,7 +54,7 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
     setError("");
     const supabase = createSupabaseBrowserClient();
     const since = kenyaStartOfDay(new Date(), -31);
-    const safeQuery = async (query: PromiseLike<any>) => {
+    const safeQuery = async <T,>(query: PromiseLike<SafeQueryResult<T>>): Promise<SafeQueryResult<T>> => {
       try {
         return await query;
       } catch (e) {
