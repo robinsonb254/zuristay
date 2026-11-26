@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     if (attemptError || !attempt) {
       if (attemptError?.code === "23505") {
-        return reply("An M-Pesa request is already pending for this booking. Check your phone and wait for confirmation before trying again.", 409);
+        return reply("A payment attempt is already pending for this booking. Complete or verify it before starting another payment.", 409);
       }
       console.error("Unable to reserve M-Pesa payment attempt:", attemptError);
       return reply("Unable to safely reserve this payment attempt. Please try again shortly.", 500);
