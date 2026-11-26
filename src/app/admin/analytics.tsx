@@ -167,7 +167,7 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
         <div><p className="text-sm font-semibold text-orange-600">BUSINESS INTELLIGENCE</p><h2 className="mt-1 text-2xl font-black text-blue-950">Performance & financial reports</h2><p className="mt-1 text-sm text-slate-500">Live figures from recorded bookings, payments, approved room inventory and platform commissions.</p></div>
         <button onClick={load} disabled={loading} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-50">{loading ? "Updating…" : "Refresh reports"}</button>
       </div>
-      {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">Analytics issue: {error}</p>}
+      {error && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><span className="font-bold">Some reports are temporarily unavailable.</span> {error}</p>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={<BedDouble size={20}/>} label="Approved rooms" value={loading ? "…" : roomCount.toLocaleString("en-KE")} note="Active room inventory in published properties"/>
         <Metric icon={<CreditCard size={20}/>} label="Payments today" value={loading ? "…" : renderTotals(dailyTotals)} note={`${dailyPayments.length} verified payment(s) today`}/>
