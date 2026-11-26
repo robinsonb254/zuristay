@@ -14,8 +14,7 @@ BEGIN
   );
   v_updated := pg_catalog.regexp_replace(v_definition, v_pattern, v_new);
   IF v_updated = v_definition THEN
-    -- A previously applied migration is safe to re-run.
-    IF pg_catalog.position('KES has no minor unit' in v_definition) > 0 THEN
+    IF pg_catalog.strpos(v_definition, 'KES has no minor unit') > 0 THEN
       RETURN;
     END IF;
     RAISE EXCEPTION 'Expected booking pricing calculation was not found; migration stopped without changes.';
