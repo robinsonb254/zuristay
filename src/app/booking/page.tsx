@@ -548,6 +548,7 @@ export default function BookingPage() {
 
         if (result.payment_status === "paid" && result.booking_status === "confirmed") {
           setPaymentState("paid");
+          setPaymentError("");
           setPaymentReference(result.payment_reference || "");
           setPaymentMethod(result.payment_method === "paypal" ? "paypal" : "mpesa");
           setPaymentMessage("Payment received and verified. Your reservation is confirmed.");
@@ -556,12 +557,14 @@ export default function BookingPage() {
 
         if (result.mpesa_status === "failed") {
           setPaymentState("failed");
+          setPaymentMessage("");
           setPaymentError("The M-Pesa request was not completed. You can try again while your room hold is active.");
           return;
         }
 
         if (!result.hold_active) {
           setPaymentState("expired");
+          setPaymentMessage("");
           setPaymentError("Your 15-minute room hold has expired before payment was confirmed. Please contact ZuriStay Worldwide support before making another payment.");
           return;
         }
