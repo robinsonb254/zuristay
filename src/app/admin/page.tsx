@@ -924,13 +924,14 @@ export default function AdminPage() {
                     Partner settlements
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    Settlements are scheduled after guest checkout.
+                    Releases follow the guest checkout and confirmation workflow.
                   </p>
                 </div>
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-500">
-                Settlement management will be enabled after payment
-                verification and reconciliation workflows are connected.
+                Eligible partner settlements are released only after payment is
+                confirmed, the guest arrival and room-access checks are complete,
+                and the partner payout destination is verified.
               </p>
             </div>
 
@@ -944,13 +945,14 @@ export default function AdminPage() {
                     Payment operations
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    Payment provider integration is not yet enabled.
+                    M-Pesa and PayPal are enabled for guest checkout.
                   </p>
                 </div>
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-500">
-                M-Pesa, Visa, Mastercard and PayPal transactions must be
-                verified before bookings can be marked as paid.
+                M-Pesa payments are verified through Safaricom callbacks.
+                PayPal handles PayPal and eligible card checkouts; there is no
+                separate card-acquiring integration enabled.
               </p>
             </div>
           </section>
