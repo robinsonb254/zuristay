@@ -182,116 +182,58 @@ export default function AdminPage() {
 
       setProfile(adminProfile);
 
+      const failures: string[] = [];
+      const runQuery = async (label: string, query: PromiseLike<any>) => {
+        try {
+          const result = await query;
+          if (result.error) {
+            console.error("Admin dashboard query failed (" + label + "):", result.error);
+            failures.push(label);
+            return null;
+          }
+          return result;
+        } catch (queryError) {
+          console.error("Admin dashboard query threw (" + label + "):", queryError);
+          failures.push(label);
+          return null;
+        }
+      };
+
       const [
-        applicationsCount,
-        pendingApplicationsCount,
-        propertiesCount,
-        approvedPropertiesCount,
-        partnersCount,
-        bookingsCount,
-        confirmedBookingsCount,
-        applicationsResult,
-        propertiesResult,
-        partnersResult,
-        bookingsResult,
+        applicationsCount, pendingApplicationsCount, propertiesCount,
+        approvedPropertiesCount, partnersCount, bookingsCount, confirmedBookingsCount,
+        applicationsResult, propertiesResult, partnersResult, bookingsResult,
       ] = await Promise.all([
-        supabase
-          .from("partner_applications")
-          .select("id", { count: "exact", head: true }),
-
-        supabase
-          .from("partner_applications")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pending"),
-
-        supabase
-          .from("properties")
-          .select("id", { count: "exact", head: true }),
-
-        supabase
-          .from("properties")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "approved")
-          .eq("is_active", true),
-
-        supabase
-          .from("property_partners")
-          .select("id", { count: "exact", head: true }),
-
-        supabase
-          .from("bookings")
-          .select("id", { count: "exact", head: true }),
-
-        supabase
-          .from("bookings")
-          .select("id", { count: "exact", head: true })
-          .eq("booking_status", "confirmed"),
-
-        supabase
-          .from("partner_applications")
-          .select(
-            "id, business_name, contact_person, location, property_type, status, created_at"
-          )
-          .order("created_at", { ascending: false })
-          .limit(6),
-
-        supabase
-          .from("properties")
-          .select(
-            "id, name, city, county, sub_county, country, status, is_active, created_at"
-          )
-          .order("created_at", { ascending: false })
-          .limit(6),
-
-        supabase
-          .from("property_partners")
-          .select("id, business_name, status, created_at")
-          .order("created_at", { ascending: false })
-          .limit(5),
-
-        supabase
-          .from("bookings")
-          .select(
-            "id, booking_reference, guest_name, total_amount, currency, booking_status, payment_status, created_at"
-          )
-          .order("created_at", { ascending: false })
-          .limit(6),
+        runQuery("total applications", supabase.from("partner_applications").select("id", { count: "exact", head: true })),
+        runQuery("pending applications", supabase.from("partner_applications").select("id", { count: "exact", head: true }).eq("status", "pending")),
+        runQuery("total properties", supabase.from("properties").select("id", { count: "exact", head: true })),
+        runQuery("approved properties", supabase.from("properties").select("id", { count: "exact", head: true }).eq("status", "approved").eq("is_active", true)),
+        runQuery("partner accounts", supabase.from("property_partners").select("id", { count: "exact", head: true })),
+        runQuery("total bookings", supabase.from("bookings").select("id", { count: "exact", head: true })),
+        runQuery("confirmed bookings", supabase.from("bookings").select("id", { count: "exact", head: true }).eq("booking_status", "confirmed")),
+        runQuery("application list", supabase.from("partner_applications").select("id, business_name, contact_person, location, property_type, status, created_at").order("created_at", { ascending: false }).limit(6)),
+        runQuery("property list", supabase.from("properties").select("id, name, city, county, sub_county, country, status, is_active, created_at").order("created_at", { ascending: false }).limit(6)),
+        runQuery("partner list", supabase.from("property_partners").select("id, business_name, status, created_at").order("created_at", { ascending: false }).limit(5)),
+        runQuery("booking list", supabase.from("bookings").select("id, booking_reference, guest_name, total_amount, currency, booking_status, payment_status, created_at").order("created_at", { ascending: false }).limit(6)),
       ]);
 
-      const results = [
-        applicationsCount,
-        pendingApplicationsCount,
-        propertiesCount,
-        approvedPropertiesCount,
-        partnersCount,
-        bookingsCount,
-        confirmedBookingsCount,
-        applicationsResult,
-        propertiesResult,
-        partnersResult,
-        bookingsResult,
-      ];
+      setStats((current) => ({
+        applications: applicationsCount ? applicationsCount.count || 0 : current.applications,
+        pendingApplications: pendingApplicationsCount ? pendingApplicationsCount.count || 0 : current.pendingApplications,
+        properties: propertiesCount ? propertiesCount.count || 0 : current.properties,
+        approvedProperties: approvedPropertiesCount ? approvedPropertiesCount.count || 0 : current.approvedProperties,
+        partners: partnersCount ? partnersCount.count || 0 : current.partners,
+        bookings: bookingsCount ? bookingsCount.count || 0 : current.bookings,
+        confirmedBookings: confirmedBookingsCount ? confirmedBookingsCount.count || 0 : current.confirmedBookings,
+      }));
+      if (applicationsResult) setApplications((applicationsResult.data || []) as Application[]);
+      if (propertiesResult) setProperties((propertiesResult.data || []) as Property[]);
+      if (partnersResult) setPartners((partnersResult.data || []) as Partner[]);
+      if (bookingsResult) setBookings((bookingsResult.data || []) as Booking[]);
 
-      const failedQuery = results.find((result) => result.error);
-
-      if (failedQuery?.error) {
-        throw failedQuery.error;
-      }
-
-      setStats({
-        applications: applicationsCount.count || 0,
-        pendingApplications: pendingApplicationsCount.count || 0,
-        properties: propertiesCount.count || 0,
-        approvedProperties: approvedPropertiesCount.count || 0,
-        partners: partnersCount.count || 0,
-        bookings: bookingsCount.count || 0,
-        confirmedBookings: confirmedBookingsCount.count || 0,
-      });
-
-      setApplications((applicationsResult.data || []) as Application[]);
-      setProperties((propertiesResult.data || []) as Property[]);
-      setPartners((partnersResult.data || []) as Partner[]);
-      setBookings((bookingsResult.data || []) as Booking[]);
+      setError(failures.length
+        ? "Some dashboard sections could not be refreshed: " + failures.join(", ") + ". Other available sections remain accessible. Please refresh to retry."
+        : "");
     } catch (err) {
       console.error("Admin dashboard error:", err);
 
@@ -566,12 +508,12 @@ export default function AdminPage() {
 
             {error && (
               <div
-                role="alert"
-                className="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                role="status"
+                className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
               >
                 <AlertCircle size={19} className="mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-bold">Dashboard data could not be loaded</p>
+                  <p className="font-bold">Some dashboard data is temporarily unavailable</p>
                   <p className="mt-1">{error}</p>
                   <button
                     onClick={loadDashboard}
