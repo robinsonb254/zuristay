@@ -217,7 +217,7 @@ export default function PartnerRegistrationPage() {
                   are required.
                 </p>
                 <p className="mt-3 rounded-xl bg-[#f7f5ef] px-4 py-3 text-sm leading-6 text-[#765c31]">
-                  You do not need to create a ZuriStay account before applying. If your application is approved, we will create or link your account and email you a secure activation link to set your own password.
+                  You do not need to create a ZuriStay account before applying. If approved, we will create a partner account for you or link your existing ZuriStay account. New accounts receive a secure activation link to set a password; existing account holders keep their current password.
                 </p>
               </div>
 
