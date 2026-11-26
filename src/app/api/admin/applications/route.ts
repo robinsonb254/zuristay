@@ -232,43 +232,77 @@ export async function POST(request: NextRequest) {
 
       if (usersError) {
         console.error("Applicant lookup error:", usersError);
-
         return respond(
           false,
-          "Unable to verify the applicant's registered account.",
+          "Unable to verify whether an account already exists for this applicant.",
           500
         );
       }
 
       matchingUser = data.users.find(
-        (candidate) =>
-          candidate.email?.trim().toLowerCase() === email
+        (candidate) => candidate.email?.trim().toLowerCase() === email
       );
 
       if (matchingUser) break;
       if (data.users.length < 1000) break;
     }
 
-    if (!matchingUser) {
+    let ownerUserId = matchingUser?.id;
+    let activationUrl: string | undefined;
+    let createdUserId: string | undefined;
+
+    if (matchingUser && !matchingUser.email_confirmed_at) {
       return respond(
         false,
-        "No ZuriStay account matches this email. The applicant must register using the same email before approval.",
+        "An account already exists for this email but its email address is not verified. The applicant must complete the existing email verification before this application can be approved.",
         409
       );
     }
 
-    if (!matchingUser.email_confirmed_at) {
-      return respond(
-        false,
-        "The applicant must verify their email address before approval.",
-        409
-      );
+    if (!matchingUser) {
+      const siteUrl = "https://www.zuristayworldwide.com";
+      const redirectTo = new URL(
+        "/reset-password?partner=activation",
+        siteUrl
+      ).toString();
+
+      const { data: inviteData, error: inviteError } =
+        await admin.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: {
+            redirectTo,
+            data: {
+              full_name: application.contact_person,
+            },
+          },
+        });
+
+      if (inviteError || !inviteData.user?.id || !inviteData.properties?.action_link) {
+        console.error("Partner account invitation generation failed:", inviteError);
+        if (inviteData.user?.id) {
+          await admin.auth.admin.deleteUser(inviteData.user.id);
+        }
+        return respond(
+          false,
+          "A secure partner activation link could not be created. No approval was completed; please try again.",
+          500
+        );
+      }
+
+      ownerUserId = inviteData.user.id;
+      createdUserId = inviteData.user.id;
+      activationUrl = inviteData.properties.action_link;
+    }
+
+    if (!ownerUserId) {
+      return respond(false, "Unable to identify the applicant account.", 500);
     }
 
     const { data: approvalResult, error: approvalError } =
       await admin.rpc("approve_partner_application", {
         p_application_id: applicationId,
-        p_owner_user_id: matchingUser.id,
+        p_owner_user_id: ownerUserId,
         p_admin_user_id: user.id,
       });
 
@@ -278,20 +312,43 @@ export async function POST(request: NextRequest) {
         approvalError
       );
 
+      if (createdUserId) {
+        const { error: cleanupError } =
+          await admin.auth.admin.deleteUser(createdUserId);
+        if (cleanupError) {
+          console.error("Unable to clean up unlinked invited user:", cleanupError);
+        }
+      }
+
       return respond(
         false,
-        "Approval could not be completed. Check the applicant's account, email verification and existing partner records.",
+        "Approval could not be completed. The application remains pending. Please review the account and partner records, then try again.",
         409
       );
     }
 
+    let notificationSent = true;
     try {
       await sendPartnerApplicationDecision({
         email: application.email,
         contactPerson: application.contact_person,
         businessName: application.business_name,
         approved: true,
+        activationUrl,
       });
+    } catch (mailError) {
+      notificationSent = false;
+      console.error("Partner approval notification failed:", mailError);
+    }
+
+    return respond(
+      true,
+      notificationSent
+        ? "Application approved and partner account linked successfully."
+        : "Application approved, but the notification email could not be delivered. Please contact the applicant using the application details.",
+      200,
+      { result: approvalResult, notificationSent }
+    );
     } catch (mailError) {
       console.error("Partner approval notification failed:", mailError);
     }
