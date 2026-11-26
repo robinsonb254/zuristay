@@ -99,9 +99,9 @@ export default function DestinationsPage() {
         </div>
         {loading ? <p className="py-8 text-sm text-gray-500">Loading destinations…</p> : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredDestinations.map((item) => (
+            {filteredDestinations.map((item, index) => (
               <div key={item.id} role="button" tabIndex={0} onClick={() => searchFor(item.city)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); searchFor(item.city); } }} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
-                <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className={`${item.city.toLowerCase() === "diani" ? "h-52 sm:h-60" : "h-32"} w-full`} compact />
+                <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className={`${item.city.toLowerCase() === "diani" ? "h-52 sm:h-60" : "h-32"} w-full`} compact eager={index < 8} />
                 <span className="flex items-center justify-between gap-3 px-4 py-3">
                   <span><span className="block text-sm font-semibold">{item.city === "Diani" ? "Diani Beach" : item.city}</span><span className="mt-0.5 block text-xs text-gray-500">{item.county}</span></span>
                   <span className="shrink-0 text-right text-xs tabular-nums text-gray-400">{item.population_2019 !== null ? Number(item.population_2019).toLocaleString("en-KE") : "Tourist destination"}</span>
