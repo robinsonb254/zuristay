@@ -622,10 +622,21 @@ export default function BookingPage() {
     setPaymentError("");
     setPaymentMessage("");
     try {
-      try { sessionStorage.setItem("zuristay:paypal-booking-id", booking.booking_id); } catch {}
       const accessToken = bookingAccessToken || (() => {
         try { return sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) || ""; } catch { return ""; }
       })();
+      if (!accessToken) {
+        throw new Error("Your secure booking session is unavailable. Please refresh your booking page before continuing.");
+      }
+      try {
+        sessionStorage.setItem("zuristay:paypal-booking-id", booking.booking_id);
+        sessionStorage.setItem(`zuristay:booking-access:${booking.booking_id}`, accessToken);
+        if (sessionStorage.getItem(`zuristay:booking-access:${booking.booking_id}`) !== accessToken) {
+          throw new Error("Session storage verification failed.");
+        }
+      } catch {
+        throw new Error("This browser cannot securely retain the PayPal return session. Please use M-Pesa or enable session storage before trying PayPal.");
+      }
       const response = await fetch("/api/payments/paypal/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-booking-access-token": accessToken },
