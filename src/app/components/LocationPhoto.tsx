@@ -15,18 +15,24 @@ export default function LocationPhoto({
   location,
   className = "",
   compact = false,
+  eager = false,
 }: {
   location: string;
   className?: string;
   compact?: boolean;
+  eager?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [shouldLoad, setShouldLoad] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(eager);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    if (eager) {
+      setShouldLoad(true);
+      return;
+    }
     const node = containerRef.current;
     if (!node) return;
     if (!("IntersectionObserver" in window)) {
@@ -41,7 +47,7 @@ export default function LocationPhoto({
     }, { rootMargin: "700px" });
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [eager]);
 
   useEffect(() => {
     if (!shouldLoad) return;
@@ -85,7 +91,7 @@ export default function LocationPhoto({
           alt={`${location} — ${photo.title}`}
           loading={shouldLoad ? "eager" : "lazy"}
           decoding="async"
-          fetchPriority="high"
+          fetchPriority={eager ? "high" : "auto"}
           onError={() => {
             if (photoIndex + 1 < photos.length) setPhotoIndex((index) => index + 1);
             else setPhotos([]);
