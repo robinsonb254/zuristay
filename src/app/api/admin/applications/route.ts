@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
     if (!matchingUser) {
       const siteUrl = "https://www.zuristayworldwide.com";
       const redirectTo = new URL(
-        "/reset-password?partner=activation",
+        "/auth/callback?next=%2Freset-password%3Fpartner%3Dactivation",
         siteUrl
       ).toString();
 
