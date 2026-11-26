@@ -34,6 +34,14 @@ export default function AuthCallbackPage() {
           throw new Error(urlError.replace(/\+/g, " "));
         }
 
+        const requestedNext = params.get("next");
+        const nextPath =
+          requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//")
+            ? requestedNext
+            : "/";
+
         const code = params.get("code");
 
         if (code) {
@@ -60,7 +68,7 @@ export default function AuthCallbackPage() {
         setMessage("Your email has been verified. Welcome to ZuriStay!");
 
         window.setTimeout(() => {
-          router.replace("/");
+          router.replace(nextPath);
           router.refresh();
         }, 2000);
       } catch (err) {
@@ -117,7 +125,7 @@ export default function AuthCallbackPage() {
 
         {status === "success" && (
           <p className="mt-5 text-xs text-gray-400">
-            Taking you to ZuriStay...
+            Taking you to your account...
           </p>
         )}
 
