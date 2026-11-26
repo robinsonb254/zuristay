@@ -401,12 +401,27 @@ export default function Home() {
           <a href="/partner/dashboard" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
             Partner login
           </a>
-          <a href="/login" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
-            Guest sign in
-          </a>
-          <a href="/register" className="inline-flex items-center justify-center rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#245545]">
-            Create account
-          </a>
+          {authReady && authUser ? (
+            <>
+              <a href="/account" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
+                My account
+              </a>
+              <button type="button" onClick={handleSignOut} className="inline-flex items-center justify-center rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#245545]">
+                Sign out
+              </button>
+            </>
+          ) : authReady ? (
+            <>
+              <a href="/login" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
+                Guest sign in
+              </a>
+              <a href="/register" className="inline-flex items-center justify-center rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#245545]">
+                Create account
+              </a>
+            </>
+          ) : (
+            <span className="px-3 py-2 text-xs text-gray-500">Checking account…</span>
+          )}
         </div>
       </div>
 
