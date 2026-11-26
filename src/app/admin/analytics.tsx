@@ -10,6 +10,7 @@ type Unit = { total_units: number | null; active: boolean; property_id: string }
 type Property = { id: string; city: string | null; county: string | null; country: string | null; status: string; is_active: boolean };
 type Booking = { id: string; created_at: string; booking_status: string; payment_status: string };
 type BookingItem = { booking_id: string; property_id: string; quantity: number | null };
+type SafeQueryResult<T = unknown> = { data: T | null; count: number | null; error: { message: string } | null };
 
 const money = (value: number, currency: string) => `${currency} ${value.toLocaleString("en-KE", { maximumFractionDigits: 2 })}`;
 // All reporting boundaries use Kenya time (UTC+3), regardless of the administrator's device timezone.
