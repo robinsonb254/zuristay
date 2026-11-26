@@ -337,7 +337,7 @@ export default function AccountPage() {
     };
   }, [router]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
   const upcomingBookings = useMemo(
     () =>
@@ -371,7 +371,8 @@ export default function AccountPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
       router.replace("/login");
       router.refresh();
     } catch (err) {
