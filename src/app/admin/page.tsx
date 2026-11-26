@@ -687,6 +687,13 @@ export default function AdminPage() {
                       </span>
                       {application.status === "pending" && (
                         <>
+                          <Link
+                            href={`/admin/applications#application-${application.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100"
+                          >
+                            <ExternalLink size={14} />
+                            Inspect
+                          </Link>
                           <button
                             onClick={() => reviewApplication(application, "approve")}
                             disabled={processingApplicationId === application.id}
