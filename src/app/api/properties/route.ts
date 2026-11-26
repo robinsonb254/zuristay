@@ -171,13 +171,27 @@ export async function GET(request: NextRequest) {
       .map((unit) => {
         const baseRate = Number(unit.base_rate);
         const quote = availableByUnit.get(unit.id);
-        const guestRate = quote && quote.nights > 0 ? quote.totalRate / quote.nights * 1.15 : baseRate * 1.15;
+        const baseStayTotal = quote ? quote.totalRate * rooms : 0;
+        // Match the booking-hold RPC exactly: KES partner subtotal and 15%
+        // markup are rounded separately to whole shillings before summing.
+        const roundedBaseTotal = quote
+          ? property.currency === "KES" ? Math.round(baseStayTotal) : baseStayTotal
+          : 0;
+        const markupTotal = quote
+          ? property.currency === "KES"
+            ? Math.round(roundedBaseTotal * 0.15)
+            : roundedBaseTotal * 0.15
+          : 0;
+        const quotedStayTotal = quote ? roundedBaseTotal + markupTotal : null;
+        const guestRate = quote && quote.nights > 0
+          ? (quotedStayTotal as number) / quote.nights / rooms
+          : baseRate * 1.15;
         return {
           ...unit,
           base_rate: baseRate,
           customer_rate: Number(guestRate.toFixed(2)),
           markup_percentage: 15,
-          ...(quote ? { quoted_stay_total: Number((quote.totalRate * 1.15 * rooms).toFixed(2)) } : {}),
+          ...(quote ? { quoted_stay_total: Number((quotedStayTotal as number).toFixed(2)) } : {}),
         };
       });
 
