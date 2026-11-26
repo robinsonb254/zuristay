@@ -78,13 +78,16 @@ type BookingResult = {
 };
 
 function getToday() {
-  const date = new Date();
-
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
+  // Booking dates and check-in times are based on Kenya local time,
+  // regardless of the guest's device timezone.
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function formatMoney(amount: number, currency: string) {
