@@ -240,11 +240,11 @@ export default function NewPartnerPropertyPage() {
 
       <div className="mx-auto max-w-3xl px-5 py-8">
         <Link
-          href="/partner/dashboard"
+          href="/"
           className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-800"
         >
           <ArrowLeft size={17} />
-          Back to dashboard
+          Back to homepage
         </Link>
 
         <div className="mb-7">
