@@ -216,6 +216,9 @@ export default function PartnerRegistrationPage() {
                   Complete the details below. Fields marked with *
                   are required.
                 </p>
+                <p className="mt-3 rounded-xl bg-[#f7f5ef] px-4 py-3 text-sm leading-6 text-[#765c31]">
+                  You do not need to create a ZuriStay account before applying. If your application is approved, we will create or link your account and email you a secure activation link to set your own password.
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
