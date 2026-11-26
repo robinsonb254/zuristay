@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
     const context = await authenticatePartner(request);
 
     if ("error" in context) return context.error;
+    if (!context.partner) return fail("Your partner account is not approved for property management.", 403);
 
     let body: unknown;
 
