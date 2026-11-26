@@ -99,16 +99,22 @@ async function sendPartnerPropertyApprovalEmail(input: { to: string; contactName
   const safe = (value: string) => value.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
   const name = safe(input.contactName || "Partner");
   const property = safe(input.propertyName);
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: [input.to],
-      subject: "Your ZuriStay property has been approved — complete your listing",
-      html: `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172554;max-width:640px;margin:auto"><h2 style="color:#173b70">Your property has been approved!</h2><p>Hello ${name},</p><p>Good news: <strong>${property}</strong> has passed its initial ZuriStay review.</p><p>Please sign in to your Partner Portal and complete the remaining listing requirements:</p><ol><li>Add your room categories and room counts.</li><li>Enter your nightly rates and availability dates.</li><li>Upload clear property photographs.</li><li>Select the facilities and amenities available to guests.</li><li>Check that your property description and contact details are complete.</li></ol><p>When every checklist item is complete, the <strong>Publish my property</strong> button will activate automatically. Tap it to submit your listing for <strong>final ZuriStay approval</strong>. It will not become public immediately; once our team completes the final review and approves it, the listing will become visible to guests automatically.</p><p>Your Partner Portal lets you manage this property, add more properties, edit existing listings whenever you make improvements, and manage your accommodation details. After every change—such as editing details, rooms, facilities or photos—submit the property again using the Publish button so our team can verify and release the updated listing.</p><p><a href="${dashboardUrl}" style="display:inline-block;background:#173b70;color:#fff;padding:13px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Open Partner Dashboard</a></p><p>Thank you for partnering with ZuriStay Worldwide.</p></div>`,
-    }),
-  });
+  let response: Response;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: [input.to],
+        subject: "Your ZuriStay property has been approved — complete your listing",
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172554;max-width:640px;margin:auto"><h2 style="color:#173b70">Your property has been approved!</h2><p>Hello ${name},</p><p>Good news: <strong>${property}</strong> has passed its initial ZuriStay review.</p><p>Please sign in to your Partner Portal and complete the remaining listing requirements:</p><ol><li>Add your room categories and room counts.</li><li>Enter your nightly rates and availability dates.</li><li>Upload clear property photographs.</li><li>Select the facilities and amenities available to guests.</li><li>Check that your property description and contact details are complete.</li></ol><p>When every checklist item is complete, the <strong>Publish my property</strong> button will activate automatically. Tap it to submit your listing for <strong>final ZuriStay approval</strong>. It will not become public immediately; once our team completes the final review and approves it, the listing will become visible to guests automatically.</p><p>Your Partner Portal lets you manage this property, add more properties, edit existing listings whenever you make improvements, and manage your accommodation details. After every change—such as editing details, rooms, facilities or photos—submit the property again using the Publish button so our team can verify and release the updated listing.</p><p><a href="${dashboardUrl}" style="display:inline-block;background:#173b70;color:#fff;padding:13px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Open Partner Dashboard</a></p><p>Thank you for partnering with ZuriStay Worldwide.</p></div>`,
+      }),
+    });
+  } catch (error) {
+    console.error("Partner approval email request failed:", error);
+    return false;
+  }
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     console.error("Partner approval email could not be sent:", response.status, detail.slice(0, 500));
