@@ -15,6 +15,17 @@ type Destination = {
   sort_order: number | null;
 };
 
+const fallbackDestinations: Destination[] = [
+  ["Nairobi", "Nairobi"], ["Mombasa", "Mombasa"], ["Kisumu", "Kisumu"],
+  ["Nakuru", "Nakuru"], ["Eldoret", "Uasin Gishu"], ["Thika", "Kiambu"],
+  ["Nyeri", "Nyeri"], ["Meru", "Meru"], ["Machakos", "Machakos"],
+  ["Kitale", "Trans Nzoia"], ["Kakamega", "Kakamega"], ["Malindi", "Kilifi"],
+  ["Naivasha", "Nakuru"], ["Garissa", "Garissa"], ["Embu", "Embu"],
+  ["Kericho", "Kericho"], ["Bungoma", "Bungoma"], ["Nanyuki", "Laikipia"],
+].map(([city, county], index) => ({
+  id: `fallback-${index}`, city, county, population_2019: null, sort_order: index,
+}));
+
 export default function DestinationsPage() {
   const [counties, setCounties] = useState<County[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -54,8 +65,10 @@ export default function DestinationsPage() {
       .sort((a, b) => (a.sort_order ?? 999999) - (b.sort_order ?? 999999));
   }, [destinations, query]);
 
+  // Always show readable town names, even before the API responds or when it returns no data.
+  const townDirectory = destinations.length > 0 ? destinations : fallbackDestinations;
   // If a search term has no exact town match, keep the directory useful by showing all towns.
-  const displayedDestinations = filteredDestinations.length > 0 ? filteredDestinations : destinations;
+  const displayedDestinations = filteredDestinations.length > 0 ? filteredDestinations : townDirectory;
 
   const filteredCounties = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -100,19 +113,17 @@ export default function DestinationsPage() {
           </div>
           <span className="text-sm font-semibold text-gray-500">{displayedDestinations.length} places</span>
         </div>
-        {loading ? <p className="py-8 text-sm text-gray-500">Loading destinations…</p> : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {displayedDestinations.map((item, index) => (
-              <div key={item.id} role="button" tabIndex={0} onClick={() => searchFor(item.city)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); searchFor(item.city); } }} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
-                <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className={`${item.city.toLowerCase() === "diani" ? "h-52 sm:h-60" : "h-32"} w-full`} compact eager={index < 8} />
-                <span className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span><span className="block text-sm font-semibold">{item.city === "Diani" ? "Diani Beach" : item.city}</span><span className="mt-0.5 block text-xs text-gray-500">{item.county}</span></span>
-                  <span className="shrink-0 text-right text-xs tabular-nums text-gray-400">{item.population_2019 !== null ? Number(item.population_2019).toLocaleString("en-KE") : "Tourist destination"}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {displayedDestinations.map((item) => (
+            <button key={item.id} type="button" onClick={() => searchFor(item.city)} className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-[#c49a52] hover:bg-[#f8f5ee]">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-[#173b30]">{item.city === "Diani" ? "Diani Beach" : item.city}</span>
+                <span className="mt-0.5 block text-xs text-gray-500">{item.county || "Kenya"}</span>
+              </span>
+              <ArrowRight size={16} className="shrink-0 text-[#c49a52]" />
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="bg-white py-14">
