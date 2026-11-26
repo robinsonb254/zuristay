@@ -331,7 +331,7 @@ export default function Home() {
             </a>
             <a href="/destinations" className="hover:text-[#c49a52]">Destinations</a>
             <a href="#featured" className="hover:text-[#c49a52]">Featured stays</a>
-            <a href="#partners" className="hover:text-[#c49a52]">List your property</a>
+            <a href={isApprovedPartner ? "/partner/dashboard" : "#partners"} className="hover:text-[#c49a52]">{isApprovedPartner ? "My account" : "List your property"}</a>
           </nav>
 
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
@@ -399,8 +399,8 @@ export default function Home() {
             <a href="#benefits" onClick={() => setMenuOpen(false)}>
               Why ZuriStay Worldwide
             </a>
-            <a href="#partners" onClick={() => setMenuOpen(false)}>
-              List your property
+            <a href={isApprovedPartner ? "/partner/dashboard" : "#partners"} onClick={() => setMenuOpen(false)}>
+              {isApprovedPartner ? "My account" : "List your property"}
             </a>
             <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>{isApprovedPartner ? "My account" : "Already a partner? Partner dashboard"}</a>
             <a href="/admin/login" onClick={() => setMenuOpen(false)}>Admin Login</a>
@@ -705,8 +705,8 @@ export default function Home() {
               Join ZuriStay Worldwide and submit your hotel, resort, apartment, villa, lodge or guesthouse. You can complete your property profile and make it ready for bookings through your partner dashboard.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <a href="/partner/register" className="inline-flex items-center gap-2 rounded-full bg-[#c49a52] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#ae8540]">
-                List your property <ArrowRight size={17} />
+              <a href={isApprovedPartner ? "/partner/dashboard" : "/partner/register"} className="inline-flex items-center gap-2 rounded-full bg-[#c49a52] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#ae8540]">
+                {isApprovedPartner ? "My account" : "List your property"} <ArrowRight size={17} />
               </a>
               <a href="/destinations" className="inline-flex items-center gap-2 rounded-full border border-[#173b30]/20 bg-white px-7 py-3.5 text-sm font-bold text-[#173b30] transition hover:bg-[#f4eee2]">
                 Explore destinations
@@ -802,7 +802,7 @@ export default function Home() {
             <div className="mt-4 flex flex-col gap-3 text-sm font-semibold text-white/70">
               <a href="/destinations" className="transition hover:text-[#d8b879]">Destinations</a>
               <a href="/search" className="transition hover:text-[#d8b879]">Find accommodation</a>
-              <a href="/partner/register" className="transition hover:text-[#d8b879]">List your property</a>
+              <a href={isApprovedPartner ? "/partner/dashboard" : "/partner/register"} className="transition hover:text-[#d8b879]">{isApprovedPartner ? "My account" : "List your property"}</a>
             </div>
           </div>
           <div className="min-w-0">
