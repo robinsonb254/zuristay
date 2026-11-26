@@ -50,9 +50,13 @@ export async function POST(request: NextRequest) {
       return fail("PayPal checkout is currently enabled for KES-priced bookings only.", 400);
     }
     const { data: holds, error: holdError } = await db.from("booking_holds")
-      .select("id").eq("booking_id", bookingId).eq("status", "active")
+      .select("id, expires_at").eq("booking_id", bookingId).eq("status", "active")
       .gt("expires_at", new Date().toISOString()).limit(1);
     if (holdError || !holds?.length) return fail("Your room hold has expired. Please create a new booking.", 409);
+    const holdExpiresAt = new Date(holds[0].expires_at).getTime();
+    if (!Number.isFinite(holdExpiresAt) || holdExpiresAt <= Date.now()) {
+      return fail("Your room hold has expired. Please create a new booking.", 409);
+    }
 
     const kesAmount = Number(booking.total_amount);
     if (!Number.isFinite(kesAmount) || kesAmount <= 0) return fail("The booking total is invalid.", 400);
@@ -142,7 +146,8 @@ export async function POST(request: NextRequest) {
       usd_per_kes: fx.rate,
       exchange_rate_source: fx.source,
       status: "created",
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      // Never extend the booking's inventory reservation when PayPal starts.
+      expires_at: holds[0].expires_at,
     } as never);
     if (sessionError) {
       console.error("Unable to persist PayPal checkout quote:", sessionError);
