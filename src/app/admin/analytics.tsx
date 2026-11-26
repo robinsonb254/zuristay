@@ -66,7 +66,7 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
         paymentResult, commissionResult, unitResult, propertyResult,
         bookingResult, itemResult, pendingResult,
       ] = await Promise.all([
-        safeQuery(supabase.from("payments").select("id, amount, currency, status, payment_method, created_at, verified_at").gte("created_at", since.toISOString()).order("created_at", { ascending: false })),
+        safeQuery(supabase.from("payments").select("id, amount, currency, status, payment_method, created_at, verified_at").or(`created_at.gte.${since.toISOString()},verified_at.gte.${since.toISOString()}`).order("created_at", { ascending: false })),
         safeQuery(supabase.from("platform_commissions").select("amount, currency, status, created_at").gte("created_at", since.toISOString())),
         safeQuery(supabase.from("property_units").select("total_units, active, property_id").eq("active", true)),
         safeQuery(supabase.from("properties").select("id, city, county, country, status, is_active")),
@@ -92,21 +92,19 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
         const livePropertyIds = new Set(props.filter((p) => p.status === "approved" && p.is_active).map((p) => p.id));
         const units = (unitResult.data || []) as Unit[];
         setRoomCount(units.filter((u) => livePropertyIds.has(u.property_id)).reduce((n, u) => n + Math.max(0, Number(u.total_units || 0)), 0));
-      } else {
-        setRoomCount(0);
       }
 
       if (!paymentResult.error) {
         const paymentRows = (paymentResult.data || []) as Payment[];
         setPayments(paymentRows.filter((p) => ["paid", "completed", "succeeded", "verified", "captured"].includes((p.status || "").toLowerCase())));
-      } else setPayments([]);
+      }
 
       if (!commissionResult.error) {
         const commissionRows = (commissionResult.data || []) as Commission[];
         setCommissions(commissionRows.filter((c) => ["earned", "transferred"].includes((c.status || "").toLowerCase())));
-      } else setCommissions([]);
+      }
 
-      setPendingPayments(pendingResult.error ? 0 : pendingResult.count || 0);
+      if (!pendingResult.error) setPendingPayments(pendingResult.count || 0);
 
       if (!bookingResult.error) {
         const bookingRows = (bookingResult.data || []) as Booking[];
@@ -127,9 +125,6 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
           });
           setRegions(Array.from(grouped.entries()).map(([name, v]) => ({ name, bookings: v.bookings.size, rooms: v.rooms })).sort((a, b) => b.bookings - a.bookings).slice(0, 8));
         } else setRegions([]);
-      } else {
-        setBookingCount(0);
-        setRegions([]);
       }
 
       setError(warnings.length ? warnings.join(" · ") : "");
