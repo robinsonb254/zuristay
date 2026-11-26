@@ -205,7 +205,7 @@ export default function Home() {
 
         if (!active) return;
         if (!profileError && !partnerError) {
-          setIsApprovedPartner(profile?.role !== "admin" && partner?.status === "approved");
+          setIsApprovedPartner(profile?.role === "partner" && partner?.status === "approved");
         }
       } catch (error) {
         console.error("Account type could not be determined:", error);
@@ -402,7 +402,7 @@ export default function Home() {
             <a href={isApprovedPartner ? "/partner/dashboard" : "#partners"} onClick={() => setMenuOpen(false)}>
               {isApprovedPartner ? "My account" : "List your property"}
             </a>
-            <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>{isApprovedPartner ? "My account" : "Already a partner? Partner dashboard"}</a>
+            {!isApprovedPartner && <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>}
             <a href="/admin/login" onClick={() => setMenuOpen(false)}>Admin Login</a>
             {!isApprovedPartner && <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay Worldwide partner</a>}
             {authReady && authUser ? (
