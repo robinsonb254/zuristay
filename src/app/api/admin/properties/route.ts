@@ -101,7 +101,7 @@ async function sendPartnerPropertyApprovalEmail(input: { to: string; contactName
   const property = safe(input.propertyName);
   let response: Response;
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
