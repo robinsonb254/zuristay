@@ -69,6 +69,8 @@ type Booking = {
   created_at: string;
 };
 
+type SafeQueryResult<T = unknown> = { data: T | null; count: number | null; error: { message: string } | null };
+
 type DashboardStats = {
   applications: number;
   pendingApplications: number;
