@@ -395,7 +395,8 @@ export default function AdminApplicationsPage() {
               {filteredApplications.map((application) => (
                 <article
                   key={application.id}
-                  className="rounded-2xl border border-slate-200 p-5"
+                  id={`application-${application.id}`}
+                  className="scroll-mt-6 rounded-2xl border border-slate-200 p-5"
                 >
                   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                     <div>
