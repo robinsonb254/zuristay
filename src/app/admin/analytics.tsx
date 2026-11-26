@@ -12,7 +12,26 @@ type Booking = { id: string; created_at: string; booking_status: string; payment
 type BookingItem = { booking_id: string; property_id: string; quantity: number | null };
 
 const money = (value: number, currency: string) => `${currency} ${value.toLocaleString("en-KE", { maximumFractionDigits: 2 })}`;
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+// All reporting boundaries use Kenya time (UTC+3), regardless of the administrator's device timezone.
+const kenyaDateParts = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date);
+  return {
+    year: Number(parts.find((p) => p.type === "year")?.value),
+    month: Number(parts.find((p) => p.type === "month")?.value),
+    day: Number(parts.find((p) => p.type === "day")?.value),
+  };
+};
+const kenyaStartOfDay = (date: Date, dayOffset = 0) => {
+  const { year, month, day } = kenyaDateParts(date);
+  // Nairobi does not observe daylight saving time; midnight EAT is 21:00 UTC on the prior date.
+  return new Date(Date.UTC(year, month - 1, day + dayOffset, -3));
+};
+const kenyaStartOfMonth = (date: Date) => {
+  const { year, month } = kenyaDateParts(date);
+  return new Date(Date.UTC(year, month - 1, 1, -3));
+};
 const sumByCurrency = (rows: { amount: number; currency: string }[]) => {
   const totals = new Map<string, number>();
   rows.forEach((r) => totals.set(r.currency || "KES", (totals.get(r.currency || "KES") || 0) + Number(r.amount || 0)));
@@ -34,8 +53,7 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
     setError("");
     try {
       const supabase = createSupabaseBrowserClient();
-      const since = new Date();
-      since.setDate(since.getDate() - 31);
+      const since = kenyaStartOfDay(new Date(), -31);
       const [paymentResult, commissionResult, unitResult, propertyResult, bookingResult, itemResult, pendingResult] = await Promise.all([
         supabase.from("payments").select("id, amount, currency, status, payment_method, created_at, verified_at").gte("created_at", since.toISOString()).order("created_at", { ascending: false }),
         supabase.from("platform_commissions").select("amount, currency, status, created_at").gte("created_at", since.toISOString()),
@@ -84,9 +102,9 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
   useEffect(() => { if (enabled) load(); }, [enabled]);
 
   const now = new Date();
-  const today = startOfDay(now);
-  const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const today = kenyaStartOfDay(now);
+  const weekStart = kenyaStartOfDay(now, -6);
+  const monthStart = kenyaStartOfMonth(now);
   const paymentDate = (p: Payment) => new Date(p.verified_at || p.created_at);
   const dailyPayments = payments.filter((p) => paymentDate(p) >= today);
   const weeklyPayments = payments.filter((p) => paymentDate(p) >= weekStart);
