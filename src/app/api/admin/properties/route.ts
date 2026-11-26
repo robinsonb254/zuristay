@@ -94,7 +94,7 @@ async function sendPartnerPropertyApprovalEmail(input: { to: string; contactName
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) return false;
-  const dashboardUrl = "https://zuristay-worldwide.vercel.app/partner/dashboard";
+  const dashboardUrl = "https://zuristayworldwide.com/partner/dashboard";
   const htmlEntities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
   const safe = (value: string) => value.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
   const name = safe(input.contactName || "Partner");
