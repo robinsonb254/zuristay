@@ -205,7 +205,7 @@ export default function Home() {
 
         if (!active) return;
         if (!profileError && !partnerError) {
-          setIsApprovedPartner(profile?.role === "partner" && partner?.status === "approved");
+          setIsApprovedPartner((profile as { role?: string } | null)?.role === "partner" && (partner as { status?: string } | null)?.status === "approved");
         }
       } catch (error) {
         console.error("Account type could not be determined:", error);
