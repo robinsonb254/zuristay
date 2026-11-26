@@ -140,7 +140,8 @@ export default function PartnerDashboardPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
       router.replace("/");
       router.refresh();
     } catch {
