@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
   Search,
@@ -158,9 +159,44 @@ export default function Home() {
   const [budget, setBudget] = useState("any");
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<{ email?: string } | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [destinationSuggestions, setDestinationSuggestions] = useState(
     destinationHighlights.map((item, index) => ({ id: `popular-${index}`, name: item.name }))
   );
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    let active = true;
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active) return;
+      if (!error) setAuthUser(data.session?.user ?? null);
+      setAuthReady(true);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setAuthUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Sign-out error:", error);
+      return;
+    }
+    setAuthUser(null);
+    setMenuOpen(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -276,18 +312,40 @@ export default function Home() {
             >
               Partner login
             </a>
-            <a
-              href="/login"
-              className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-white px-4 py-2.5 text-sm font-bold text-[#173b30] shadow-sm transition hover:bg-[#f4eee2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52]"
-            >
-              Sign in
-            </a>
-            <a
-              href="/register"
-              className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-[#173b30] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:border-[#245545] hover:bg-[#245545] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c49a52]"
-            >
-              Sign up
-            </a>
+            {authReady && authUser ? (
+              <>
+                <a
+                  href="/account"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-white px-4 py-2.5 text-sm font-bold text-[#173b30] shadow-sm transition hover:bg-[#f4eee2]"
+                >
+                  My account
+                </a>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-[#173b30] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#245545]"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : authReady ? (
+              <>
+                <a
+                  href="/login"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-white px-4 py-2.5 text-sm font-bold text-[#173b30] shadow-sm transition hover:bg-[#f4eee2]"
+                >
+                  Sign in
+                </a>
+                <a
+                  href="/register"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-[#173b30] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#245545]"
+                >
+                  Sign up
+                </a>
+              </>
+            ) : (
+              <span className="h-11 w-32 animate-pulse rounded-full bg-[#f4eee2]" aria-label="Checking account" />
+            )}
           </div>
 
           <button
@@ -318,8 +376,19 @@ export default function Home() {
             <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>
             <a href="/admin/login" onClick={() => setMenuOpen(false)}>Admin Login</a>
             <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay Worldwide partner</a>
-            <a href="/login" onClick={() => setMenuOpen(false)}>Sign in</a>
-            <a href="/register" onClick={() => setMenuOpen(false)}>Register</a>
+            {authReady && authUser ? (
+              <>
+                <a href="/account" onClick={() => setMenuOpen(false)} className="font-semibold text-[#173b30]">My account</a>
+                <button type="button" onClick={handleSignOut} className="self-start font-semibold text-red-700">Sign out</button>
+              </>
+            ) : authReady ? (
+              <>
+                <a href="/login" onClick={() => setMenuOpen(false)}>Sign in</a>
+                <a href="/register" onClick={() => setMenuOpen(false)}>Register</a>
+              </>
+            ) : (
+              <span className="text-gray-500">Checking account…</span>
+            )}
           </nav>
         )}
       </header>
