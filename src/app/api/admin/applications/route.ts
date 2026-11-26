@@ -336,29 +336,6 @@ export async function POST(request: NextRequest) {
         approved: true,
         activationUrl,
       });
-    } catch (mailError) {
-      notificationSent = false;
-      console.error("Partner approval notification failed:", mailError);
-    }
-
-    return respond(
-      true,
-      notificationSent
-        ? "Application approved and partner account linked successfully."
-        : "Application approved, but the notification email could not be delivered. Please contact the applicant using the application details.",
-      200,
-      { result: approvalResult, notificationSent }
-    );
-    } catch (mailError) {
-      console.error("Partner approval notification failed:", mailError);
-    }
-
-    return respond(
-      true,
-      "Application approved and partner account created successfully.",
-      200,
-      { result: approvalResult }
-    );
   } catch (error) {
     console.error("Admin application API error:", error);
 
