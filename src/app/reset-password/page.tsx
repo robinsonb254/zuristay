@@ -58,10 +58,16 @@ export default function ResetPasswordPage() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
 
-      await supabase.auth.signOut();
       setPassword("");
       setConfirmPassword("");
-      setSuccess(partnerActivation ? "Your partner account is now activated and your password has been saved. Sign in to ZuriStay Worldwide, then choose Partner Login to open your dashboard." : "Your password has been updated. You can now sign in with your new password.");
+
+      if (partnerActivation) {
+        window.location.assign("/partner/dashboard");
+        return;
+      }
+
+      await supabase.auth.signOut();
+      setSuccess("Your password has been updated. You can now sign in with your new password.");
     } catch (err) {
       console.error("Password update error:", err);
       setError(
@@ -172,7 +178,7 @@ export default function ResetPasswordPage() {
                 disabled={loading}
                 className="flex w-full items-center justify-center gap-3 rounded-full bg-[#173b30] px-7 py-4 font-bold text-white transition hover:bg-[#245545] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Saving password..." : partnerActivation ? "Activate account and set password" : "Update password"}
+                {loading ? "Saving password..." : partnerActivation ? "Create account & open dashboard" : "Update password"}
               </button>
             </form>
           )}
