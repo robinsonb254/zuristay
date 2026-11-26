@@ -133,16 +133,16 @@ export async function sendPartnerApplicationDecision(input: {
   const status = input.approved ? "approved" : "not approved";
   const nextStep = input.approved
     ? "Your partner application has been approved. If you have not already created your ZuriStay account, create one using exactly the same email address you used in your partner application. Then visit www.zuristayworldwide.com and select the Partner Login button on the homepage to sign in. Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Please save your changes in the dashboard."
-    : "If you would like clarification or wish to discuss a future application, please contact our team.";
-  const assistanceText = "For assistance, reply to this email or contact bookings@zuristayworldwide.com.";
+    : "If you would like clarification or wish to discuss a future application, please contact our team."; 
+  const assistanceText = "For assistance, reply to this email or contact bookings@zuristayworldwide.com."; 
   const assistanceHtml = '<p>For assistance, reply to this email or contact <a href="mailto:bookings@zuristayworldwide.com">bookings@zuristayworldwide.com</a>.</p>';
   const approvedHtml = '<p>Your partner application has been approved. If you have not already created your ZuriStay account, create one using <strong>exactly the same email address</strong> you used in your partner application.</p><p>Then visit <a href="https://www.zuristayworldwide.com">www.zuristayworldwide.com</a> and select the <strong>Partner Login</strong> button on the homepage to sign in.</p><p>Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Please save your changes in the dashboard.</p>';
   await sendZuriStayEmail({
     to: input.email,
-    subject: \`ZuriStay Worldwide partner application update — \${input.approved ? "Approved" : "Review update"}\`,
-    text: \`Hello \${input.contactPerson},\n\nYour partner application for \${input.businessName} has been reviewed. Its current status is: \${status.toUpperCase()}.\n\n\${input.approved ? nextStep : "If you would like clarification or wish to discuss a future application, please contact our team."}\n\n\${assistanceText}\n\nZuriStay Worldwide\`,
+    subject: "ZuriStay Worldwide partner application update — " + (input.approved ? "Approved" : "Review update"),
+    text: "Hello " + input.contactPerson + ",\n\nYour partner application for " + input.businessName + " has been reviewed. Its current status is: " + status.toUpperCase() + ".\n\n" + nextStep + "\n\n" + assistanceText + "\n\nZuriStay Worldwide",
     html: input.approved
-      ? \`<p>Hello \${name},</p><p>Your partner application for <strong>\${business}</strong> has been reviewed. Its current status is: <strong>APPROVED</strong>.</p>\${approvedHtml}\${assistanceHtml}<p>ZuriStay Worldwide</p>\`
-      : \`<p>Hello \${name},</p><p>Your partner application for <strong>\${business}</strong> has been reviewed. Its current status is: <strong>\${status.toUpperCase()}</strong>.</p><p>\${safeHtml(nextStep)}</p>\${assistanceHtml}<p>ZuriStay Worldwide</p>\`,
+      ? "<p>Hello " + name + ",</p><p>Your partner application for <strong>" + business + "</strong> has been reviewed. Its current status is: <strong>APPROVED</strong>.</p>" + approvedHtml + assistanceHtml + "<p>ZuriStay Worldwide</p>"
+      : "<p>Hello " + name + ",</p><p>Your partner application for <strong>" + business + "</strong> has been reviewed. Its current status is: <strong>" + status.toUpperCase() + "</strong>.</p><p>" + safeHtml(nextStep) + "</p>" + assistanceHtml + "<p>ZuriStay Worldwide</p>",
   });
 }
