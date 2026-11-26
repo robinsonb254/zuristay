@@ -185,7 +185,7 @@ export default function AdminPage() {
       setProfile(adminProfile);
 
       const failures: string[] = [];
-      const runQuery = async (label: string, query: PromiseLike<any>) => {
+      const runQuery = async <T,>(label: string, query: PromiseLike<SafeQueryResult<T>>): Promise<SafeQueryResult<T> | null> => {
         try {
           const result = await query;
           if (result.error) {
