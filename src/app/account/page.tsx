@@ -156,15 +156,24 @@ export default function AccountPage() {
       try {
         const supabase = createSupabaseBrowserClient();
 
+        // Read the persisted browser session locally. getUser() makes a
+        // separate network request and can incorrectly send a signed-in
+        // guest back to login when that request temporarily fails.
         const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        if (authError || !user) {
-          router.replace("/login");
+        if (sessionError) {
+          throw new Error("Unable to verify your sign-in session. Please refresh and try again.");
+        }
+
+        if (!session?.user) {
+          router.replace("/login?next=%2Faccount");
           return;
         }
+
+        const user = session.user;
 
         if (!mounted) return;
 
