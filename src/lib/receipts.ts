@@ -86,13 +86,19 @@ export async function deliverBookingReceipt(database: unknown, bookingId: string
       .select("id, receipt_number, receipt_snapshot, email_status")
       .eq("payment_id", paymentId).maybeSingle();
     if (receiptError || !receipt) throw new Error("Receipt record could not be loaded.");
-    if (receipt.email_status === "sent" || receipt.email_status === "sending") return;
+    if (receipt.email_status === "sent") return;
 
-    const { data: claimed, error: claimError } = await db.from("booking_receipts")
-      .update({ email_status: "sending", email_attempts: 1, last_email_error: null })
-      .eq("id", receipt.id).in("email_status", ["pending", "failed"])
-      .select("id").maybeSingle();
-    if (claimError || !claimed) return;
+    // Claim atomically. A crashed send can be reclaimed after ten minutes,
+    // while concurrent callbacks cannot send duplicate receipts.
+    const { data: claimed, error: claimError } = await db.rpc(
+      "claim_booking_receipt_email",
+      { p_receipt_id: receipt.id }
+    );
+    if (claimError) {
+      console.error("Unable to claim booking receipt email:", claimError);
+      return;
+    }
+    if (claimed !== true) return;
 
     try {
       const pdf = await createReceiptPdf(receipt.receipt_snapshot as Record<string, unknown>);
@@ -105,11 +111,19 @@ export async function deliverBookingReceipt(database: unknown, bookingId: string
         html: `<p>Hello ${guestName.replace(/[&<>"]/g, "")},</p><p>Your payment has been verified and your ZuriStay Worldwide booking is confirmed. Your PDF receipt is attached.</p><p><a href="${downloadUrl}">Download your secure PDF receipt</a></p><p><strong>Booking reference:</strong> ${String(snapshot.booking_reference)}<br><strong>Total paid:</strong> ${String(snapshot.currency)} ${Number(snapshot.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</p><p>For assistance, contact ${process.env.BUSINESS_EMAIL || "robinsonbarasa6@gmail.com"}.</p><p>ZuriStay Worldwide</p>`,
         attachments: [{ filename: `ZuriStay-Receipt-${receipt.receipt_number}.pdf`, content: pdf, contentType: "application/pdf" }],
       });
-      await db.from("booking_receipts").update({ email_status: "sent", emailed_at: new Date().toISOString(), last_email_error: null }).eq("id", receipt.id);
+      const { error: sentUpdateError } = await db.from("booking_receipts").update({
+        email_status: "sent", emailed_at: new Date().toISOString(),
+        email_started_at: null, last_email_error: null,
+      }).eq("id", receipt.id);
+      if (sentUpdateError) throw sentUpdateError;
     } catch (emailError) {
       const message = emailError instanceof Error ? emailError.message : "Email delivery failed.";
       console.error("Booking receipt email failed:", message);
-      await db.from("booking_receipts").update({ email_status: "failed", last_email_error: message.slice(0, 1000) }).eq("id", receipt.id);
+      const { error: failedUpdateError } = await db.from("booking_receipts").update({
+        email_status: "failed", email_started_at: null,
+        last_email_error: message.slice(0, 1000),
+      }).eq("id", receipt.id);
+      if (failedUpdateError) console.error("Unable to record receipt email failure:", failedUpdateError);
     }
   } catch (error) {
     console.error("Booking receipt preparation failed:", error);
