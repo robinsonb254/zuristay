@@ -11,6 +11,7 @@ type Property = { id: string; city: string | null; county: string | null; countr
 type Booking = { id: string; created_at: string; booking_status: string; payment_status: string };
 type BookingItem = { booking_id: string; property_id: string; quantity: number | null };
 
+const money = (value: number, currency: string) => `${currency} ${value.toLocaleString("en-KE", { maximumFractionDigits: 2 })}`;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const sumByCurrency = (rows: { amount: number; currency: string }[]) => {
   const totals = new Map<string, number>();
