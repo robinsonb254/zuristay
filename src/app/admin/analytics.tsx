@@ -51,47 +51,88 @@ export default function AdminAnalytics({ enabled = false }: { enabled?: boolean 
   async function load() {
     setLoading(true);
     setError("");
+    const supabase = createSupabaseBrowserClient();
+    const since = kenyaStartOfDay(new Date(), -31);
+    const safeQuery = async (query: PromiseLike<any>) => {
+      try {
+        return await query;
+      } catch (e) {
+        return { data: null, count: null, error: { message: e instanceof Error ? e.message : "Request failed" } };
+      }
+    };
+
     try {
-      const supabase = createSupabaseBrowserClient();
-      const since = kenyaStartOfDay(new Date(), -31);
-      const [paymentResult, commissionResult, unitResult, propertyResult, bookingResult, itemResult, pendingResult] = await Promise.all([
-        supabase.from("payments").select("id, amount, currency, status, payment_method, created_at, verified_at").gte("created_at", since.toISOString()).order("created_at", { ascending: false }),
-        supabase.from("platform_commissions").select("amount, currency, status, created_at").gte("created_at", since.toISOString()),
-        supabase.from("property_units").select("total_units, active, property_id").eq("active", true),
-        supabase.from("properties").select("id, city, county, country, status, is_active"),
-        supabase.from("bookings").select("id, created_at, booking_status, payment_status").gte("created_at", since.toISOString()),
-        supabase.from("booking_items").select("booking_id, property_id, quantity"),
-        supabase.from("payments").select("id", { count: "exact", head: true }).in("status", ["pending", "processing", "initiated"]),
+      const [
+        paymentResult, commissionResult, unitResult, propertyResult,
+        bookingResult, itemResult, pendingResult,
+      ] = await Promise.all([
+        safeQuery(supabase.from("payments").select("id, amount, currency, status, payment_method, created_at, verified_at").gte("created_at", since.toISOString()).order("created_at", { ascending: false })),
+        safeQuery(supabase.from("platform_commissions").select("amount, currency, status, created_at").gte("created_at", since.toISOString())),
+        safeQuery(supabase.from("property_units").select("total_units, active, property_id").eq("active", true)),
+        safeQuery(supabase.from("properties").select("id, city, county, country, status, is_active")),
+        safeQuery(supabase.from("bookings").select("id, created_at, booking_status, payment_status").gte("created_at", since.toISOString())),
+        safeQuery(supabase.from("booking_items").select("booking_id, property_id, quantity")),
+        safeQuery(supabase.from("payments").select("id", { count: "exact", head: true }).in("status", ["pending", "processing", "initiated"])),
       ]);
-      const firstError = [paymentResult, commissionResult, unitResult, propertyResult, bookingResult, itemResult, pendingResult].find((r) => r.error);
-      if (firstError?.error) throw firstError.error;
+
+      const warnings: string[] = [];
+      const noteFailure = (label: string, result: { error?: { message?: string } | null }) => {
+        if (result.error) warnings.push(label + ": " + (result.error.message || "temporarily unavailable"));
+      };
+      noteFailure("Payments", paymentResult);
+      noteFailure("Commissions", commissionResult);
+      noteFailure("Room inventory", unitResult);
+      noteFailure("Properties", propertyResult);
+      noteFailure("Bookings", bookingResult);
+      noteFailure("Booking locations", itemResult);
+      noteFailure("Pending payments", pendingResult);
 
       const props = (propertyResult.data || []) as Property[];
-      const livePropertyIds = new Set(props.filter((p) => p.status === "approved" && p.is_active).map((p) => p.id));
-      const units = (unitResult.data || []) as Unit[];
-      setRoomCount(units.filter((u) => livePropertyIds.has(u.property_id)).reduce((n, u) => n + Math.max(0, Number(u.total_units || 0)), 0));
+      if (!unitResult.error && !propertyResult.error) {
+        const livePropertyIds = new Set(props.filter((p) => p.status === "approved" && p.is_active).map((p) => p.id));
+        const units = (unitResult.data || []) as Unit[];
+        setRoomCount(units.filter((u) => livePropertyIds.has(u.property_id)).reduce((n, u) => n + Math.max(0, Number(u.total_units || 0)), 0));
+      } else {
+        setRoomCount(0);
+      }
 
-      const paymentRows = (paymentResult.data || []) as Payment[];
-      const commissionRows = (commissionResult.data || []) as Commission[];
-      setPayments(paymentRows.filter((p) => ["paid", "completed", "succeeded", "verified", "captured"].includes((p.status || "").toLowerCase())));
-      setCommissions(commissionRows.filter((c) => ["earned", "transferred"].includes((c.status || "").toLowerCase())));
-      setPendingPayments(pendingResult.count || 0);
+      if (!paymentResult.error) {
+        const paymentRows = (paymentResult.data || []) as Payment[];
+        setPayments(paymentRows.filter((p) => ["paid", "completed", "succeeded", "verified", "captured"].includes((p.status || "").toLowerCase())));
+      } else setPayments([]);
 
-      const bookingRows = (bookingResult.data || []) as Booking[];
-      const items = (itemResult.data || []) as BookingItem[];
-      setBookingCount(bookingRows.length);
-      const validBookingIds = new Set(bookingRows.filter((b) => ["confirmed", "completed", "checked_in"].includes((b.booking_status || "").toLowerCase())).map((b) => b.id));
-      const grouped = new Map<string, { bookings: Set<string>; rooms: number }>();
-      items.filter((i) => validBookingIds.has(i.booking_id)).forEach((item) => {
-        const p = props.find((x) => x.id === item.property_id);
-        if (!p) return;
-        const key = [p.city, p.county, p.country].filter(Boolean).join(", ") || "Location not specified";
-        const entry = grouped.get(key) || { bookings: new Set<string>(), rooms: 0 };
-        entry.bookings.add(item.booking_id);
-        entry.rooms += Number(item.quantity || 0);
-        grouped.set(key, entry);
-      });
-      setRegions(Array.from(grouped.entries()).map(([name, v]) => ({ name, bookings: v.bookings.size, rooms: v.rooms })).sort((a, b) => b.bookings - a.bookings).slice(0, 8));
+      if (!commissionResult.error) {
+        const commissionRows = (commissionResult.data || []) as Commission[];
+        setCommissions(commissionRows.filter((c) => ["earned", "transferred"].includes((c.status || "").toLowerCase())));
+      } else setCommissions([]);
+
+      setPendingPayments(pendingResult.error ? 0 : pendingResult.count || 0);
+
+      if (!bookingResult.error) {
+        const bookingRows = (bookingResult.data || []) as Booking[];
+        setBookingCount(bookingRows.length);
+        if (!itemResult.error && !propertyResult.error) {
+          const items = (itemResult.data || []) as BookingItem[];
+          const propertyById = new Map(props.map((p) => [p.id, p]));
+          const validBookingIds = new Set(bookingRows.filter((b) => ["confirmed", "completed", "checked_in"].includes((b.booking_status || "").toLowerCase())).map((b) => b.id));
+          const grouped = new Map<string, { bookings: Set<string>; rooms: number }>();
+          items.filter((i) => validBookingIds.has(i.booking_id)).forEach((item) => {
+            const p = propertyById.get(item.property_id);
+            if (!p) return;
+            const key = [p.city, p.county, p.country].filter(Boolean).join(", ") || "Location not specified";
+            const entry = grouped.get(key) || { bookings: new Set<string>(), rooms: 0 };
+            entry.bookings.add(item.booking_id);
+            entry.rooms += Number(item.quantity || 0);
+            grouped.set(key, entry);
+          });
+          setRegions(Array.from(grouped.entries()).map(([name, v]) => ({ name, bookings: v.bookings.size, rooms: v.rooms })).sort((a, b) => b.bookings - a.bookings).slice(0, 8));
+        } else setRegions([]);
+      } else {
+        setBookingCount(0);
+        setRegions([]);
+      }
+
+      setError(warnings.length ? warnings.join(" · ") : "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analytics could not be loaded.");
     } finally {
