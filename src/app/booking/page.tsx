@@ -11,6 +11,7 @@ import {
   MapPin,
   ShieldCheck,
   CheckCircle2,
+  Clock3,
   CreditCard,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -645,17 +646,34 @@ export default function BookingPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-12 print:bg-white print:py-0">
         <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm print:max-w-none print:border-0 print:p-0 print:shadow-none">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 size={42} className="text-green-600" />
+          <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ${paymentState === "paid" ? "bg-green-100" : "bg-amber-100"}`}>
+            {paymentState === "paid"
+              ? <CheckCircle2 size={42} className="text-green-600" />
+              : <Clock3 size={42} className="text-amber-700" />}
           </div>
 
           <h1 className="mt-6 text-3xl font-black text-blue-950">
-            {paymentState === "paid" ? "Booking confirmed!" : "Reservation held successfully!"}
+            {paymentState === "paid"
+              ? "Booking confirmed!"
+              : paymentState === "waiting"
+                ? "Waiting for payment confirmation"
+                : paymentState === "timeout"
+                  ? "Payment verification pending"
+                  : paymentState === "failed"
+                    ? "Payment not completed"
+                    : paymentState === "expired"
+                      ? "Room hold expired"
+                      : "Reservation held successfully!"}
           </h1>
 
           <p className="mt-3 text-slate-500">
-            Your booking has been recorded. Your selected inventory is
-            temporarily held while payment is arranged.
+            {paymentState === "paid"
+              ? "Your payment has been verified and your reservation is confirmed."
+              : paymentState === "failed"
+                ? "The payment attempt was not completed. Your booking is not confirmed."
+                : paymentState === "expired"
+                  ? "The temporary room hold has expired. Please contact ZuriStay Worldwide before making another payment."
+                  : "Your booking has been recorded. Your selected inventory is temporarily held while payment is arranged."}
           </p>
 
           <div className="mt-7 rounded-2xl bg-slate-50 p-6 text-left">
@@ -677,18 +695,36 @@ export default function BookingPage() {
               <p><strong>Guests:</strong> {guests}</p>
               <p><strong>Rooms:</strong> {rooms}</p>
               <p>
-                <strong>Total payable:</strong>{" "}
+                <strong>{paymentState === "paid" ? "Amount paid:" : "Total payable:"}</strong>{" "}
                 {formatMoney(Number(booking.total_amount), booking.currency)}
               </p>
               <p>
                 <strong>Booking status:</strong> {paymentState === "paid" ? "confirmed" : booking.booking_status}
               </p>
               <p>
-                <strong>Payment status:</strong> {paymentState === "paid" ? "paid" : booking.payment_status}
+                <strong>Payment status:</strong>{" "}
+                {paymentState === "paid"
+                  ? "paid"
+                  : paymentState === "waiting"
+                    ? "awaiting confirmation"
+                    : paymentState === "timeout"
+                      ? "verification pending"
+                      : paymentState === "failed"
+                        ? "payment attempt failed"
+                        : paymentState === "expired"
+                          ? "hold expired"
+                          : booking.payment_status}
               </p>
-              <p>
-                <strong>Hold expires:</strong> {expiry.toLocaleString()}
-              </p>
+              {paymentState !== "paid" && (
+                <p>
+                  <strong>Hold expires:</strong>{" "}
+                  {new Intl.DateTimeFormat("en-KE", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                    timeZone: "Africa/Nairobi",
+                  }).format(expiry)} EAT
+                </p>
+              )}
             </div>
           </div>
 
