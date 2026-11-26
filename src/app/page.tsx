@@ -159,7 +159,8 @@ export default function Home() {
   const [budget, setBudget] = useState("any");
   const [searchMessage, setSearchMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [authUser, setAuthUser] = useState<{ email?: string } | null>(null);
+  const [authUser, setAuthUser] = useState<{ id: string; email?: string } | null>(null);
+  const [isApprovedPartner, setIsApprovedPartner] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [destinationSuggestions, setDestinationSuggestions] = useState(
     destinationHighlights.map((item, index) => ({ id: `popular-${index}`, name: item.name }))
@@ -186,6 +187,34 @@ export default function Home() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function identifyAccountType() {
+      setIsApprovedPartner(false);
+      if (!authReady || !authUser) return;
+
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const [{ data: profile, error: profileError }, { data: partner, error: partnerError }] =
+          await Promise.all([
+            supabase.from("profiles").select("role").eq("id", authUser.id).maybeSingle(),
+            supabase.from("property_partners").select("status").eq("owner_user_id", authUser.id).maybeSingle(),
+          ]);
+
+        if (!active) return;
+        if (!profileError && !partnerError) {
+          setIsApprovedPartner(profile?.role !== "admin" && partner?.status === "approved");
+        }
+      } catch (error) {
+        console.error("Account type could not be determined:", error);
+      }
+    }
+
+    identifyAccountType();
+    return () => { active = false; };
+  }, [authReady, authUser]);
 
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient();
@@ -310,12 +339,12 @@ export default function Home() {
               href="/partner/dashboard"
               className="rounded-full px-2 py-2.5 text-xs font-semibold text-[#39574d] transition hover:bg-[#f4eee2] hover:text-[#173b30]"
             >
-              Partner login
+              {isApprovedPartner ? "My account" : "Partner login"}
             </a>
             {authReady && authUser ? (
               <>
                 <a
-                  href="/account"
+                  href={isApprovedPartner ? "/partner/dashboard" : "/account"}
                   className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#173b30] bg-white px-4 py-2.5 text-sm font-bold text-[#173b30] shadow-sm transition hover:bg-[#f4eee2]"
                 >
                   My account
@@ -373,12 +402,12 @@ export default function Home() {
             <a href="#partners" onClick={() => setMenuOpen(false)}>
               List your property
             </a>
-            <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>Already a partner? Partner dashboard</a>
+            <a href="/partner/dashboard" onClick={() => setMenuOpen(false)}>{isApprovedPartner ? "My account" : "Already a partner? Partner dashboard"}</a>
             <a href="/admin/login" onClick={() => setMenuOpen(false)}>Admin Login</a>
-            <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay Worldwide partner</a>
+            {!isApprovedPartner && <a href="/partner/register" onClick={() => setMenuOpen(false)} className="font-semibold text-[#a77e3e]">Become a ZuriStay Worldwide partner</a>}
             {authReady && authUser ? (
               <>
-                <a href="/account" onClick={() => setMenuOpen(false)} className="font-semibold text-[#173b30]">My account</a>
+                <a href={isApprovedPartner ? "/partner/dashboard" : "/account"} onClick={() => setMenuOpen(false)} className="font-semibold text-[#173b30]">My account</a>
                 <button type="button" onClick={handleSignOut} className="self-start font-semibold text-red-700">Sign out</button>
               </>
             ) : authReady ? (
@@ -395,17 +424,17 @@ export default function Home() {
 
       <div className="border-b border-[#e9e3d8] bg-[#f8f5ee] px-4 py-3 lg:hidden">
         <div className="container flex flex-wrap items-center justify-center gap-2">
-          <a href="/partner/register" className="inline-flex items-center justify-center rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#ae8540]">
-            Become a partner
+          <a href={isApprovedPartner ? "/partner/dashboard" : "/partner/register"} className="inline-flex items-center justify-center rounded-full bg-[#c49a52] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#ae8540]">
+            {isApprovedPartner ? "My account" : "Become a partner"}
           </a>
           <a href="/partner/dashboard" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
-            Partner login
+            {isApprovedPartner ? "My account" : "Partner login"}
           </a>
           {authReady && authUser ? (
             <>
-              <a href="/account" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
+              {!isApprovedPartner && <a href="/account" className="inline-flex items-center justify-center rounded-full border border-[#173b30]/20 bg-white px-4 py-2.5 text-xs font-semibold text-[#173b30] transition hover:bg-[#f1eadc]">
                 My account
-              </a>
+              </a>}
               <button type="button" onClick={handleSignOut} className="inline-flex items-center justify-center rounded-full bg-[#173b30] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#245545]">
                 Sign out
               </button>
@@ -753,10 +782,10 @@ export default function Home() {
             community of travellers.
           </p>
           <a
-            href="/partner/register"
+            href={isApprovedPartner ? "/partner/dashboard" : "/partner/register"}
             className="mt-8 inline-flex rounded-full bg-[#c49a52] px-8 py-4 font-bold text-white hover:bg-[#ae8540]"
           >
-            Become a ZuriStay Worldwide partner
+            {isApprovedPartner ? "My account" : "Become a ZuriStay Worldwide partner"}
           </a>
         </div>
       </section>
