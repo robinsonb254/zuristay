@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // the known selected row shape at this boundary for TypeScript.
     const attempt = attemptData as unknown as { id: string } | null;
     if (attemptError || !attempt) {
-      if (attemptError?.code === "23505") return fail("A PayPal checkout is already pending for this booking. Return to the existing checkout or contact support.", 409);
+      if (attemptError?.code === "23505") return fail("A payment attempt is already pending for this booking. Complete or verify it before starting another payment.", 409);
       console.error("Unable to reserve PayPal payment attempt:", attemptError);
       return fail("Unable to reserve this payment attempt. Please try again shortly.", 500);
     }
