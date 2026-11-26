@@ -126,17 +126,29 @@ export async function sendPartnerPropertyEditAcknowledgement(input: {
 }
 
 export async function sendPartnerApplicationDecision(input: {
-  email: string; contactPerson: string; businessName: string; approved: boolean;
+  email: string;
+  contactPerson: string;
+  businessName: string;
+  approved: boolean;
+  activationUrl?: string;
 }) {
   const name = safeHtml(input.contactPerson);
   const business = safeHtml(input.businessName);
   const status = input.approved ? "approved" : "not approved";
+  const activationUrl = input.activationUrl ? safeHtml(input.activationUrl) : "";
+  const approvedText = input.activationUrl
+    ? "Your ZuriStay Worldwide partner account has been created and linked to this application. To activate it, open this secure link and set your own password: " + input.activationUrl + ". The link is time-limited and can only be used once. After setting your password, visit https://www.zuristayworldwide.com and select Partner Login on the homepage."
+    : "Your partner application has been approved and linked to your existing ZuriStay Worldwide account. Visit https://www.zuristayworldwide.com, select Partner Login on the homepage, and sign in using your existing password.";
+  const onboarding = "Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Save your changes in the dashboard. A property is not made publicly bookable until it has completed ZuriStay's separate listing review.";
   const nextStep = input.approved
-    ? "Your partner application has been approved. If you have not already created your ZuriStay account, create one using exactly the same email address you used in your partner application. Then visit www.zuristayworldwide.com and select the Partner Login button on the homepage to sign in. Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Please save your changes in the dashboard."
-    : "If you would like clarification or wish to discuss a future application, please contact our team."; 
-  const assistanceText = "For assistance, reply to this email or contact bookings@zuristayworldwide.com."; 
+    ? approvedText + " " + onboarding
+    : "If you would like clarification or wish to discuss a future application, please contact our team.";
+  const assistanceText = "For assistance, reply to this email or contact bookings@zuristayworldwide.com.";
   const assistanceHtml = '<p>For assistance, reply to this email or contact <a href="mailto:bookings@zuristayworldwide.com">bookings@zuristayworldwide.com</a>.</p>';
-  const approvedHtml = '<p>Your partner application has been approved. If you have not already created your ZuriStay account, create one using <strong>exactly the same email address</strong> you used in your partner application.</p><p>Then visit <a href="https://www.zuristayworldwide.com">www.zuristayworldwide.com</a> and select the <strong>Partner Login</strong> button on the homepage to sign in.</p><p>Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Please save your changes in the dashboard.</p>';
+  const activationHtml = input.activationUrl
+    ? '<p>Your ZuriStay Worldwide partner account has been created and linked to this application. To activate it, <a href="' + activationUrl + '"><strong>set your password using this secure activation link</strong></a>. The link is time-limited and can only be used once. After setting your password, visit <a href="https://www.zuristayworldwide.com">www.zuristayworldwide.com</a> and select <strong>Partner Login</strong> on the homepage.</p>'
+    : '<p>Your partner application has been approved and linked to your existing ZuriStay Worldwide account. Visit <a href="https://www.zuristayworldwide.com">www.zuristayworldwide.com</a>, select <strong>Partner Login</strong> on the homepage, and sign in using your existing password.</p>';
+  const approvedHtml = activationHtml + '<p>Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Save your changes in the dashboard. A property is not made publicly bookable until it has completed ZuriStay\'s separate listing review.</p>';
   await sendZuriStayEmail({
     to: input.email,
     subject: "ZuriStay Worldwide partner application update — " + (input.approved ? "Approved" : "Review update"),
