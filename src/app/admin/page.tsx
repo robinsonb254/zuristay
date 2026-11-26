@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   AlertCircle,
   CheckCircle2,
+  XCircle,
   Clock3,
   MapPin,
   CreditCard,
@@ -142,6 +143,7 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [processingApplicationId, setProcessingApplicationId] = useState("");
   const [error, setError] = useState("");
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -267,6 +269,53 @@ export default function AdminPage() {
       console.error("Admin sign-out error:", err);
       setError("Unable to sign out. Please try again.");
       setSigningOut(false);
+    }
+  }
+
+  async function reviewApplication(application: Application, action: "approve" | "reject") {
+    const actionLabel = action === "approve" ? "approve" : "reject";
+    const confirmed = window.confirm(
+      `Are you sure you want to ${actionLabel} the application from ${application.business_name}?`
+    );
+    if (!confirmed) return;
+
+    setProcessingApplicationId(application.id);
+    setError("");
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+
+      const response = await fetch("/api/admin/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          applicationId: application.id,
+          action,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || result.error || "The application could not be processed.");
+      }
+
+      await loadDashboard();
+    } catch (err) {
+      console.error("Dashboard application review error:", err);
+      setError(err instanceof Error ? err.message : "Unable to process this application.");
+    } finally {
+      setProcessingApplicationId("");
     }
   }
 
@@ -625,8 +674,8 @@ export default function AdminPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <span className="mr-1 text-xs text-slate-400">
                         {formatDate(application.created_at)}
                       </span>
                       <span
@@ -636,6 +685,26 @@ export default function AdminPage() {
                       >
                         {application.status}
                       </span>
+                      {application.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => reviewApplication(application, "approve")}
+                            disabled={processingApplicationId === application.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={14} />
+                            {processingApplicationId === application.id ? "Processing..." : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => reviewApplication(application, "reject")}
+                            disabled={processingApplicationId === application.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <XCircle size={14} />
+                            Reject
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
