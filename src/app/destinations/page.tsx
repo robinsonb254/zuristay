@@ -54,6 +54,9 @@ export default function DestinationsPage() {
       .sort((a, b) => (a.sort_order ?? 999999) - (b.sort_order ?? 999999));
   }, [destinations, query]);
 
+  // If a search term has no exact town match, keep the directory useful by showing all towns.
+  const displayedDestinations = filteredDestinations.length > 0 ? filteredDestinations : destinations;
+
   const filteredCounties = useMemo(() => {
     const term = query.trim().toLowerCase();
     return counties.filter((county) =>
@@ -95,11 +98,11 @@ export default function DestinationsPage() {
             <h2 className="text-3xl font-bold">Major Towns &amp; Urban Destinations</h2>
             <p className="mt-2 text-sm text-gray-500">Explore 148 towns, cities and urban centres across Kenya, alongside additional destinations worth discovering.</p>
           </div>
-          <span className="text-sm font-semibold text-gray-500">{filteredDestinations.length} places</span>
+          <span className="text-sm font-semibold text-gray-500">{displayedDestinations.length} places</span>
         </div>
         {loading ? <p className="py-8 text-sm text-gray-500">Loading destinations…</p> : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredDestinations.map((item, index) => (
+            {displayedDestinations.map((item, index) => (
               <div key={item.id} role="button" tabIndex={0} onClick={() => searchFor(item.city)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); searchFor(item.city); } }} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-left transition hover:-translate-y-0.5 hover:border-[#c49a52] hover:shadow-md">
                 <LocationPhoto location={`${item.city}, ${item.county || "Kenya"}`} className={`${item.city.toLowerCase() === "diani" ? "h-52 sm:h-60" : "h-32"} w-full`} compact eager={index < 8} />
                 <span className="flex items-center justify-between gap-3 px-4 py-3">
@@ -110,7 +113,6 @@ export default function DestinationsPage() {
             ))}
           </div>
         )}
-        {!loading && filteredDestinations.length === 0 && <p className="py-8 text-sm text-gray-500">No matching urban centres found.</p>}
       </section>
 
       <section className="bg-white py-14">
