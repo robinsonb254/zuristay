@@ -21,14 +21,16 @@ export default function AdminLoginPage() {
     async function checkExistingSession() {
       setAccessNotice(new URLSearchParams(window.location.search).get("reason") === "access");
       const supabase = createSupabaseBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       if (!active) return;
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .maybeSingle();
+        if (profileError) throw profileError;
         if (!active) return;
         if ((profile as { role?: string } | null)?.role === "admin") {
           router.replace("/admin");
