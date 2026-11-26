@@ -52,8 +52,12 @@ export async function POST(request: NextRequest) {
     const { data: holds, error: holdError } = await db.from("booking_holds")
       .select("id, expires_at").eq("booking_id", bookingId).eq("status", "active")
       .gt("expires_at", new Date().toISOString()).limit(1);
-    if (holdError || !holds?.length) return fail("Your room hold has expired. Please create a new booking.", 409);
-    const holdExpiresAt = new Date(holds[0].expires_at).getTime();
+    // Supabase's generated types currently infer this table result as never.
+    // Narrow the selected runtime row explicitly at the query boundary.
+    const activeHolds = holds as unknown as Array<{ id: string; expires_at: string }> | null;
+    const activeHold = activeHolds?.[0];
+    if (holdError || !activeHold) return fail("Your room hold has expired. Please create a new booking.", 409);
+    const holdExpiresAt = new Date(activeHold.expires_at).getTime();
     if (!Number.isFinite(holdExpiresAt) || holdExpiresAt <= Date.now()) {
       return fail("Your room hold has expired. Please create a new booking.", 409);
     }
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest) {
       exchange_rate_source: fx.source,
       status: "created",
       // Never extend the booking's inventory reservation when PayPal starts.
-      expires_at: holds[0].expires_at,
+      expires_at: activeHold.expires_at,
     } as never);
     if (sessionError) {
       console.error("Unable to persist PayPal checkout quote:", sessionError);
