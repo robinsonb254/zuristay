@@ -181,6 +181,7 @@ export async function POST(request: NextRequest) {
 
     if ("error" in context) return context.error;
     if (!context.partner) return fail("Your partner account is not approved for property management.", 403);
+    const partner = context.partner;
 
     let body: unknown;
 
@@ -217,11 +218,11 @@ export async function POST(request: NextRequest) {
     const phone =
       typeof input.contactPhone === "string"
         ? input.contactPhone.trim()
-        : context.partner.phone;
+        : partner.phone;
     const email =
       typeof input.contactEmail === "string"
         ? input.contactEmail.trim().toLowerCase()
-        : context.partner.email;
+        : partner.email;
 
     const uuidPattern =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -326,10 +327,10 @@ export async function POST(request: NextRequest) {
       return fail("Unable to save this property. Please check the details.", 500);
     }
 
-    if (context.partner.email) {
+    if (partner.email) {
       try {
         await sendPartnerPropertyEditAcknowledgement({
-          email: context.partner.email,
+          email: partner.email,
           contactPerson: context.partner.contact_person,
           businessName: context.partner.business_name,
           propertyName: property.name,
