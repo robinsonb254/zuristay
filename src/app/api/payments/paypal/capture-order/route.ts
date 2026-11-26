@@ -96,22 +96,6 @@ export async function POST(request: NextRequest) {
       return fail("PayPal payment is awaiting verification. Do not retry or make another payment.", 409);
     }
 
-    // Retain the original attempt as an audit record. The confirmation RPC
-    // inserts a separate successful row keyed by the actual capture ID.
-    // Marking this order attempt failed releases the one-pending-attempt index
-    // without deleting evidence if booking confirmation later needs recovery.
-    const { error: pendingUpdateError } = await db.from("payments")
-      .update({ status: "failed" })
-      .eq("booking_id", session.booking_id)
-      .eq("payment_method", "paypal")
-      .eq("provider_reference", orderId)
-      .eq("status", "pending");
-    if (pendingUpdateError) {
-      console.error("Unable to close pending PayPal payment attempt:", pendingUpdateError);
-      await db.from("paypal_checkout_sessions").update({ status: "needs_review", capture_id: capture.id }).eq("id", session.id);
-      return fail("Payment was captured but booking confirmation is being reconciled. Do not pay again.", 503);
-    }
-
     const { data: confirmed, error: confirmError } = await db.rpc("confirm_booking_payment", {
       p_booking_id: session.booking_id,
       p_payment_method: "paypal",
@@ -123,6 +107,21 @@ export async function POST(request: NextRequest) {
       console.error("PayPal booking confirmation failed:", confirmError);
       await db.from("paypal_checkout_sessions").update({ status: "needs_review", capture_id: capture.id }).eq("id", session.id);
       return fail("PayPal captured the payment, but booking confirmation needs reconciliation. Do not pay again.", 503);
+    }
+
+    // Keep the provider attempt pending until the booking confirmation RPC
+    // succeeds. This preserves the cross-provider payment lock during capture.
+    // The successful payment row is separate and retains the real capture ID.
+    const { error: pendingUpdateError } = await db.from("payments")
+      .update({ status: "failed" })
+      .eq("booking_id", session.booking_id)
+      .eq("payment_method", "paypal")
+      .eq("provider_reference", orderId)
+      .eq("status", "pending");
+    if (pendingUpdateError) {
+      console.error("Booking confirmed, but PayPal attempt audit update failed:", pendingUpdateError);
+      await db.from("paypal_checkout_sessions").update({ status: "needs_review", capture_id: capture.id }).eq("id", session.id);
+      return fail("Your payment and reservation are confirmed, but the payment audit record needs reconciliation. Do not pay again.", 503);
     }
 
     const { error: sessionUpdateError } = await db.from("paypal_checkout_sessions").update({
