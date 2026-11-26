@@ -18,7 +18,7 @@ function mailTransport() {
 }
 
 function sender() {
-  return process.env.EMAIL_FROM || `ZuriStay Worldwide <${process.env.SMTP_USER || "bookings@zuristayworldwide.com"}>`;
+  return process.env.EMAIL_FROM || "ZuriStay Worldwide <bookings@zuristayworldwide.com>";
 }
 
 export async function sendZuriStayEmail(input: {
@@ -33,7 +33,7 @@ export async function sendZuriStayEmail(input: {
   return transport.sendMail({
     from: sender(),
     to: input.to,
-    replyTo: process.env.BUSINESS_EMAIL || process.env.SMTP_USER || "bookings@zuristayworldwide.com",
+    replyTo: "bookings@zuristayworldwide.com",
     subject: input.subject,
     text: input.text,
     html: input.html,
@@ -85,7 +85,7 @@ export async function createReceiptPdf(snapshot: Record<string, unknown>) {
   document.text(`Booking subtotal: ${money(snapshot.subtotal, snapshot.currency)}`);
   document.text(`Total paid: ${money(snapshot.total_amount, snapshot.currency)}`, { continued: false });
   document.moveDown(1.5).fillColor("#173b30").font("Helvetica-Bold").fontSize(11).text("Thank you for booking with ZuriStay Worldwide.");
-  document.moveDown(0.4).font("Helvetica").fontSize(9).fillColor("#666666").text(`For assistance, contact ${process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com"}.`);
+  document.moveDown(0.4).font("Helvetica").fontSize(9).fillColor("#666666").text(`For assistance, contact ${"bookings@zuristayworldwide.com"}.`);
   document.moveDown(0.4).text("This receipt confirms that the payment shown above was verified and applied to the booking.");
   document.end();
   return completed;
@@ -105,8 +105,8 @@ export async function sendPartnerApplicationAcknowledgement(input: {
   await sendZuriStayEmail({
     to: input.email,
     subject: "We have received your ZuriStay Worldwide partner application",
-    text: `Hello ${input.contactPerson},\n\nThank you for applying to partner with ZuriStay Worldwide on behalf of ${input.businessName}. We have received your application and it is pending review. Our team will contact you using the details you supplied if further information is needed.\n\nThis email confirms receipt only; it is not an approval or a confirmation that your property is published.\n\nFor assistance, reply to this email or contact ${process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com"}.\n\nZuriStay Worldwide`,
-    html: `<p>Hello ${name},</p><p>Thank you for applying to partner with <strong>ZuriStay Worldwide</strong> on behalf of <strong>${business}</strong>.</p><p>We have received your application and it is <strong>pending review</strong>. Our team will contact you using the details you supplied if further information is needed.</p><p>This email confirms receipt only; it is not an approval or confirmation that your property is published.</p><p>For assistance, reply to this email or contact ${safeHtml(process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com")}.</p><p>ZuriStay Worldwide</p>`,
+    text: `Hello ${input.contactPerson},\n\nThank you for applying to partner with ZuriStay Worldwide on behalf of ${input.businessName}. We have received your application and it is pending review. Our team will contact you using the details you supplied if further information is needed.\n\nThis email confirms receipt only; it is not an approval or a confirmation that your property is published.\n\nFor assistance, reply to this email or contact ${"bookings@zuristayworldwide.com"}.\n\nZuriStay Worldwide`,
+    html: `<p>Hello ${name},</p><p>Thank you for applying to partner with <strong>ZuriStay Worldwide</strong> on behalf of <strong>${business}</strong>.</p><p>We have received your application and it is <strong>pending review</strong>. Our team will contact you using the details you supplied if further information is needed.</p><p>This email confirms receipt only; it is not an approval or confirmation that your property is published.</p><p>For assistance, reply to this email or contact ${safeHtml("bookings@zuristayworldwide.com")}.</p><p>ZuriStay Worldwide</p>`,
   });
 }
 
@@ -120,8 +120,8 @@ export async function sendPartnerPropertyEditAcknowledgement(input: {
   await sendZuriStayEmail({
     to: input.email,
     subject: `ZuriStay received your ${action} update — ${input.propertyName}`,
-    text: `Hello ${input.contactPerson || "Partner"},\n\nWe have successfully saved your ${action} update for ${input.propertyName} (${input.businessName || "your partner account"}). The update is recorded in your partner dashboard. If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.\n\nThis is an automatic confirmation that your update was saved, not a publication or approval notice.\n\nFor assistance, contact ${process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com"}.\n\nZuriStay Worldwide`,
-    html: `<p>Hello ${contact},</p><p>We have successfully saved your <strong>${safeHtml(action)}</strong> update for <strong>${property}</strong> (${business}). The update is recorded in your partner dashboard.</p><p>If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.</p><p>This is an automatic confirmation that your update was saved, not a publication or approval notice.</p><p>For assistance, contact ${safeHtml(process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com")}.</p><p>ZuriStay Worldwide</p>`,
+    text: `Hello ${input.contactPerson || "Partner"},\n\nWe have successfully saved your ${action} update for ${input.propertyName} (${input.businessName || "your partner account"}). The update is recorded in your partner dashboard. If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.\n\nThis is an automatic confirmation that your update was saved, not a publication or approval notice.\n\nFor assistance, contact ${"bookings@zuristayworldwide.com"}.\n\nZuriStay Worldwide`,
+    html: `<p>Hello ${contact},</p><p>We have successfully saved your <strong>${safeHtml(action)}</strong> update for <strong>${property}</strong> (${business}). The update is recorded in your partner dashboard.</p><p>If the change affects listing content, the property may temporarily be hidden while its publication review status is refreshed. Please check your dashboard for the current status.</p><p>This is an automatic confirmation that your update was saved, not a publication or approval notice.</p><p>For assistance, contact ${safeHtml("bookings@zuristayworldwide.com")}.</p><p>ZuriStay Worldwide</p>`,
   });
 }
 
@@ -137,7 +137,7 @@ export async function sendPartnerApplicationDecision(input: {
   await sendZuriStayEmail({
     to: input.email,
     subject: `ZuriStay Worldwide partner application update — ${input.approved ? "Approved" : "Review update"}`,
-    text: `Hello ${input.contactPerson},\n\nYour partner application for ${input.businessName} has been reviewed. Its current status is: ${status.toUpperCase()}.\n\n${input.approved ? "You can now sign in to your partner account and continue adding your property details, rooms, photos and availability." : "If you would like clarification or wish to discuss a future application, please contact our team."}\n\nFor assistance, contact ${process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com"}.\n\nZuriStay Worldwide`,
-    html: `<p>Hello ${name},</p><p>Your partner application for <strong>${business}</strong> has been reviewed. Its current status is: <strong>${status.toUpperCase()}</strong>.</p><p>${safeHtml(nextStep)}</p><p>For assistance, contact ${safeHtml(process.env.BUSINESS_EMAIL || "bookings@zuristayworldwide.com")}.</p><p>ZuriStay Worldwide</p>`,
+    text: `Hello ${input.contactPerson},\n\nYour partner application for ${input.businessName} has been reviewed. Its current status is: ${status.toUpperCase()}.\n\n${input.approved ? "You can now sign in to your partner account and continue adding your property details, rooms, photos and availability." : "If you would like clarification or wish to discuss a future application, please contact our team."}\n\nFor assistance, contact ${"bookings@zuristayworldwide.com"}.\n\nZuriStay Worldwide`,
+    html: `<p>Hello ${name},</p><p>Your partner application for <strong>${business}</strong> has been reviewed. Its current status is: <strong>${status.toUpperCase()}</strong>.</p><p>${safeHtml(nextStep)}</p><p>For assistance, contact ${safeHtml("bookings@zuristayworldwide.com")}.</p><p>ZuriStay Worldwide</p>`,
   });
 }
