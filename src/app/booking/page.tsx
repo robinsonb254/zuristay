@@ -570,7 +570,7 @@ export default function BookingPage() {
 
       if (attempts >= 18 && !cancelled) {
         setPaymentState("timeout");
-        setPaymentMessage("We are still waiting for M-Pesa confirmation. Check the status again before leaving this page.");
+        setPaymentMessage("We are still waiting for payment provider confirmation. Check the status again before leaving this page.");
       }
     }
 
@@ -751,7 +751,7 @@ export default function BookingPage() {
             <p className="mt-2 text-sm text-slate-500">
               {paymentState === "paid"
                 ? `Your ${paymentMethod === "paypal" ? "PayPal" : "M-Pesa"} payment was received and verified by ZuriStay Worldwide.`
-                : "Choose M-Pesa or PayPal to complete your reservation securely."}
+                : "Choose M-Pesa, PayPal, Visa or debit card to complete your reservation securely. Card payments are processed through PayPal."}
             </p>
             {paymentState !== "paid" && <label className="mt-4 block text-sm font-semibold text-slate-700">
               M-Pesa phone number
@@ -776,14 +776,37 @@ export default function BookingPage() {
               </button>
             )}
             {(paymentState === "idle" || paymentState === "failed") && (
-              <button
-                type="button"
-                onClick={startPaypalPayment}
-                disabled={startingPaypal || startingPayment}
-                className="mt-3 w-full rounded-xl border border-blue-950 px-5 py-4 font-bold text-blue-950 transition hover:bg-blue-50 disabled:opacity-60"
-              >
-                {startingPaypal ? "Opening PayPal…" : "Pay with PayPal"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={startPaypalPayment}
+                  disabled={startingPaypal || startingPayment}
+                  className="mt-3 flex w-full items-center justify-center gap-3 rounded-xl border border-blue-950 bg-white px-5 py-4 font-bold text-blue-950 transition hover:bg-blue-50 disabled:opacity-60"
+                >
+                  <span className="rounded bg-[#1a1f71] px-2 py-1 text-xs font-black italic text-white">VISA</span>
+                  {startingPaypal ? "Opening secure checkout…" : "Pay with Visa"}
+                </button>
+                <button
+                  type="button"
+                  onClick={startPaypalPayment}
+                  disabled={startingPaypal || startingPayment}
+                  className="mt-3 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-800 transition hover:bg-slate-50 disabled:opacity-60"
+                >
+                  <CreditCard size={19} />
+                  {startingPaypal ? "Opening secure checkout…" : "Pay with Debit Card"}
+                </button>
+                <button
+                  type="button"
+                  onClick={startPaypalPayment}
+                  disabled={startingPaypal || startingPayment}
+                  className="mt-3 w-full rounded-xl border border-blue-950 px-5 py-4 font-bold text-blue-950 transition hover:bg-blue-50 disabled:opacity-60"
+                >
+                  {startingPaypal ? "Opening PayPal…" : "Pay with PayPal"}
+                </button>
+                <p className="mt-3 text-xs leading-5 text-slate-500">
+                  Visa and debit-card selections continue to PayPal’s secure checkout. If PayPal offers card checkout for your location and card, you can complete payment there without needing to sign in to PayPal.
+                </p>
+              </>
             )}
             {paymentState === "waiting" && (
               <p className="mt-4 text-sm font-semibold text-blue-900">Waiting for secure payment confirmation…</p>
