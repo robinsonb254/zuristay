@@ -40,7 +40,7 @@ function fail(message: string, status: number) {
   );
 }
 
-async function authenticatePartner(request: NextRequest) {
+async function authenticatePartner(request: NextRequest, requireApproved = true) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
@@ -82,32 +82,69 @@ async function authenticatePartner(request: NextRequest) {
     },
   });
 
-  const { data: partner, error: partnerError } = await admin
+  let partnerQuery = admin
     .from("property_partners")
     .select("id, owner_user_id, business_name, contact_person, email, phone, status")
-    .eq("owner_user_id", user.id)
-    .eq("status", "approved")
-    .maybeSingle();
+    .eq("owner_user_id", user.id);
+  if (requireApproved) partnerQuery = partnerQuery.eq("status", "approved");
+  const { data: partner, error: partnerError } = await partnerQuery.maybeSingle();
 
   if (partnerError) {
     console.error("Partner lookup failed:", partnerError);
     return { error: fail("Unable to verify your partner account.", 500) };
   }
 
-  if (!partner) {
+  if (!partner && requireApproved) {
     return {
-      error: fail("No approved partner account is linked to this login.", 403),
+      error: fail("Your partner account is not yet approved for property management.", 403),
     };
   }
 
-  return { admin, partner };
+  return { admin, partner, user };
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const context = await authenticatePartner(request);
+    const context = await authenticatePartner(request, false);
 
     if ("error" in context) return context.error;
+
+    if (!context.partner) {
+      const email = context.user.email?.trim().toLowerCase();
+      let application = null;
+      if (email) {
+        const { data, error: applicationError } = await context.admin
+          .from("partner_applications")
+          .select("id, business_name, contact_person, email, status, created_at")
+          .ilike("email", email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (applicationError) {
+          console.error("Partner application status lookup failed:", applicationError);
+          return fail("Unable to retrieve your partner application status.", 500);
+        }
+        application = data;
+      }
+      return NextResponse.json({
+        success: true,
+        partner: null,
+        properties: [],
+        partnerState: application?.status === "pending" ? "pending" :
+          application?.status === "rejected" ? "rejected" : "not_applied",
+        application,
+      }, { headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (context.partner.status !== "approved") {
+      return NextResponse.json({
+        success: true,
+        partner: context.partner,
+        properties: [],
+        partnerState: context.partner.status,
+        application: null,
+      }, { headers: { "Cache-Control": "no-store" } });
+    }
 
     const { data: properties, error } = await context.admin
       .from("properties")
