@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       const supabase = createSupabaseBrowserClient();
 
-      const { error: loginError } =
+      const { data, error: loginError } =
         await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password,
@@ -42,16 +42,23 @@ export default function LoginPage() {
         throw loginError;
       }
 
+      if (!data.session?.user) {
+        throw new Error("Sign-in did not establish a session. Please try again.");
+      }
+
       setSuccess("Login successful. Redirecting...");
 
-      // Return users to the portal they originally requested.
+      // Return guests to their account by default, or to the safe page
+      // they originally requested.
       const requestedPath = new URLSearchParams(window.location.search).get("next");
       const safeNextPath =
         requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//")
           ? requestedPath
-          : "/";
-      router.replace(safeNextPath);
-      router.refresh();
+          : "/account";
+
+      // A full navigation lets the next page initialise from the saved
+      // Supabase session instead of relying on stale client-side state.
+      window.location.replace(safeNextPath);
     } catch (err) {
       console.error("Login error:", err);
 
