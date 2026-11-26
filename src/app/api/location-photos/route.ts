@@ -116,8 +116,8 @@ async function searchOpenverse(term: string, placeName: string, countyName: stri
     if (isLikelyMap(title, tags) || isNonPhoto(title, tags, item.filetype || "")) return [];
     const exactMatch = searchable.includes(placeName.toLowerCase());
     const countyMatch = Boolean(countyName) && searchable.includes(countyName.toLowerCase());
-    // Do not use generic Kenya images as a substitute for a named destination.
-    if (!exactMatch && !countyMatch) return [];
+    // Search providers rank results for the specific town/county query.
+    // Keep relevant local photos even when image metadata omits the place name.
     return [{
       title,
       imageUrl: item.thumbnail || item.url || "",
@@ -125,7 +125,7 @@ async function searchOpenverse(term: string, placeName: string, countyName: stri
       credit: item.creator || "Openverse contributor",
       license: `${item.license || "Open licence"}${item.license_version ? ` ${item.license_version}` : ""}`,
       licenseUrl: item.license_url || "",
-      rank: exactMatch ? 2 : 1,
+      rank: exactMatch ? 3 : countyMatch ? 2 : 1,
     }];
   });
 }
@@ -163,7 +163,8 @@ async function searchCommons(term: string, placeName: string, countyName: string
     if (isLikelyMap(title, description) || isNonPhoto(title, description, imageUrl)) return [];
     const exactMatch = searchable.includes(placeName.toLowerCase());
     const countyMatch = Boolean(countyName) && searchable.includes(countyName.toLowerCase());
-    if (!exactMatch && !countyMatch) return [];
+    // Commons search is already scoped to the named location query.
+    // Do not reject valid local photos just because metadata is sparse.
     return [{
       title,
       imageUrl,
@@ -171,7 +172,7 @@ async function searchCommons(term: string, placeName: string, countyName: string
       credit: plain(meta.Artist) || plain(meta.Credit) || "Wikimedia Commons contributor",
       license: plain(meta.LicenseShortName) || "See source page",
       licenseUrl: plain(meta.LicenseUrl),
-      rank: exactMatch ? 2 : 1,
+      rank: exactMatch ? 3 : countyMatch ? 2 : 1,
     }];
   });
 }
