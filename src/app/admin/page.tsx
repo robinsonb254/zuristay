@@ -151,12 +151,15 @@ export default function AdminPage() {
     try {
       const supabase = createSupabaseBrowserClient();
 
+      // Use the persisted browser session first; the profiles query below
+      // independently verifies the account's admin role through Supabase RLS.
       const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (authError || !user) {
+      const user = session?.user ?? null;
+      if (sessionError || !user) {
         router.replace("/admin/login");
         return;
       }
@@ -312,7 +315,8 @@ export default function AdminPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
       router.replace("/login?next=%2Fadmin");
       router.refresh();
     } catch (err) {
