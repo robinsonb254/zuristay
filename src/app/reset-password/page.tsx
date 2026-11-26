@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
+  const [partnerActivation, setPartnerActivation] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [checkingLink, setCheckingLink] = useState(true);
@@ -15,6 +16,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    setPartnerActivation(new URLSearchParams(window.location.search).get("partner") === "activation");
     const supabase = createSupabaseBrowserClient();
     const {
       data: { subscription },
@@ -59,7 +61,7 @@ export default function ResetPasswordPage() {
       await supabase.auth.signOut();
       setPassword("");
       setConfirmPassword("");
-      setSuccess("Your password has been updated. You can now sign in with your new password.");
+      setSuccess(partnerActivation ? "Your partner account is now activated and your password has been saved. Sign in to ZuriStay Worldwide, then choose Partner Login to open your dashboard." : "Your password has been updated. You can now sign in with your new password.");
     } catch (err) {
       console.error("Password update error:", err);
       setError(
@@ -92,11 +94,13 @@ export default function ResetPasswordPage() {
               <LockKeyhole size={30} />
             </div>
             <p className="mt-6 text-xs font-bold tracking-[0.2em] text-[#c49a52]">
-              SECURE ACCOUNT ACCESS
+              {partnerActivation ? "PARTNER ACCOUNT ACTIVATION" : "SECURE ACCOUNT ACCESS"}
             </p>
-            <h1 className="mt-3 text-3xl font-bold">Create a new password</h1>
+            <h1 className="mt-3 text-3xl font-bold">{partnerActivation ? "Activate your partner account" : "Create a new password"}</h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Choose a new password for your ZuriStay Worldwide account.
+              {partnerActivation
+                ? "Your ZuriStay Worldwide partner application has been approved. Set your personal password to activate your account and access the Partner Dashboard."
+                : "Choose a new password for your ZuriStay Worldwide account."}
             </p>
           </div>
 
@@ -168,7 +172,7 @@ export default function ResetPasswordPage() {
                 disabled={loading}
                 className="flex w-full items-center justify-center gap-3 rounded-full bg-[#173b30] px-7 py-4 font-bold text-white transition hover:bg-[#245545] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Updating password..." : "Update password"}
+                {loading ? "Saving password..." : partnerActivation ? "Activate account and set password" : "Update password"}
               </button>
             </form>
           )}
