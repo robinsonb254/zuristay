@@ -88,11 +88,11 @@ export default function EditPartnerPropertyPage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
           <Link href="/" className="text-2xl font-bold text-blue-900">ZuriStay<span className="text-amber-500">.</span></Link>
-          <Link href="/partner/dashboard" className="text-sm font-medium text-slate-600 hover:text-blue-800">Partner dashboard</Link>
+          <Link href="/" className="text-sm font-medium text-slate-600 hover:text-blue-800">Visit homepage</Link>
         </div>
       </header>
       <div className="mx-auto max-w-3xl px-5 py-8">
-        <Link href="/partner/dashboard" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-800"><ArrowLeft size={17} />Back to dashboard</Link>
+        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-800"><ArrowLeft size={17} />Back to homepage</Link>
         <h1 className="text-3xl font-bold text-slate-900">Edit property details</h1>
         <p className="mt-2 text-sm text-slate-600">Keep your property information accurate for travellers.</p>
         {loading ? <div className="mt-8 rounded-2xl bg-white p-10 text-center"><Loader2 className="mx-auto animate-spin text-blue-800" /><p className="mt-3 text-sm text-slate-500">Loading property...</p></div> :
