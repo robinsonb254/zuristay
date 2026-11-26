@@ -36,6 +36,14 @@ export default function ContactPage() {
             </section>
           ))}
         </div>
+        <section className="mt-8 rounded-2xl border border-[#e8dfcf] bg-white p-6 shadow-sm">
+          <h2 className="font-extrabold text-[#173b30]">Call or WhatsApp ZuriStay Worldwide</h2>
+          <p className="mt-2 text-sm leading-7 text-[#52665d]">Speak with our support team directly by phone or WhatsApp.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a href="tel:+254742804057" className="inline-flex items-center rounded-full bg-[#173b30] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#245545]">Call +254 742 804 057</a>
+            <a href="https://wa.me/254742804057" target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-full border border-[#173b30] px-5 py-3 text-sm font-extrabold text-[#173b30] transition hover:bg-[#f4eee2]">WhatsApp +254 742 804 057</a>
+          </div>
+        </section>
         <section className="mt-8 rounded-2xl border border-[#e8dfcf] bg-[#f4eee2] p-6">
           <h2 className="font-extrabold text-[#173b30]">Booking cancellations and refunds</h2>
           <p className="mt-2 leading-7 text-[#52665d]">For a cancellation request, contact the bookings team and include your booking reference and the email address used for the reservation.</p>
