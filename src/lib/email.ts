@@ -18,7 +18,10 @@ function mailTransport() {
 }
 
 function sender() {
-  return process.env.EMAIL_FROM || "ZuriStay Worldwide <bookings@zuristayworldwide.com>";
+  const configured = process.env.EMAIL_FROM?.trim();
+  const configuredAddress = configured?.match(/<([^<>]+)>/)?.[1] || configured;
+  const address = configuredAddress || "bookings@zuristayworldwide.com";
+  return `ZuriStay Worldwide <${address}>`;
 }
 
 export async function sendZuriStayEmail(input: {
