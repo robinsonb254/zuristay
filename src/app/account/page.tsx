@@ -147,6 +147,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState("");
+  const [paymentWarning, setPaymentWarning] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
@@ -226,17 +227,24 @@ export default function AccountPage() {
             .eq("status", "successful")
             .order("verified_at", { ascending: false, nullsFirst: false });
 
-          if (paymentError) throw paymentError;
-
-          const paymentMap: Record<string, Payment> = {};
-          for (const payment of (paymentData || []) as Payment[]) {
-            if (!paymentMap[payment.booking_id]) {
-              paymentMap[payment.booking_id] = payment;
+          if (paymentError) {
+            console.error("Account payment details could not be loaded:", paymentError);
+            if (mounted) {
+              setPaymentWarning(
+                "Your reservations loaded, but payment details are temporarily unavailable. Please refresh to try again."
+              );
             }
-          }
+          } else {
+            const paymentMap: Record<string, Payment> = {};
+            for (const payment of (paymentData || []) as Payment[]) {
+              if (!paymentMap[payment.booking_id]) {
+                paymentMap[payment.booking_id] = payment;
+              }
+            }
 
-          if (!mounted) return;
-          setPaymentsByBooking(paymentMap);
+            if (!mounted) return;
+            setPaymentsByBooking(paymentMap);
+          }
 
           const { data: itemData, error: itemError } = await supabase
             .from("booking_items")
@@ -513,6 +521,21 @@ export default function AccountPage() {
             </button>
           ))}
         </div>
+
+        {paymentWarning && (
+          <div
+            role="status"
+            className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+          >
+            {paymentWarning}
+            <button
+              onClick={() => window.location.reload()}
+              className="ml-2 font-bold underline"
+            >
+              Refresh
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
