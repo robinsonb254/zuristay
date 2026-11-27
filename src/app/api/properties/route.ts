@@ -123,15 +123,39 @@ export async function GET(request: NextRequest) {
     if (availabilityError) {
       return NextResponse.json({ success: false, error: "Unable to verify room availability for these dates." }, { status: 500 });
     }
+
     const grouped = new Map<string, NonNullable<typeof availabilityRows>>();
     for (const row of availabilityRows ?? []) {
       const current = grouped.get(row.unit_id) ?? [];
       current.push(row);
       grouped.set(row.unit_id, current);
     }
-    for (const [unitId, rows] of grouped) {
-      if (rows.length === nights && rows.every((row) => Number(row.available_units) >= rooms)) {
-        availableByUnit.set(unitId, { nights: rows.length, totalRate: rows.reduce((sum, row) => sum + Number(row.partner_base_rate), 0) });
+
+    const stayDates = Array.from({ length: nights }, (_, index) =>
+      new Date(Date.parse(checkIn + "T00:00:00Z") + index * 86400000).toISOString().slice(0, 10)
+    );
+
+    for (const unit of unitsResult.data ?? []) {
+      const savedRows = grouped.get(unit.id) ?? [];
+      const byDate = new Map(savedRows.map((row) => [row.stay_date, row]));
+      // Missing daily rows inherit the room category's always-on default stock and rate.
+      const effectiveRows = stayDates.map((stayDate) => byDate.get(stayDate) ?? {
+        unit_id: unit.id,
+        stay_date: stayDate,
+        available_units: unit.total_units,
+        partner_base_rate: unit.base_rate,
+        currency: unit.currency,
+      });
+      if (
+        effectiveRows.length === nights &&
+        effectiveRows.every((row) =>
+          Number(row.available_units) >= rooms && row.currency === unit.currency
+        )
+      ) {
+        availableByUnit.set(unit.id, {
+          nights: effectiveRows.length,
+          totalRate: effectiveRows.reduce((sum, row) => sum + Number(row.partner_base_rate), 0),
+        });
       }
     }
   }
