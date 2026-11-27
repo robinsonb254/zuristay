@@ -46,10 +46,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return fail("Unable to verify this property.", 500);
     }
     if (!property) return fail("Property not found in your partner account.", 404);
-    if (property.status !== "approved") return fail("Room categories can only be edited after property approval.", 409);
 
     const { data: existing, error: unitError } = await context.admin.from("property_units")
-      .select("id").eq("id", unitId).eq("property_id", propertyId).maybeSingle();
+      .select("id, base_rate").eq("id", unitId).eq("property_id", propertyId).maybeSingle();
     if (unitError) {
       console.error("Room ownership check failed:", unitError);
       return fail("Unable to verify this room category.", 500);
@@ -64,13 +63,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const unitType = typeof input.unitType === "string" ? input.unitType.trim() : "";
     const description = typeof input.description === "string" ? input.description.trim() : "";
     const capacity = Number(input.capacity);
-    const baseRate = Number(input.baseRate);
+    const baseRate = input.baseRate === undefined ? Number(existing.base_rate) : Number(input.baseRate);
     if (input.active !== undefined && typeof input.active !== "boolean") return fail("Room activation must be true or false.", 400);
     if (name.length < 2 || name.length > 100) return fail("Room category name must be between 2 and 100 characters.", 400);
     if (unitType.length > 80) return fail("Room type is too long.", 400);
     if (description.length > 1500) return fail("Room description is too long.", 400);
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 20) return fail("Guest capacity must be a whole number between 1 and 20.", 400);
-    if (!Number.isFinite(baseRate) || baseRate <= 0 || baseRate > 100000000) return fail("Enter a valid positive nightly rate.", 400);
+    if (!Number.isFinite(baseRate) || baseRate <= 0 || baseRate > 100000000) return fail("Enter a valid positive 24-hour room rate.", 400);
 
     const updateFields: Record<string, unknown> = {
       name, unit_type: unitType || null, description: description || null,
