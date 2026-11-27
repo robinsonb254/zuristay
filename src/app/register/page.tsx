@@ -57,6 +57,7 @@ export default function RegisterPage() {
             email: email.trim().toLowerCase(),
             phone: phone.trim(),
             password,
+            invitation: new URLSearchParams(window.location.search).get("token"),
           }),
         });
         const result = await response.json();
