@@ -150,6 +150,14 @@ export default function IndependentReservationsAdmin() {
                 >
                   {statuses.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => void update(order, order.fulfilment_status)}
+                  disabled={busy === order.id}
+                  className="rounded-lg border border-emerald-800 px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-50"
+                >
+                  Save notes
+                </button>
                 <a href={`mailto:${order.guest_email}?subject=ZuriStay%20reservation%20${encodeURIComponent(order.order_reference)}`} className="rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white">Email guest</a>
                 <a href={`tel:${order.guest_phone}`} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Call guest</a>
               </div>
