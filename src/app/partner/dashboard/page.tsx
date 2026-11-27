@@ -135,6 +135,26 @@ export default function PartnerDashboardPage() {
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to archive this property."); }
   }
 
+  async function restoreProperty(property: Property) {
+    if (!window.confirm(`Unarchive "${property.name}" and return it to your active property workspace?`)) return;
+    setError("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch(`/api/partner/properties/${property.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: "unarchive" }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to unarchive property.");
+      await loadDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to unarchive this property.");
+    }
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
 
@@ -220,13 +240,11 @@ export default function PartnerDashboardPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             {partnerState === "approved" && <Link
-              href={primaryProperty
-                ? `/partner/properties/${primaryProperty.id}/edit`
-                : "#property-listings"}
+              href="/partner/properties/manage"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
             >
               <Building2 size={19} />
-              Manage property
+              Manage property ({properties.filter((property) => !property.is_archived).length})
             </Link>}
             {partner?.status === "approved" && (
               <Link
@@ -454,32 +472,16 @@ export default function PartnerDashboardPage() {
                   </div>
 
                   <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 md:w-auto md:justify-end">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${statusStyle(property.status)}`}>{property.status}</span>
-                      {property.status === "approved" && <span className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${property.publication_status === "pending_review" ? "bg-amber-100 text-amber-800" : property.publication_status === "published" ? "bg-green-100 text-green-800" : property.publication_status === "changes_requested" ? "bg-orange-100 text-orange-800" : "bg-slate-100 text-slate-700"}`}>{property.publication_status.replaceAll("_", " ")}</span>}
-                    </div>
+                    <div className="text-xs text-slate-500 capitalize">{property.is_archived ? "Archived" : property.status.replaceAll("_", " ")}</div>
                     {property.is_archived ? (
                       <span className="text-xs font-semibold text-slate-500">Archived</span>
                     ) : property.is_active && (
                       <span className="text-xs font-semibold text-green-700">Live</span>
                     )}
-                    <Link
-                      href={`/partner/properties/${property.id}/edit`}
-                      className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Edit details
-                    </Link>
-                    {!property.is_archived && (
-                      <Link
-                        href={`/partner/properties/${property.id}/rooms`}
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800"
-                      >
-                        <Hotel size={15} />
-                        {property.status === "approved" ? (property.publication_status === "published" ? "Manage rooms" : "Complete listing") : "Add rooms"}
-                      </Link>
-                    )}
-                    {!property.is_archived && (
-                      <button onClick={() => archiveProperty(property)} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-red-300 bg-white px-4 py-2.5 text-xs font-bold text-red-700 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2">Archive</button>
+                    {property.is_archived ? (
+                      <button onClick={() => restoreProperty(property)} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Unarchive</button>
+                    ) : (
+                      <button onClick={() => archiveProperty(property)} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-red-300 bg-white px-4 py-2.5 text-xs font-bold text-red-700 hover:bg-red-50">Archive</button>
                     )}
                   </div>
                 </article>
