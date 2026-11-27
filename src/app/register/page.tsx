@@ -23,10 +23,43 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isPartnerFlow, setIsPartnerFlow] = useState(false);
+  const [partnerReady, setPartnerReady] = useState(false);
+  const [partnerAccessError, setPartnerAccessError] = useState("");
 
   useEffect(() => {
     setIsPartnerFlow(new URLSearchParams(window.location.search).get("mode") === "partner");
   }, []);
+
+  async function continuePartnerAccess() {
+    setPartnerAccessError("");
+    const params = new URLSearchParams(window.location.search);
+    const recovery = params.get("recovery");
+    const token = recovery || params.get("token");
+    if (!token) {
+      setPartnerAccessError("This partner link is missing or invalid. Please use the link in your approval email.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch("/api/partner/access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: recovery ? "recover" : "redeem", token, email: email.trim().toLowerCase() }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "This partner link could not be validated.");
+      setEmail(result.email);
+      if (result.state === "signin") {
+        window.location.replace("/login?mode=partner&email=" + encodeURIComponent(result.email) + "&next=%2Fpartner%2Fdashboard");
+        return;
+      }
+      setPartnerReady(true);
+    } catch (err) {
+      setPartnerAccessError(err instanceof Error ? err.message : "Partner access could not be verified.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,7 +90,7 @@ export default function RegisterPage() {
             email: email.trim().toLowerCase(),
             phone: phone.trim(),
             password,
-            invitation: new URLSearchParams(window.location.search).get("token"),
+            invitation: new URLSearchParams(window.location.search).get("recovery") || new URLSearchParams(window.location.search).get("token"),
           }),
         });
         const result = await response.json();
@@ -136,7 +169,15 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {isPartnerFlow && !partnerReady ? (
+            <div className="space-y-5">
+              <p className="text-center text-sm leading-6 text-gray-600">Use the approved email address associated with this invitation. Continuing will activate your registration session. The first link can only be used once.</p>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Approved application email" className="w-full rounded-xl border border-gray-200 px-4 py-3.5 text-sm outline-none focus:border-[#c49a52]" />
+              {partnerAccessError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{partnerAccessError}</p>}
+              <button type="button" onClick={continuePartnerAccess} disabled={loading} className="flex w-full items-center justify-center rounded-full bg-[#173b30] px-7 py-4 font-bold text-white disabled:opacity-60">{loading ? "Checking link..." : "Continue to create account"}</button>
+            </div>
+          ) : null}
+          {(!isPartnerFlow || partnerReady) && <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="fullName"
@@ -286,7 +327,7 @@ export default function RegisterPage() {
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-sm text-gray-600">
             Already registered?{" "}
             <Link
-              href="/login?next=%2Fpartner%2Fdashboard"
+              href={isPartnerFlow ? "/login?mode=partner&next=%2Fpartner%2Fdashboard" : "/login"}
               className="font-bold text-[#a77e3e] hover:underline"
             >
               Sign in
