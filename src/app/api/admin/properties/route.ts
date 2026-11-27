@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     if (typeof propertyId !== "string" || !uuidPattern.test(propertyId)) {
       return fail("Invalid property ID.", 400);
     }
-    if (!["approve", "reject", "archive", "publish_approve", "publish_reject"].includes(String(action))) {
+    if (!["approve", "reject", "archive", "unarchive", "publish_approve", "publish_reject"].includes(String(action))) {
       return fail("Choose a valid property review action.", 400);
     }
 
@@ -187,6 +187,16 @@ export async function POST(request: NextRequest) {
       if (archiveError) { console.error("Property archive failed:", archiveError); return fail("Unable to archive this property. Please try again.", 500); }
       if (!archived) return fail("This property is already archived or no longer exists.", 409);
       return NextResponse.json({ success: true, message: "Property archived. It is hidden from guests; booking and payment history is retained.", property: archived }, { headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (action === "unarchive") {
+      const { data: restored, error: restoreError } = await context.admin.from("properties")
+        .update({ is_archived: false, archived_at: null, archived_by: null, is_active: false })
+        .eq("id", propertyId).eq("is_archived", true)
+        .select("id, name, status, is_active, is_archived").maybeSingle();
+      if (restoreError) { console.error("Property unarchive failed:", restoreError); return fail("Unable to unarchive this property. Please try again.", 500); }
+      if (!restored) return fail("This property is not archived or no longer exists.", 409);
+      return NextResponse.json({ success: true, message: "Property unarchived. It remains inactive until it completes the normal publication approval process.", property: restored }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const { data: propertyForNotice, error: noticeLookupError } = await context.admin
