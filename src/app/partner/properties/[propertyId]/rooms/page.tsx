@@ -506,7 +506,7 @@ function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: st
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const ready = status === "approved" && checks.length > 0 && checks.every((check) => check.complete);
+  const ready = checks.length > 0 && checks.every((check) => check.complete);
   const setupActions: Record<string, { href: string; label: string }> = {
     property_details: { href: "/partner/properties/" + propertyId + "/edit", label: "Edit details" },
     rooms: { href: "#room-categories", label: "Add rooms" },
@@ -565,20 +565,19 @@ function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: st
   return (
     <section className="mb-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h2 className="text-lg font-bold text-slate-900">Listing readiness</h2><p className="mt-1 text-sm text-slate-500">Complete these steps to submit your approved property for final review.</p></div>
+        <div><h2 className="text-lg font-bold text-slate-900">Listing readiness</h2><p className="mt-1 text-sm text-slate-500">Complete these steps, then submit the finished property for its final ZuriStay review.</p></div>
         <button type="button" onClick={() => load()} disabled={loading} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50">{loading ? "Checking..." : "Refresh checklist"}</button>
       </div>
-      {status !== "approved" && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Your property must first be approved by the ZuriStay admin team.</p>}
-      {loading ? <p className="mt-4 text-sm text-slate-500">Checking your listing setup...</p> :
+       {loading ? <p className="mt-4 text-sm text-slate-500">Checking your listing setup...</p> :
         <ul className="mt-4 space-y-3">{checks.map((check) => <li key={check.key} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">{check.complete ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-700" /> : <Circle size={18} className="mt-0.5 shrink-0 text-slate-400" />}<span className={check.complete ? "text-slate-700" : "text-slate-600"}>{check.label}</span>{!check.complete && setupActions[check.key] && <Link href={setupActions[check.key].href} className="ml-1 text-xs font-semibold text-blue-800 underline underline-offset-2 hover:text-blue-950">{setupActions[check.key].label}</Link>}</li>)}</ul>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
-      {status === "approved" && publicationStatus === "pending_review" && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Your listing has been submitted and is awaiting final ZuriStay approval. It will become visible to guests automatically once approved. You can continue managing your property; any changes will require a new review.</p>}
-      {status === "approved" && publicationStatus === "pending_review" && <Link href="/" className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">Return to homepage</Link>}
-      {status === "approved" && publicationStatus === "published" && <p className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">Your property is live on ZuriStay. Any future edits to property details, rooms, facilities or photos will send it back for review before the updated listing is released.</p>}
-      {status === "approved" && publicationStatus === "changes_requested" && <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">The final review team has returned this listing for updates. Review your property details, make the necessary improvements, then submit it again for final approval.</p>}
-      {status === "approved" && <button type="button" onClick={publish} disabled={!ready || publishing || loading || publicationStatus === "pending_review" || publicationStatus === "published"} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{publishing ? <Loader2 size={17} className="animate-spin" /> : <CheckCircle2 size={17} />}{publishing ? "Submitting..." : publicationStatus === "pending_review" ? "Awaiting final approval" : publicationStatus === "published" ? "Published on ZuriStay" : "Submit for final approval"}</button>}
-      {status === "approved" && publicationStatus !== "pending_review" && publicationStatus !== "published" && !ready && !loading && <p className="mt-2 text-xs text-slate-500">The button will activate automatically as soon as every required item is complete.</p>}
+      {publicationStatus === "pending_review" && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Your listing has been submitted and is awaiting final ZuriStay approval. It will become visible to guests automatically once approved. You can continue managing your property; any changes will require a new review.</p>}
+      {publicationStatus === "pending_review" && <Link href="/" className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">Return to homepage</Link>}
+      {publicationStatus === "published" && <p className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">Your property is live on ZuriStay. Any future edits to property details, rooms, facilities or photos will send it back for review before the updated listing is released.</p>}
+      {publicationStatus === "changes_requested" && <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">The final review team has returned this listing for updates. Review your property details, make the necessary improvements, then submit it again for final approval.</p>}
+      <button type="button" onClick={publish} disabled={!ready || publishing || loading || publicationStatus === "pending_review" || publicationStatus === "published"} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{publishing ? <Loader2 size={17} className="animate-spin" /> : <CheckCircle2 size={17} />}{publishing ? "Submitting..." : publicationStatus === "pending_review" ? "Awaiting final approval" : publicationStatus === "published" ? "Published on ZuriStay" : "Submit for final approval"}</button>
+      {publicationStatus !== "pending_review" && publicationStatus !== "published" && !ready && !loading && <p className="mt-2 text-xs text-slate-500">The button will activate automatically as soon as every required item is complete.</p>}
     </section>
   );
 }
