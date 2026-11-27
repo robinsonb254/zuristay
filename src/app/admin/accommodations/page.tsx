@@ -141,7 +141,7 @@ export default function ManagementAccommodationsAdmin() {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-orange-600">{item.property_type}</p>
                     <h2 className="mt-1 text-lg font-bold text-blue-950">{item.name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">{[item.city, item.county].filter(Boolean).join(", ") || "Location awaiting county assignment"}</p>
+                    <p className="mt-1 text-sm text-slate-500">{[item.city && !/^unspecified locality$/i.test(item.city) ? item.city : null, item.county].filter(Boolean).join(", ") || "Location awaiting county assignment"}</p>
                     <p className="mt-1 text-xs text-slate-400">{item.image_urls?.length || 0} photos saved</p>
                   </div>
                   <button type="button" onClick={() => void setBooking(item)} disabled={busy === item.id} className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 ${item.booking_enabled ? "bg-emerald-700 hover:bg-emerald-800" : "bg-orange-600 hover:bg-orange-700"}`}>
