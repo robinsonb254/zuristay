@@ -20,11 +20,12 @@ export async function POST(request: NextRequest) {
     }
     const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const tokenHash = hashPartnerAccessToken(token);
-    let { data: link, error: linkError } = await admin.from("partner_access_links")
+    const { data: initialLink, error: linkError } = await admin.from("partner_access_links")
       .select("id, application_id, email, first_redeemed_at, recovery_expires_at, user_id, registration_completed_at")
       .eq("first_token_hash", tokenHash).eq("email", email)
       .not("first_redeemed_at", "is", null).maybeSingle();
     if (linkError) throw linkError;
+    let link = initialLink;
     if (!link) {
       const recovered = await admin.from("partner_access_links")
         .select("id, application_id, email, first_redeemed_at, recovery_expires_at, user_id, registration_completed_at")
