@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, MapPin, ExternalLink, Building2 } from "lucide-react";
+import { Search, MapPin, Building2 } from "lucide-react";
 
 type Accommodation = {
   id: string;
