@@ -215,114 +215,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let matchingUser:
-      | {
-          id: string;
-          email?: string;
-          email_confirmed_at?: string;
-        }
-      | undefined;
+    const { data: approvedApplication, error: approvalError } = await admin
+      .from("partner_applications")
+      .update({ status: "approved" })
+      .eq("id", applicationId)
+      .eq("status", "pending")
+      .select("id, business_name, status")
+      .maybeSingle();
 
-    for (let page = 1; page <= 20; page++) {
-      const { data, error: usersError } =
-        await admin.auth.admin.listUsers({
-          page,
-          perPage: 1000,
-        });
-
-      if (usersError) {
-        console.error("Applicant lookup error:", usersError);
-        return respond(
-          false,
-          "Unable to verify whether an account already exists for this applicant.",
-          500
-        );
-      }
-
-      matchingUser = data.users.find(
-        (candidate) => candidate.email?.trim().toLowerCase() === email
-      );
-
-      if (matchingUser) break;
-      if (data.users.length < 1000) break;
-    }
-
-    let ownerUserId = matchingUser?.id;
-    let activationUrl: string | undefined;
-    let createdUserId: string | undefined;
-
-    if (matchingUser && !matchingUser.email_confirmed_at) {
+    if (approvalError || !approvedApplication) {
+      console.error("Partner application approval update failed:", approvalError);
       return respond(
         false,
-        "An account already exists for this email but its email address is not verified. The applicant must complete the existing email verification before this application can be approved.",
-        409
-      );
-    }
-
-    if (!matchingUser) {
-      const siteUrl = "https://www.zuristayworldwide.com";
-      // Use the configured Supabase Site URL, which is always a valid
-      // fallback. The homepage detects the invite token fragment and routes
-      // the authenticated invitee to the password activation screen.
-      const redirectTo = siteUrl;
-
-      const { data: inviteData, error: inviteError } =
-        await admin.auth.admin.generateLink({
-          type: "invite",
-          email,
-          options: {
-            redirectTo,
-            data: {
-              full_name: application.contact_person,
-            },
-          },
-        });
-
-      if (inviteError || !inviteData.user?.id || !inviteData.properties?.action_link) {
-        console.error("Partner account invitation generation failed:", inviteError);
-        if (inviteData.user?.id) {
-          await admin.auth.admin.deleteUser(inviteData.user.id);
-        }
-        return respond(
-          false,
-          "A secure partner activation link could not be created. No approval was completed; please try again.",
-          500
-        );
-      }
-
-      ownerUserId = inviteData.user.id;
-      createdUserId = inviteData.user.id;
-      activationUrl = inviteData.properties.action_link;
-    }
-
-    if (!ownerUserId) {
-      return respond(false, "Unable to identify the applicant account.", 500);
-    }
-
-    const { data: approvalResult, error: approvalError } =
-      await admin.rpc("approve_partner_application", {
-        p_application_id: applicationId,
-        p_owner_user_id: ownerUserId,
-        p_admin_user_id: user.id,
-      });
-
-    if (approvalError) {
-      console.error(
-        "Partner approval transaction failed:",
-        approvalError
-      );
-
-      if (createdUserId) {
-        const { error: cleanupError } =
-          await admin.auth.admin.deleteUser(createdUserId);
-        if (cleanupError) {
-          console.error("Unable to clean up unlinked invited user:", cleanupError);
-        }
-      }
-
-      return respond(
-        false,
-        "Approval could not be completed. The application remains pending. Please review the account and partner records, then try again.",
+        "Approval could not be completed. The application remains unchanged; please refresh and try again.",
         409
       );
     }
@@ -334,7 +239,7 @@ export async function POST(request: NextRequest) {
         contactPerson: application.contact_person,
         businessName: application.business_name,
         approved: true,
-        activationUrl,
+        partnerAccessUrl: "https://www.zuristayworldwide.com/register?next=%2Fpartner%2Fdashboard",
       });
     } catch (mailError) {
       notificationSent = false;
