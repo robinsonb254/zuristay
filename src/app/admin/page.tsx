@@ -146,6 +146,16 @@ export default function AdminPage() {
   const [processingApplicationId, setProcessingApplicationId] = useState("");
   const [error, setError] = useState("");
   const [accessDenied, setAccessDenied] = useState(false);
+  const [countyEnrichmentLoading, setCountyEnrichmentLoading] = useState(false);
+  const [countyEnrichmentResult, setCountyEnrichmentResult] = useState<{
+    boundary_counties_validated: number;
+    candidates_checked: number;
+    county_assignments_matched: number;
+    rows_updated: number;
+    unmatched_coordinates: number;
+    ambiguous_boundary_matches: number;
+  } | null>(null);
+  const [countyEnrichmentError, setCountyEnrichmentError] = useState("");
 
   async function loadDashboard() {
     setLoading(true);
@@ -255,6 +265,55 @@ export default function AdminPage() {
     loadDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function runCountyEnrichment() {
+    const confirmed = window.confirm(
+      "Run county assignment for independent accommodation records with missing or generic county values? Only records matched to exactly one official county boundary will be updated."
+    );
+    if (!confirmed) return;
+
+    setCountyEnrichmentLoading(true);
+    setCountyEnrichmentError("");
+    setCountyEnrichmentResult(null);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error("Your administrator session has expired. Please sign in again.");
+      }
+
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "enrich-independent-counties",
+        { method: "POST" }
+      );
+
+      if (invokeError) throw invokeError;
+      if (!data?.success) {
+        throw new Error(data?.error || "County enrichment did not complete.");
+      }
+
+      setCountyEnrichmentResult({
+        boundary_counties_validated: Number(data.boundary_counties_validated || 0),
+        candidates_checked: Number(data.candidates_checked || 0),
+        county_assignments_matched: Number(data.county_assignments_matched || 0),
+        rows_updated: Number(data.rows_updated || 0),
+        unmatched_coordinates: Number(data.unmatched_coordinates || 0),
+        ambiguous_boundary_matches: Number(data.ambiguous_boundary_matches || 0),
+      });
+    } catch (err) {
+      console.error("County enrichment failed:", err);
+      setCountyEnrichmentError(
+        err instanceof Error ? err.message : "Unable to run county enrichment."
+      );
+    } finally {
+      setCountyEnrichmentLoading(false);
+    }
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -619,6 +678,56 @@ export default function AdminPage() {
           </section>
 
           <AdminAnalytics enabled={!!profile} />
+
+          <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="text-orange-500" size={20} />
+                  <h3 className="text-lg font-black text-blue-950">
+                    Independent accommodation county data
+                  </h3>
+                </div>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Match imported accommodation coordinates against the official 47-county boundary layer. Only a unique county match is saved; unmatched and boundary-ambiguous records are left unchanged.
+                </p>
+              </div>
+              <button
+                onClick={runCountyEnrichment}
+                disabled={countyEnrichmentLoading || loading || !profile}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={countyEnrichmentLoading ? "animate-spin" : ""} />
+                {countyEnrichmentLoading ? "Assigning counties..." : "Run county enrichment"}
+              </button>
+            </div>
+
+            {countyEnrichmentError && (
+              <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {countyEnrichmentError}
+              </div>
+            )}
+
+            {countyEnrichmentResult && (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  ["Official counties validated", countyEnrichmentResult.boundary_counties_validated],
+                  ["Records checked", countyEnrichmentResult.candidates_checked],
+                  ["County matches found", countyEnrichmentResult.county_assignments_matched],
+                  ["Records updated", countyEnrichmentResult.rows_updated],
+                  ["Unmatched coordinates", countyEnrichmentResult.unmatched_coordinates],
+                  ["Ambiguous boundary matches", countyEnrichmentResult.ambiguous_boundary_matches],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs font-semibold text-slate-500">{label}</p>
+                    <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">
+                      {Number(value).toLocaleString("en-KE")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           <section
             id="applications"
