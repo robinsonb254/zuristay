@@ -103,7 +103,7 @@ export async function PUT(req: NextRequest) {
   const id = typeof body?.id === "string" ? body.id : "";
   const paths = Array.isArray(body?.paths) ? body.paths.filter((value: unknown): value is string => typeof value === "string") : [];
   const prefix = `management-accommodations/${id}/`;
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || paths.length < 1 || paths.length > MAX_PHOTOS || paths.some(path => !path.startsWith(prefix) || path.slice(prefix.length).includes("/"))) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || paths.length < 1 || paths.length > MAX_PHOTOS || paths.some((path: string) => !path.startsWith(prefix) || path.slice(prefix.length).includes("/"))) {
     return NextResponse.json({ success: false, error: "Invalid photo upload confirmation." }, { status: 400 });
   }
   const { data: stay, error: stayError } = await ctx.db.from("independent_accommodations")
@@ -116,10 +116,10 @@ export async function PUT(req: NextRequest) {
   const { data: stored, error: listError } = await ctx.db.storage.from(BUCKET).list(`management-accommodations/${id}`, { limit: 100 });
   if (listError) return NextResponse.json({ success: false, error: "Unable to verify uploaded photos." }, { status: 500 });
   const storedNames = new Set((stored || []).map(item => item.name));
-  if (paths.some(path => !storedNames.has(path.slice(prefix.length)))) {
+  if (paths.some((path: string) => !storedNames.has(path.slice(prefix.length)))) {
     return NextResponse.json({ success: false, error: "One or more photos have not finished uploading." }, { status: 409 });
   }
-  const urls = paths.map(path => ctx.db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
+  const urls = paths.map((path: string) => ctx.db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
   const { data: updated, error: updateError } = await ctx.db.from("independent_accommodations")
     .update({ image_urls: [...current, ...urls], updated_at: new Date().toISOString() })
     .eq("id", id).select("id,image_urls").single();
@@ -134,7 +134,7 @@ export async function DELETE(req: NextRequest) {
   const id = typeof body?.id === "string" ? body.id : "";
   const paths = Array.isArray(body?.paths) ? body.paths.filter((value: unknown): value is string => typeof value === "string") : [];
   const prefix = `management-accommodations/${id}/`;
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || paths.length > MAX_PHOTOS || paths.some(path => !path.startsWith(prefix) || path.slice(prefix.length).includes("/"))) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || paths.length > MAX_PHOTOS || paths.some((path: string) => !path.startsWith(prefix) || path.slice(prefix.length).includes("/"))) {
     return NextResponse.json({ success: false, error: "Invalid photo cleanup request." }, { status: 400 });
   }
   if (paths.length) {
@@ -142,7 +142,7 @@ export async function DELETE(req: NextRequest) {
       .select("image_urls").eq("id", id).maybeSingle();
     if (stayError || !stay) return NextResponse.json({ success: false, error: "Accommodation not found." }, { status: 404 });
     const attached = new Set(Array.isArray(stay.image_urls) ? stay.image_urls : []);
-    const orphanPaths = paths.filter(path => !attached.has(ctx.db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl));
+    const orphanPaths = paths.filter((path: string) => !attached.has(ctx.db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl));
     if (orphanPaths.length) {
       const { error } = await ctx.db.storage.from(BUCKET).remove(orphanPaths);
       if (error) return NextResponse.json({ success: false, error: "Unable to clean up incomplete photo uploads." }, { status: 500 });
