@@ -59,6 +59,22 @@ export async function POST(req: NextRequest) {
   const ctx = await adminContext(req);
   if (!ctx) return NextResponse.json({ success: false, error: "Administrator access required." }, { status: 401 });
   const body = await req.json().catch(() => null);
+  if (body?.action === "recover-photos") {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceKey) return NextResponse.json({ success: false, error: "Photo recovery is not configured." }, { status: 503 });
+    const response = await fetch(`${url}/functions/v1/recover-osm-accommodation-images`, {
+      method: "POST",
+      headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}`, "content-type": "application/json" },
+      body: "{}",
+      cache: "no-store",
+    });
+    const recovery = await response.json().catch(() => null);
+    if (!response.ok || !recovery?.success) {
+      return NextResponse.json({ success: false, error: recovery?.error || "Photo recovery could not be completed." }, { status: 502 });
+    }
+    return NextResponse.json({ success: true, recovery });
+  }
   const id = typeof body?.id === "string" ? body.id : "";
   const files = Array.isArray(body?.files) ? body.files : [];
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || files.length < 1 || files.length > MAX_PHOTOS) {
