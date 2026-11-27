@@ -10,8 +10,8 @@ comment on column public.independent_accommodations.county_checked_at is
 create or replace function public.apply_independent_county_enrichment(assignments jsonb)
 returns integer
 language plpgsql
-security definer
-set search_path = public
+security invoker
+set search_path = ''
 as $$
 declare
   updated_count integer := 0;
