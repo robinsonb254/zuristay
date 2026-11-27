@@ -368,19 +368,43 @@ export default function LivePropertyResults({
         </div>
       )}
 
-      <div className="mb-8">
-        <div className="mb-5">
-          <p className="text-sm font-semibold text-orange-500">ZURISTAY WORLDWIDE MANAGEMENT ACCOMMODATIONS</p>
-          <h2 className="mt-2 text-2xl font-black text-blue-950">{destination ? `More places to stay in ${destination}` : "More places to stay across Kenya"}</h2>
-          <p className="mt-2 text-sm text-slate-500">Discover more hotels, villas, apartments, lodges and guesthouses across Kenya.</p>
+      <section className="mb-8 space-y-6">
+        <header className="rounded-2xl border border-[#e8dfcf] bg-gradient-to-r from-[#f8f5ee] via-white to-[#f4eee2] px-5 py-7 shadow-sm sm:px-8 sm:py-9">
+          <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.2em] text-[#a77b36]">ZuriStay Worldwide</p>
+          <h2 className="max-w-4xl text-2xl font-black leading-tight tracking-tight text-[#173b30] sm:text-3xl lg:text-4xl">
+            ZURISTAY WORLDWIDE MANAGEMENT ACCOMMODATIONS
+          </h2>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
+            Discover more hotels, villas, apartments, lodges and guesthouses across Kenya.
+          </p>
+        </header>
+        <div>
+          <h3 className="text-xl font-black text-blue-950 sm:text-2xl">{destination ? `More places to stay in ${destination}` : "More places to stay across Kenya"}</h3>
         </div>
-        {independentLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Finding more places to stay…</div> : independentStays.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{destination ? "No additional stays are currently listed for this destination." : "More accommodation listings will appear here as they are added."}</div> : <div className="grid gap-5">{independentStays.map((stay) => <article key={stay.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[260px_1fr]">
-          <div className="min-h-52 bg-slate-100 md:min-h-full">{stay.image_urls?.[0] ? <img src={stay.image_urls[0]} alt={stay.name} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.display = "none"; }} className="h-full min-h-52 w-full object-cover" /> : <div className="flex h-full min-h-52 items-center justify-center"><Building2 className="text-slate-300" size={42}/></div>}</div>
-          <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
-            <div className="min-w-0 flex-1"><span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold capitalize text-orange-700">{stay.property_type}</span><h3 className="mt-3 text-xl font-black text-blue-950">{stay.name}</h3><p className="mt-2 flex items-center gap-1 text-sm text-slate-500"><MapPin size={14}/>{[stay.city && !/^unspecified locality$/i.test(stay.city) ? stay.city : null,stay.county,stay.country].filter(Boolean).join(", ")}</p>{stay.description&&<p className="mt-2 line-clamp-2 text-sm text-slate-500">{stay.description}</p>}</div>
-            <div className="flex min-w-40 flex-row items-end justify-between gap-3 border-t border-slate-100 pt-4 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-5 md:pt-0">{stay.guest_rate!==null&&<div className="md:text-right"><p className="text-xs text-slate-500">From</p><p className="text-2xl font-black text-blue-950">{formatMoney(stay.guest_rate,stay.currency)}</p><p className="text-xs text-slate-500">per night</p></div>}<div className="flex flex-wrap gap-3">{stay.booking_enabled && <Link href={`/accommodations/${stay.id}`} className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-orange-600">Reserve with ZuriStay</Link>}</div></div>
-          </div></article>)}</div>}
-      </div>
+        {independentLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Finding more places to stay…</div> : independentStays.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{destination ? "No additional stays are currently listed for this destination." : "More accommodation listings will appear here as they are added."}</div> : <div className="grid gap-5">{independentStays.map((stay) => {
+          const photos = Array.isArray(stay.image_urls) ? stay.image_urls.filter((url) => typeof url === "string" && /^https?:\/\//i.test(url)) : [];
+          return <article key={stay.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[280px_1fr]">
+            <div className="min-h-56 bg-slate-100 md:min-h-full">
+              {photos.length > 0 ? (
+                <div className={`grid h-56 gap-1 md:h-full md:min-h-56 ${photos.length > 1 ? "grid-cols-2 grid-rows-2" : "grid-cols-1"}`}>
+                  {photos.slice(0, 3).map((photo, index) => <div key={photo} className={`relative min-h-28 overflow-hidden bg-slate-200 ${photos.length > 1 && index === 0 ? "row-span-2" : ""}`}>
+                    <img src={photo} alt={`${stay.name} property photo ${index + 1}`} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.display = "none"; }} className="absolute inset-0 h-full w-full object-cover transition duration-300 hover:scale-105" />
+                  </div>)}
+                </div>
+              ) : (
+                <div className="flex h-56 flex-col items-center justify-center gap-2 text-slate-400 md:min-h-56">
+                  <Building2 size={42} />
+                  <span className="text-xs font-medium">Property photos</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
+              <div className="min-w-0 flex-1"><span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold capitalize text-orange-700">{stay.property_type}</span><h3 className="mt-3 text-xl font-black text-blue-950">{stay.name}</h3><p className="mt-2 flex items-center gap-1 text-sm text-slate-500"><MapPin size={14}/>{[stay.city && !/^unspecified locality$/i.test(stay.city) ? stay.city : null,stay.county,stay.country].filter(Boolean).join(", ")}</p>{stay.description&&<p className="mt-2 line-clamp-2 text-sm text-slate-500">{stay.description}</p>}</div>
+              <div className="flex min-w-40 flex-row items-end justify-between gap-3 border-t border-slate-100 pt-4 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-5 md:pt-0">{stay.guest_rate!==null&&<div className="md:text-right"><p className="text-xs text-slate-500">From</p><p className="text-2xl font-black text-blue-950">{formatMoney(stay.guest_rate,stay.currency)}</p><p className="text-xs text-slate-500">per night</p></div>}<div className="flex flex-wrap gap-3">{stay.booking_enabled && <Link href={`/accommodations/${stay.id}`} className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-orange-600">Reserve with ZuriStay</Link>}</div></div>
+            </div>
+          </article>;
+        })}</div>}
+      </section>
     </section>
   );
 }
