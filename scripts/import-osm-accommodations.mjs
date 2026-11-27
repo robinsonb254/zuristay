@@ -5,7 +5,7 @@
  * Run with:
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/import-osm-accommodations.mjs
  *
- * Imported records are ALWAYS pending_review, never publicly published or bookable.
+ * Imported named accommodation records are published for discovery and accept reservation requests routed to ZuriStay administration.
  * OSM does not supply verified room rates, availability, booking permission, or
  * property-payment authorisation. Those fields must be confirmed by an admin/owner.
  */
@@ -106,7 +106,7 @@ for (const element of features) {
     owner_authorised_booking: false,
     owner_authorised_payment: false,
     listing_status: "published",
-    booking_enabled: false,
+    booking_enabled: true,
     availability_status: "unverified",
     booking_method: "manual_admin",
   });
@@ -130,5 +130,5 @@ console.log(JSON.stringify({
   fetched_named_features: features.length,
   imported_or_updated_review_records: imported,
   publicly_published: imported,
-  note: "OSM directory records are published for discovery; booking_enabled remains false and no rate is advertised until verified."
+  note: "OSM records are published and reservation requests are enabled; admin confirms availability and handles fulfilment."
 }, null, 2));
