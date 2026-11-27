@@ -499,7 +499,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
 }
 
 
-function PropertyReadiness({ propertyId, status, onPublished }: { propertyId: string; status: string; onPublished: () => void }) {
+function PropertyReadiness({ propertyId, onPublished }: { propertyId: string; onPublished: () => void }) {
   const [checks, setChecks] = useState<{ key: string; label: string; complete: boolean }[]>([]);
   const [publicationStatus, setPublicationStatus] = useState("draft");
   const [loading, setLoading] = useState(true);
@@ -713,7 +713,7 @@ export default function PartnerPropertyRoomsPage() {
         )}
         {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
         {success && <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{success}</div>}
-        {property && <PropertyReadiness propertyId={propertyId} status={property.status} onPublished={loadRooms} />}
+        {property && <PropertyReadiness propertyId={propertyId} onPublished={loadRooms} />}
 
         <div className="grid gap-7 lg:grid-cols-[1.1fr_0.9fr]">
           <section id="room-categories" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
