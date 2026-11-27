@@ -34,13 +34,23 @@ export default function AuthCallbackPage() {
           throw new Error(urlError.replace(/\+/g, " "));
         }
 
+        const hashParams = new URLSearchParams(
+          window.location.hash.startsWith("#")
+            ? window.location.hash.slice(1)
+            : window.location.hash
+        );
         const requestedNext = params.get("next");
+        const isInvite =
+          params.get("type") === "invite" ||
+          hashParams.get("type") === "invite";
         const nextPath =
           requestedNext &&
           requestedNext.startsWith("/") &&
           !requestedNext.startsWith("//")
             ? requestedNext
-            : "/";
+            : isInvite
+              ? "/reset-password?partner=activation"
+              : "/";
 
         const code = params.get("code");
 
@@ -65,7 +75,7 @@ export default function AuthCallbackPage() {
         }
 
         setStatus("success");
-        setMessage("Your email has been verified. Welcome to ZuriStay!");
+        setMessage(isInvite ? "Your partner invitation has been verified. Continue by creating your password." : "Your email has been verified. Welcome to ZuriStay!");
 
         window.setTimeout(() => {
           router.replace(nextPath);
