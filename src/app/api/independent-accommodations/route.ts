@@ -17,23 +17,34 @@ export async function GET(request: NextRequest) {
     .select("id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,source_listing_url,data_attribution,image_urls,booking_enabled,availability_status,last_verified_at")
     .eq("listing_status", "published")
     .order("name", { ascending: true })
-    .limit(100);
+    .limit(query || city ? 500 : 100);
 
   if (query) {
-    const terms = query.split(/[,,]+/).map((part) => part.trim()).filter(Boolean);
-    const searchTerm = terms[0]?.replace(/\b(kenya|town|city|county)\b/gi, "").trim() || query;
-    const safeTerm = searchTerm.replace(/[(),]/g, " ").trim();
-    if (safeTerm) requestQuery = requestQuery.or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`);
+    const terms = query.split(/[,]+/).map((part) => part.trim()).filter(Boolean);
+    const searchTerm = terms[0]?.replace(/\\b(kenya|town|city|county)\\b/gi, "").trim() || query;
+    const safeTerm = searchTerm.replace(/[(),.%_*]/g, " ").trim();
+    if (safeTerm) {
+      requestQuery = requestQuery.or(
+        `name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%,address.ilike.%${safeTerm}%`
+      );
+    }
   }
   if (city) requestQuery = requestQuery.ilike("city", `%${city}%`);
-  if (type && ["hotel","resort","villa","apartment","lodge","guesthouse","hostel","camp","other"].includes(type)) requestQuery = requestQuery.eq("property_type", type);
+  if (type && ["hotel", "resort", "villa", "apartment", "lodge", "guesthouse", "hostel", "camp", "other"].includes(type)) {
+    requestQuery = requestQuery.eq("property_type", type);
+  }
 
   const { data, error } = await requestQuery;
   if (error) return NextResponse.json({ success: false, error: "Unable to load independent accommodations." }, { status: 500 });
+
   const accommodations = (data || []).map((item) => ({
     ...item,
     guest_rate: item.published_base_rate === null ? null : Math.ceil(Number(item.published_base_rate) * 1.15),
     published_base_rate: undefined,
   }));
-  return NextResponse.json({ success: true, count: accommodations.length, accommodations }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
+
+  return NextResponse.json(
+    { success: true, count: accommodations.length, accommodations },
+    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
+  );
 }
