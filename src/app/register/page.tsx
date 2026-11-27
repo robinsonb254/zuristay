@@ -3,7 +3,6 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -14,8 +13,6 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
-  const router = useRouter();
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
