@@ -116,9 +116,12 @@ export default function ManagementAccommodationsAdmin() {
             <h1 className="mt-2 text-3xl font-black text-blue-950">Management accommodations</h1>
             <p className="mt-2 text-sm text-slate-500">Manage guest booking access and property photos.</p>
           </div>
-          <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-50">
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""}/> Refresh
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin#county-enrichment" className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-950">Update county locations</Link>
+            <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-50">
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""}/> Refresh
+            </button>
+          </div>
         </div>
 
         <form onSubmit={event => { event.preventDefault(); void load(query); }} className="mt-6 flex gap-2 rounded-2xl border border-slate-200 bg-white p-3">
