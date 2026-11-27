@@ -134,26 +134,36 @@ export async function sendPartnerApplicationDecision(input: {
   businessName: string;
   approved: boolean;
   partnerAccessUrl?: string;
+  partnerRecoveryUrl?: string;
 }) {
   const name = safeHtml(input.contactPerson);
   const business = safeHtml(input.businessName);
   const status = input.approved ? "approved" : "not approved";
-  const partnerAccessUrl = safeHtml(input.partnerAccessUrl || "https://www.zuristayworldwide.com/register?mode=partner&next=%2Fpartner%2Fdashboard");
-  const approvedText = "Your partner application has been approved. Use the Create account link below to open the ZuriStay account page. Enter your details, create your own password, and submit the form. If you already have a ZuriStay account, use the sign-in link on that page. After signing in, open your partner dashboard to view your application and continue onboarding.\n\nCREATE ACCOUNT: " + (input.partnerAccessUrl || "https://www.zuristayworldwide.com/register?mode=partner&next=%2Fpartner%2Fdashboard") + "\n\nPARTNER SIGN IN: https://www.zuristayworldwide.com/login?mode=partner&next=%2Fpartner%2Fdashboard";
+  const createUrl = input.partnerAccessUrl || "https://www.zuristayworldwide.com/register?mode=partner";
+  const recoveryUrl = input.partnerRecoveryUrl || "https://www.zuristayworldwide.com/register?mode=partner";
+  const signInUrl = "https://www.zuristayworldwide.com/login?mode=partner&next=%2Fpartner%2Fdashboard";
+  const approvedText = [
+    "Your partner application has been approved.",
+    "FIRST — CREATE ACCOUNT: Open the Create account link below. It is valid for 7 days if it has not been opened. When you intentionally continue into the registration form, this first link is used and cannot be used again.",
+    "After creating your account, use the Sign in option shown on the same page. Sign in with the email address on this approved application and the password you created. You will be taken to your partner dashboard.",
+    "SECOND — RECOVERY LINK: If you open the first link and then accidentally close the page or go back before completing registration, use the separate Recovery link at the end of this email. It becomes active only after the first link has been intentionally used, and remains valid for 7 days from that moment.",
+    "The recovery link is restricted to this approved application and email address. If you already completed account creation, it takes you to partner sign-in; it does not reset your password, change your credentials, or create another account. If you had not finished creating the account, it lets you resume registration using the same approved email address. Do not share either link.",
+    "CREATE ACCOUNT: " + createUrl,
+    "PARTNER SIGN IN: " + signInUrl,
+    "RECOVERY LINK (use only if you need to resume after opening the first link): " + recoveryUrl
+  ].join("\n\n");
   const onboarding = "Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Save your changes in the dashboard. A property is not made publicly bookable until it has completed ZuriStay's separate listing review.";
   const nextStep = input.approved
-    ? approvedText + " " + onboarding
+    ? approvedText + "\n\n" + onboarding
     : "If you would like clarification or wish to discuss a future application, please contact our team.";
-  const assistanceText = "For assistance, reply to this email or email bookings@zuristayworldwide.com.";
   const assistanceHtml = '<p>For assistance, reply to this email or email <a href="mailto:bookings@zuristayworldwide.com">bookings@zuristayworldwide.com</a>.</p>';
-  const activationHtml = '<p>Your partner application has been approved. To continue, create your ZuriStay account using the link below. Enter your details and choose your own password. If you already have an account, use the partner sign-in link on the same page.</p><p style="margin:24px 0;text-align:center"><a href="' + partnerAccessUrl + '" style="display:inline-block;padding:14px 24px;background:#173b30;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700">CREATE ACCOUNT</a></p><p style="text-align:center;margin:16px 0"><a href="https://www.zuristayworldwide.com/login?mode=partner&next=%2Fpartner%2Fdashboard" style="color:#173b30;font-weight:700">Partner sign in</a></p><p>After signing in, open your partner dashboard to view your application and continue onboarding.</p>';
-  const approvedHtml = activationHtml + '<p>Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. Save your changes in the dashboard. A property is not made publicly bookable until it has completed ZuriStay\'s separate listing review.</p>';
+  const activationHtml = '<p>Your partner application has been approved. Follow these steps carefully:</p><h3>1. Create your account</h3><p>The first link is valid for <strong>7 days if unopened</strong>. When you intentionally continue into the registration form, the first link is consumed and cannot be reused.</p><p style="margin:20px 0;text-align:center"><a href="' + safeHtml(createUrl) + '" style="display:inline-block;padding:14px 24px;background:#173b30;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700">CREATE ACCOUNT</a></p><p>After registration, use the <strong>Sign in</strong> option on that same page. Sign in with the approved application email and the password you created. You will be directed to your partner dashboard.</p><h3>2. If you accidentally close the page</h3><p>If you have opened the first link but accidentally closed the page or gone back before finishing, use the separate recovery link at the <strong>end of this email</strong>. It becomes active only after the first link has been intentionally used and expires 7 days after that.</p><p>The recovery link is restricted to this approved application and email. If your account already exists, it opens partner sign-in only and requires your original email and password. It does not reset your password or create a duplicate account. If registration was interrupted before account creation, it lets you resume using the same approved email.</p><p><a href="' + safeHtml(signInUrl) + '" style="color:#173b30;font-weight:700">Partner sign in</a></p><p>Once signed in, open your partner dashboard to complete or edit your property details, add and manage rooms, upload property photos, set room rates and availability, and keep your listing information up to date. A property is not made publicly bookable until it has completed ZuriStay\'s separate listing review.</p><p><strong>Keep both links private. Do not forward them to anyone.</strong></p><p style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb"><strong>RECOVERY LINK — SAVE THIS FOR LATER</strong><br/>Use only if you have already opened the Create account link and need to return to the process:<br/><a href="' + safeHtml(recoveryUrl) + '" style="color:#173b30;font-weight:700">Resume partner registration / sign in</a></p>';
   await sendZuriStayEmail({
     to: input.email,
     subject: "ZuriStay Worldwide partner application update — " + (input.approved ? "Approved" : "Review update"),
-    text: "Hello " + input.contactPerson + ",\n\nYour partner application for " + input.businessName + " has been reviewed. Its current status is: " + status.toUpperCase() + ".\n\n" + nextStep + "\n\n" + assistanceText + "\n\nZuriStay Worldwide",
+    text: "Hello " + input.contactPerson + ",\n\nYour partner application for " + input.businessName + " has been reviewed. Its current status is: " + status.toUpperCase() + ".\n\n" + nextStep + "\n\nFor assistance, reply to this email or email bookings@zuristayworldwide.com.\n\nZuriStay Worldwide",
     html: input.approved
-      ? "<p>Hello " + name + ",</p><p>Your partner application for <strong>" + business + "</strong> has been reviewed. Its current status is: <strong>APPROVED</strong>.</p>" + approvedHtml + assistanceHtml + "<p>ZuriStay Worldwide</p>"
+      ? "<p>Hello " + name + ",</p><p>Your partner application for <strong>" + business + "</strong> has been reviewed. Its current status is: <strong>APPROVED</strong>.</p>" + activationHtml + assistanceHtml + "<p>ZuriStay Worldwide</p>"
       : "<p>Hello " + name + ",</p><p>Your partner application for <strong>" + business + "</strong> has been reviewed. Its current status is: <strong>" + status.toUpperCase() + "</strong>.</p><p>" + safeHtml(nextStep) + "</p>" + assistanceHtml + "<p>ZuriStay Worldwide</p>",
   });
 }
