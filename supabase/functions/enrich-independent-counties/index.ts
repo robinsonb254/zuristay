@@ -44,10 +44,14 @@ function countyFromProperties(properties: Record<string, unknown> | null) {
   const entries = Object.entries(properties);
   for (const [key, value] of entries) {
     if (typeof value !== "string") continue;
+    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const isCountyNameField =
+      normalizedKey.includes("county") ||
+      normalizedKey === "name" ||
+      normalizedKey.startsWith("name") ||
+      normalizedKey.includes("admin1");
     const matched = countyByNormalizedName.get(normalize(value));
-    if (matched && (key.toLowerCase().includes("county") || key.toLowerCase().includes("name") || matched)) {
-      return matched;
-    }
+    if (matched && isCountyNameField) return matched;
   }
   return null;
 }
@@ -120,7 +124,7 @@ Deno.serve(async (req: Request) => {
     for (let offset = 0; ; offset += 500) {
       const { data, error } = await db.from("independent_accommodations")
         .select("id,latitude,longitude,county")
-        .or("county.is.null,county.eq.Kenya")
+        .or("county.is.null,county.ilike.Kenya")
         .order("id", { ascending: true })
         .range(offset, offset + 499);
       if (error) throw error;
