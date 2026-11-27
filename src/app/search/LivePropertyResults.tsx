@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Wifi, Waves, Car, Utensils, BedDouble, ExternalLink, Building2 } from "lucide-react";
+import { MapPin, Wifi, Waves, Car, Utensils, BedDouble, Building2 } from "lucide-react";
 
 type LiveProperty = {
   id: string;
