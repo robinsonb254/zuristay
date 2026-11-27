@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       if (email) {
         const { data, error: applicationError } = await context.admin
           .from("partner_applications")
-          .select("id, business_name, contact_person, email, status, created_at")
+           .select("id, business_name, contact_person, email, phone, status, applicant_user_id, created_at")
           .ilike("email", email)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -130,12 +130,21 @@ export async function GET(request: NextRequest) {
         // Claim the approved application only when the authenticated account
         // email matches and the application has not been linked to another user.
         if (application?.status === "approved") {
-          const { data: existingPartner, error: existingPartnerError } = await context.admin
+          const { data: ownedPartner, error: ownedPartnerError } = await context.admin
             .from("property_partners")
             .select("id, owner_user_id, business_name, contact_person, email, phone, status")
-            .or(`owner_user_id.eq.${context.user.id},email.ilike.${email}`)
-            .limit(1)
+            .eq("owner_user_id", context.user.id)
             .maybeSingle();
+          const { data: emailPartner, error: emailPartnerError } = ownedPartner
+            ? { data: null, error: null }
+            : await context.admin
+                .from("property_partners")
+                .select("id, owner_user_id, business_name, contact_person, email, phone, status")
+                .ilike("email", email)
+                .limit(1)
+                .maybeSingle();
+          const existingPartner = ownedPartner || emailPartner;
+          const existingPartnerError = ownedPartnerError || emailPartnerError;
 
           if (existingPartnerError) {
             console.error("Existing partner lookup failed:", existingPartnerError);
@@ -186,7 +195,7 @@ export async function GET(request: NextRequest) {
               business_name: application.business_name,
               contact_person: application.contact_person,
               email,
-              phone: null,
+              phone: application.phone,
               status: "approved",
             })
             .select("id, owner_user_id, business_name, contact_person, email, phone, status")
@@ -197,16 +206,18 @@ export async function GET(request: NextRequest) {
             return fail("Unable to create your partner account. Please contact support.", 500);
           }
 
-          const [{ error: profileUpdateError }, { error: applicationUpdateError }] = await Promise.all([
+          const [{ error: profileUpdateError }, { data: linkedApplication, error: applicationUpdateError }] = await Promise.all([
             context.admin.from("profiles").update({ role: "partner" }).eq("id", context.user.id).neq("role", "admin"),
             context.admin.from("partner_applications")
               .update({ applicant_user_id: context.user.id })
               .eq("id", application.id)
               .eq("status", "approved")
-              .or(`applicant_user_id.is.null,applicant_user_id.eq.${context.user.id}`),
+              .or(`applicant_user_id.is.null,applicant_user_id.eq.${context.user.id}`)
+              .select("id")
+              .maybeSingle(),
           ]);
 
-          if (profileUpdateError || applicationUpdateError) {
+          if (profileUpdateError || applicationUpdateError || !linkedApplication) {
             console.error("Partner account linking failed:", profileUpdateError || applicationUpdateError);
             await context.admin.from("property_partners").delete().eq("id", createdPartner.id).eq("owner_user_id", context.user.id);
             return fail("Your account could not be linked to the approved application. Please try again.", 500);
