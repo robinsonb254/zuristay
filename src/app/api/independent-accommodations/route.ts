@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   if (query) {
     const terms = query.split(/[,,]+/).map((part) => part.trim()).filter(Boolean);
-    const searchTerm = terms[0]?.replace(/\\b(kenya|town|city|county)\\b/gi, "").trim() || query;
+    const searchTerm = terms[0]?.replace(/\b(kenya|town|city|county)\b/gi, "").trim() || query;
     const safeTerm = searchTerm.replace(/[(),]/g, " ").trim();
     if (safeTerm) requestQuery = requestQuery.or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`);
   }
