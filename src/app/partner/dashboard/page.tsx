@@ -158,6 +158,14 @@ export default function PartnerDashboardPage() {
     (property) => property.status === "pending" || property.publication_status === "pending_review"
   ).length;
 
+  // Keep the original approved listing as the partner's primary property.
+  const orderedProperties = [...properties].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+  const firstApprovedProperty = orderedProperties.find(
+    (property) => property.status === "approved" && !property.is_archived
+  );
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -212,11 +220,13 @@ export default function PartnerDashboardPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             {partnerState === "approved" && <Link
-              href="#property-listings"
+              href={firstApprovedProperty
+                ? `/partner/properties/${firstApprovedProperty.id}/rooms`
+                : "#property-listings"}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
             >
               <Building2 size={19} />
-              Manage properties
+              Manage property
             </Link>}
             {partner?.status === "approved" && (
               <Link
@@ -412,17 +422,10 @@ export default function PartnerDashboardPage() {
                 Add your hotel, apartment, villa, lodge or other accommodation
                 to start the ZuriStay Worldwide listing review process.
               </p>
-              <Link
-                href="/partner/properties/new"
-                className="inline-flex items-center gap-2 mt-6 rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800"
-              >
-                <Plus size={17} />
-                Add your first property
-              </Link>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {properties.map((property) => (
+              {orderedProperties.map((property) => (
                 <article
                   key={property.id}
                   className="p-5 flex flex-col md:flex-row md:items-center gap-4"
