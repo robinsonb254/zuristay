@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const county = countyMatch(cleaned);
     const safeTerm = cleaned.replace(/[(),.%_*]/g, " ").trim();
     if (county) {
-      requestQuery = requestQuery.or(`county.eq.${county},city.ilike.%${county}%`);
+      requestQuery = requestQuery.eq("county", county);
     } else if (safeTerm) {
       requestQuery = requestQuery.or(
         `name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`
