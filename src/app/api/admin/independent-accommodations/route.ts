@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
@@ -57,9 +58,9 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const ctx = await adminContext(req);
   if (!ctx) return NextResponse.json({ success: false, error: "Administrator access required." }, { status: 401 });
-  const form = await req.formData();
-  const id = String(form.get("id") || "");
-  const files = form.getAll("files").filter((value): value is File => value instanceof File && value.size > 0);
+  const body = await req.json().catch(() => null);
+  const id = typeof body?.id === "string" ? body.id : "";
+  const files = Array.isArray(body?.files) ? body.files : [];
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || files.length < 1 || files.length > MAX_PHOTOS) {
     return NextResponse.json({ success: false, error: "Select an accommodation and up to 15 photos." }, { status: 400 });
   }
@@ -71,34 +72,74 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: `This accommodation can have up to ${MAX_PHOTOS} photos.` }, { status: 400 });
   }
 
-  const uploadedPaths: string[] = [];
-  const newUrls: string[] = [];
+  const uploads: { path: string; token: string; publicUrl: string }[] = [];
   for (const file of files) {
-    if (file.size > MAX_FILE_SIZE || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      if (uploadedPaths.length) await ctx.db.storage.from(BUCKET).remove(uploadedPaths);
+    const contentType = typeof file?.contentType === "string" ? file.contentType : "";
+    const size = Number(file?.size);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(contentType) || !Number.isFinite(size) || size <= 0 || size > MAX_FILE_SIZE) {
+      if (uploads.length) await ctx.db.storage.from(BUCKET).remove(uploads.map(item => item.path));
       return NextResponse.json({ success: false, error: "Use JPG, PNG or WebP photos, maximum 8 MB each." }, { status: 400 });
     }
-    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const storagePath = `management-accommodations/${id}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await ctx.db.storage.from(BUCKET).upload(storagePath, new Uint8Array(await file.arrayBuffer()), {
-      contentType: file.type,
-      cacheControl: "31536000",
-      upsert: false,
-    });
-    if (uploadError) {
-      if (uploadedPaths.length) await ctx.db.storage.from(BUCKET).remove(uploadedPaths);
-      return NextResponse.json({ success: false, error: "A photo could not be uploaded. Please try again." }, { status: 500 });
+    const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+    const storagePath = `management-accommodations/${id}/${randomUUID()}.${extension}`;
+    const { data, error } = await ctx.db.storage.from(BUCKET).createSignedUploadUrl(storagePath);
+    if (error || !data?.token) {
+      if (uploads.length) await ctx.db.storage.from(BUCKET).remove(uploads.map(item => item.path));
+      return NextResponse.json({ success: false, error: "Unable to prepare a secure photo upload." }, { status: 500 });
     }
-    uploadedPaths.push(storagePath);
-    newUrls.push(ctx.db.storage.from(BUCKET).getPublicUrl(storagePath).data.publicUrl);
+    uploads.push({
+      path: storagePath,
+      token: data.token,
+      publicUrl: ctx.db.storage.from(BUCKET).getPublicUrl(storagePath).data.publicUrl,
+    });
   }
+  return NextResponse.json({ success: true, uploads });
+}
 
-  const { data: updated, error: updateError } = await ctx.db.from("independent_accommodations")
-    .update({ image_urls: [...current, ...newUrls], updated_at: new Date().toISOString() })
-    .eq("id", id).select("id,image_urls").single();
-  if (updateError) {
-    await ctx.db.storage.from(BUCKET).remove(uploadedPaths);
-    return NextResponse.json({ success: false, error: "Photos were uploaded but could not be attached to the accommodation." }, { status: 500 });
+export async function PUT(req: NextRequest) {
+  const ctx = await adminContext(req);
+  if (!ctx) return NextResponse.json({ success: false, error: "Administrator access required." }, { status: 401 });
+  const body = await req.json().catch(() => null);
+  const id = typeof body?.id === "string" ? body.id : "";
+  const paths = Array.isArray(body?.paths) ? body.paths.filter((value: unknown): value is string => typeof value === "string") : [];
+  const prefix = `management-accommodations/${id}/`;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || paths.length < 1 || paths.length > MAX_PHOTOS || paths.some(path => !path.startsWith(prefix) || path.slice(prefix.length).includes("/"))) {
+    return NextResponse.json({ success: false, error: "Invalid photo upload confirmation." }, { status: 400 });
   }
+  const { data: stay, error: stayError } = await ctx.db.from("independent_accommodations")
+    .select("id,image_urls").eq("id", id).eq("listing_status", "published").maybeSingle();
+  if (stayError || !stay) return NextResponse.json({ success: false, error: "Accommodation not found." }, { status: 404 });
+  const current = Array.isArray(stay.image_urls) ? stay.image_urls.filter((value: unknown): value is string => typeof value === "string") : [];
+  if (current.length + paths.length > MAX_PHOTOS) {
+    return NextResponse.json({ success: false, error: `This accommodation can have up to ${MAX_PHOTOS} photos.` }, { status: 400 });
+  }
+  const { data: stored, error: listError } = await ctx.db.storage.from(BUCKET).list(`management-accommodations/${id}`, { limit: 100 });
+  if (listError) return NextResponse.json({ success: false, error: "Unable to verify uploaded photos." }, { status: 500 });
+  const storedNames = new Set((stored || []).map(item => item.name));
+  if (paths.some(path => !storedNames.has(path.slice(prefix.length)))) {
+    return NextResponse.json({ success: false, error: "One or more photos have not finished uploading." }, { status: 409 });
+  }
+  const urls = paths.map(path => ctx.db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
+  const { data: updated, error: updateError } = await ctx.db.from("independent_accommodations")
+    .update({ image_urls: [...current, ...urls], updated_at: new Date().toISOString() })
+    .eq("id", id).select("id,image_urls").single();
+  if (updateError) return NextResponse.json({ success: false, error: "Photos uploaded but could not be attached to the accommodation." }, { status: 500 });
   return NextResponse.json({ success: true, image_urls: updated.image_urls });
+}
+
+export async function DELETE(req: NextRequest) {
+  const ctx = await adminContext(req);
+  if (!ctx) return NextResponse.json({ success: false, error: "Administrator access required." }, { status: 401 });
+  const body = await req.json().catch(() => null);
+  const id = typeof body?.id === "string" ? body.id : "";
+  const paths = Array.isArray(body?.paths) ? body.paths.filter((value: unknown): value is string => typeof value === "string") : [];
+  const prefix = `management-accommodations/${id}/`;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || paths.length > MAX_PHOTOS || paths.some(path => !path.startsWith(prefix) || path.slice(prefix.length).includes("/"))) {
+    return NextResponse.json({ success: false, error: "Invalid photo cleanup request." }, { status: 400 });
+  }
+  if (paths.length) {
+    const { error } = await ctx.db.storage.from(BUCKET).remove(paths);
+    if (error) return NextResponse.json({ success: false, error: "Unable to clean up incomplete photo uploads." }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
 }
