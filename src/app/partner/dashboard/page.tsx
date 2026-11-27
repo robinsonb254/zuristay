@@ -162,9 +162,9 @@ export default function PartnerDashboardPage() {
   const orderedProperties = [...properties].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
-  const firstApprovedProperty = orderedProperties.find(
-    (property) => property.status === "approved" && !property.is_archived
-  );
+  // The first approved application creates a draft property workspace.
+  // Keep that original property at the top until it completes final review.
+  const primaryProperty = orderedProperties.find((property) => !property.is_archived);
 
   if (loading) {
     return (
@@ -220,8 +220,8 @@ export default function PartnerDashboardPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             {partnerState === "approved" && <Link
-              href={firstApprovedProperty
-                ? `/partner/properties/${firstApprovedProperty.id}/rooms`
+              href={primaryProperty
+                ? `/partner/properties/${primaryProperty.id}/edit`
                 : "#property-listings"}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-900 hover:bg-blue-50"
             >
@@ -469,13 +469,13 @@ export default function PartnerDashboardPage() {
                     >
                       Edit details
                     </Link>
-                    {!property.is_archived && property.status === "approved" && (
+                    {!property.is_archived && (
                       <Link
                         href={`/partner/properties/${property.id}/rooms`}
                         className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800"
                       >
                         <Hotel size={15} />
-                        {property.publication_status === "published" ? "Manage rooms" : "Complete listing"}
+                        {property.status === "approved" ? (property.publication_status === "published" ? "Manage rooms" : "Complete listing") : "Add rooms"}
                       </Link>
                     )}
                     {!property.is_archived && (
