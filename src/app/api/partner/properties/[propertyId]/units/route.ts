@@ -125,10 +125,6 @@ export async function POST(
       return fail("Unable to verify this property.", 500);
     }
     if (!property) return fail("Property not found in your partner account.", 404);
-    if (property.status !== "approved") {
-      return fail("Rooms can only be added after the property is approved.", 409);
-    }
-
     let body: unknown;
     try {
       body = await request.json();
