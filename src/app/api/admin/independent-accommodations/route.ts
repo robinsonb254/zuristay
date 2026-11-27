@@ -138,8 +138,15 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid photo cleanup request." }, { status: 400 });
   }
   if (paths.length) {
-    const { error } = await ctx.db.storage.from(BUCKET).remove(paths);
-    if (error) return NextResponse.json({ success: false, error: "Unable to clean up incomplete photo uploads." }, { status: 500 });
+    const { data: stay, error: stayError } = await ctx.db.from("independent_accommodations")
+      .select("image_urls").eq("id", id).maybeSingle();
+    if (stayError || !stay) return NextResponse.json({ success: false, error: "Accommodation not found." }, { status: 404 });
+    const attached = new Set(Array.isArray(stay.image_urls) ? stay.image_urls : []);
+    const orphanPaths = paths.filter(path => !attached.has(ctx.db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl));
+    if (orphanPaths.length) {
+      const { error } = await ctx.db.storage.from(BUCKET).remove(orphanPaths);
+      if (error) return NextResponse.json({ success: false, error: "Unable to clean up incomplete photo uploads." }, { status: 500 });
+    }
   }
   return NextResponse.json({ success: true });
 }
