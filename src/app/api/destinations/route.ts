@@ -6,16 +6,18 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json(
       { error: "Database configuration is missing." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   const { data, error } = await supabase
     .from("destinations")
@@ -38,5 +40,7 @@ export async function GET() {
     success: true,
     count: data.length,
     destinations: data,
+  }, {
+    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
   });
 }
