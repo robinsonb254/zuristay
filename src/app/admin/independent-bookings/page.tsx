@@ -98,8 +98,8 @@ export default function IndependentReservationsAdmin() {
     <main className="min-h-screen bg-slate-50 p-5 text-slate-800">
       <div className="mx-auto max-w-6xl">
         <Link href="/admin" className="text-sm font-semibold text-emerald-800">← Admin dashboard</Link>
-        <h1 className="mt-4 text-3xl font-bold text-emerald-950">Independent property reservations</h1>
-        <p className="mt-2 text-slate-600">Manage guest requests, property confirmation and fulfilment.</p>
+        <h1 className="mt-4 text-3xl font-bold text-emerald-950">Management accommodation reservations</h1>
+        <p className="mt-2 text-slate-600">Manage ZuriStay guest requests, property confirmation and fulfilment.</p>
         {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-red-700">{error}</p>}
 
         <div className="mt-6 space-y-4">
@@ -108,7 +108,7 @@ export default function IndependentReservationsAdmin() {
               <div className="flex flex-wrap justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold text-orange-600">{order.order_reference}</p>
-                  <h2 className="mt-1 text-xl font-bold">{order.independent_accommodations?.name || "Independent property"}</h2>
+                  <h2 className="mt-1 text-xl font-bold">{order.independent_accommodations?.name || "ZuriStay accommodation"}</h2>
                   <p className="text-sm text-slate-500">
                     {order.independent_accommodations?.city} {order.independent_accommodations?.county || ""}
                   </p>
