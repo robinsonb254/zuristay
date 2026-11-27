@@ -42,21 +42,6 @@ type Partner = {
   status: string;
 };
 
-function statusStyle(status: string) {
-  switch (status) {
-    case "approved":
-      return "bg-green-100 text-green-800";
-    case "pending":
-      return "bg-amber-100 text-amber-800";
-    case "rejected":
-      return "bg-red-100 text-red-800";
-    case "suspended":
-      return "bg-gray-200 text-gray-700";
-    default:
-      return "bg-gray-100 text-gray-700";
-  }
-}
-
 export default function PartnerDashboardPage() {
   const router = useRouter();
   const [partner, setPartner] = useState<Partner | null>(null);
@@ -178,13 +163,9 @@ export default function PartnerDashboardPage() {
     (property) => property.status === "pending" || property.publication_status === "pending_review"
   ).length;
 
-  // Keep the original approved listing as the partner's primary property.
   const orderedProperties = [...properties].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
-  // The first approved application creates a draft property workspace.
-  // Keep that original property at the top until it completes final review.
-  const primaryProperty = orderedProperties.find((property) => !property.is_archived);
 
   if (loading) {
     return (
