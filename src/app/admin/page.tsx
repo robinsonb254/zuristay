@@ -687,13 +687,13 @@ export default function AdminPage() {
 
           <AdminAnalytics enabled={!!profile} />
 
-          <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <section id="county-enrichment" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <div className="flex items-center gap-2">
                   <MapPin className="text-orange-500" size={20} />
                   <h3 className="text-lg font-black text-blue-950">
-                    Independent accommodation county data
+                    ZuriStay management accommodation county data
                   </h3>
                 </div>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
