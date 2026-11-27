@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
         contactPerson: application.contact_person,
         businessName: application.business_name,
         approved: true,
-        partnerAccessUrl: "https://www.zuristayworldwide.com/register?next=%2Fpartner%2Fdashboard",
+        partnerAccessUrl: "https://www.zuristayworldwide.com/register?mode=partner&token=" + encodeURIComponent(createPartnerAccessToken(applicationId, email)) + "&next=%2Fpartner%2Fdashboard",
       });
     } catch (mailError) {
       notificationSent = false;
