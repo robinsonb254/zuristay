@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const phone = typeof body.phone === "string" ? body.phone.trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
-    const token = typeof body.token === "string" ? body.token : "";
+    const token = typeof body.invitation === "string" ? body.invitation : "";
 
     if (!fullName || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || password.length < 8) {
       return NextResponse.json({ success: false, message: "Enter your name, a valid email address and a password of at least 8 characters." }, { status: 400 });
