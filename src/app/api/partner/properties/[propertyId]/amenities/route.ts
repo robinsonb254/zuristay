@@ -48,7 +48,6 @@ async function authorize(request: NextRequest, propertyId: string) {
     return { error: fail("Unable to verify this property.", 500) };
   }
   if (!property) return { error: fail("Property not found in your partner account.", 404) };
-  if (property.status !== "approved") return { error: fail("Facilities can be managed after property approval.", 409) };
   return { admin, property, partner };
 }
 
