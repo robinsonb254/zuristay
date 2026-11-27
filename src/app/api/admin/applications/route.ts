@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPartnerApplicationDecision } from "@/lib/email";
-import { createPartnerAccessToken } from "@/lib/partner-access";
+import { createPartnerAccessTokens, hashPartnerAccessToken } from "@/lib/partner-access";
 
 export const dynamic = "force-dynamic";
 
@@ -235,12 +235,23 @@ export async function POST(request: NextRequest) {
 
     let notificationSent = true;
     try {
+      const { firstToken, recoveryToken } = createPartnerAccessTokens();
+      const { error: linkError } = await admin.from("partner_access_links").insert({
+        application_id: applicationId,
+        email,
+        first_token_hash: hashPartnerAccessToken(firstToken),
+        recovery_token_hash: hashPartnerAccessToken(recoveryToken),
+        first_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+      if (linkError) throw linkError;
+      const base = "https://www.zuristayworldwide.com/register?mode=partner";
       await sendPartnerApplicationDecision({
         email: application.email,
         contactPerson: application.contact_person,
         businessName: application.business_name,
         approved: true,
-        partnerAccessUrl: "https://www.zuristayworldwide.com/register?mode=partner&token=" + encodeURIComponent(createPartnerAccessToken(applicationId, email)) + "&next=%2Fpartner%2Fdashboard",
+        partnerAccessUrl: base + "&token=" + encodeURIComponent(firstToken) + "&next=%2Fpartner%2Fdashboard",
+        partnerRecoveryUrl: base + "&recovery=" + encodeURIComponent(recoveryToken) + "&next=%2Fpartner%2Fdashboard",
       });
     } catch (mailError) {
       notificationSent = false;
