@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyPartnerAccessToken } from "@/lib/partner-access";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +17,22 @@ export async function POST(request: NextRequest) {
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const phone = typeof body.phone === "string" ? body.phone.trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
+    const token = typeof body.token === "string" ? body.token : "";
 
     if (!fullName || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || password.length < 8) {
       return NextResponse.json({ success: false, message: "Enter your name, a valid email address and a password of at least 8 characters." }, { status: 400 });
+    }
+
+    const access = verifyPartnerAccessToken(token, email);
+    if (!access) {
+      return NextResponse.json({ success: false, message: "This partner access link is invalid or has expired. Please contact ZuriStay for a fresh link." }, { status: 403 });
     }
 
     const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: application, error: applicationError } = await admin
       .from("partner_applications")
       .select("id, email, status")
+      .eq("id", access.applicationId)
       .ilike("email", email)
       .eq("status", "approved")
       .maybeSingle();
