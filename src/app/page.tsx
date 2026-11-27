@@ -167,19 +167,38 @@ export default function Home() {
   );
 
   useEffect(() => {
+    // Supabase may fall back to the configured Site URL when a custom invite
+    // redirect is not allowlisted. Preserve the invite type before auth-js
+    // consumes the URL fragment, then route the signed-in invitee to activation.
+    const inviteHash =
+      new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "invite";
     const supabase = createSupabaseBrowserClient();
     let active = true;
+    let inviteRedirected = false;
+
+    const continueInviteActivation = (session: { user: { id: string } } | null) => {
+      if (inviteHash && session && !inviteRedirected) {
+        inviteRedirected = true;
+        window.location.replace("/reset-password?partner=activation");
+      }
+    };
 
     supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return;
-      if (!error) setAuthUser(data.session?.user ?? null);
+      if (!error) {
+        setAuthUser(data.session?.user ?? null);
+        continueInviteActivation(data.session);
+      }
       setAuthReady(true);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
       setAuthUser(session?.user ?? null);
       setAuthReady(true);
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        continueInviteActivation(session);
+      }
     });
 
     return () => {
