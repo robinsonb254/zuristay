@@ -89,7 +89,7 @@ export default function ManagementAccommodationsAdmin() {
     setBusy(item.id);
     setError("");
     setNotice("");
-    let uploadedPaths: string[] = [];
+    const uploadedPaths: string[] = [];
     let accessToken = "";
     try {
       const sb = createSupabaseBrowserClient();
