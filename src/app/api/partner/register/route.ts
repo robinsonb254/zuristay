@@ -19,11 +19,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Enter your name, approved email, password and valid invitation." }, { status: 400 });
     }
     const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: link, error: linkError } = await admin.from("partner_access_links")
+    const tokenHash = hashPartnerAccessToken(token);
+    let { data: link, error: linkError } = await admin.from("partner_access_links")
       .select("id, application_id, email, first_redeemed_at, recovery_expires_at, user_id, registration_completed_at")
-      .eq("first_token_hash", hashPartnerAccessToken(token)).eq("email", email)
+      .eq("first_token_hash", tokenHash).eq("email", email)
       .not("first_redeemed_at", "is", null).maybeSingle();
     if (linkError) throw linkError;
+    if (!link) {
+      const recovered = await admin.from("partner_access_links")
+        .select("id, application_id, email, first_redeemed_at, recovery_expires_at, user_id, registration_completed_at")
+        .eq("recovery_token_hash", tokenHash).eq("email", email)
+        .not("first_redeemed_at", "is", null).gt("recovery_expires_at", new Date().toISOString()).maybeSingle();
+      if (recovered.error) throw recovered.error;
+      link = recovered.data;
+    }
     if (!link || link.recovery_expires_at && new Date(link.recovery_expires_at).getTime() < Date.now()) {
       return NextResponse.json({ success: false, message: "Your registration session is invalid or expired. Use the recovery link from your approval email." }, { status: 403 });
     }
