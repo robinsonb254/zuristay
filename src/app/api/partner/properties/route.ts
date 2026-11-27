@@ -30,6 +30,58 @@ function destinationBelongsToCounty(destinationCounty: string | null, countyName
     destinationCounty.split(/[\/,]/).some((part) => normalizeCountyName(part) === target);
 }
 
+async function ensureApplicationProperty(admin: ReturnType<typeof createClient>, partner: any, application: any) {
+  const { data: existing, error: existingError } = await admin
+    .from("properties")
+    .select("id, name, property_type, city, county, sub_county, country, status, is_active, publication_status, publication_submitted_at, is_archived, has_conference_rooms, created_at")
+    .eq("partner_id", partner.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return existing;
+
+  const location = String(application.location || "").trim();
+  const parts = location.split(",").map((part: string) => part.trim()).filter(Boolean);
+  const city = parts[0] || location || "Location to be confirmed";
+  const county = parts.length > 1 ? parts[1].replace(/\s+county$/i, "").trim() : null;
+  const rawType = String(application.property_type || "other").trim().toLowerCase();
+  const typeMap: Record<string, string> = {
+    "bed and breakfast": "bnb", "holiday home": "other", "guesthouse": "guesthouse",
+    "hotel": "hotel", "resort": "resort", "apartment": "apartment", "villa": "villa",
+    "lodge": "lodge", "hostel": "hostel", "other": "other",
+  };
+  const propertyType = typeMap[rawType] || "other";
+  const { data: destination } = await admin.from("destinations")
+    .select("id, city, county, country, country_code")
+    .eq("active", true)
+    .ilike("city", city)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: created, error: createError } = await admin.from("properties").insert({
+    partner_id: partner.id,
+    destination_id: destination?.id || null,
+    name: application.business_name,
+    property_type: propertyType,
+    description: application.message || null,
+    address: location || null,
+    city: destination?.city || city,
+    county: destination?.county || county,
+    country: destination?.country || "Kenya",
+    country_code: destination?.country_code || "KE",
+    currency: destination?.country_code && destination.country_code !== "KE" ? "USD" : "KES",
+    contact_phone: application.phone || partner.phone,
+    contact_email: application.email || partner.email,
+    has_conference_rooms: application.has_conference_rooms === true,
+    status: "pending",
+    is_active: false,
+    publication_status: "draft",
+  }).select("id, name, property_type, city, county, sub_county, country, status, is_active, publication_status, publication_submitted_at, is_archived, has_conference_rooms, created_at").single();
+  if (createError || !created) throw createError || new Error("Initial property record could not be created.");
+  return created;
+}
+
 function fail(message: string, status: number) {
   return NextResponse.json(
     { success: false, error: message },
@@ -115,7 +167,7 @@ export async function GET(request: NextRequest) {
       if (email) {
         const { data, error: applicationError } = await context.admin
           .from("partner_applications")
-           .select("id, business_name, contact_person, email, phone, status, applicant_user_id, created_at")
+           .select("id, business_name, contact_person, email, phone, property_type, location, message, has_conference_rooms, status, applicant_user_id, created_at")
           .ilike("email", email)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -166,10 +218,11 @@ export async function GET(request: NextRequest) {
               console.error("Partner application account link failed:", linkError);
               return fail("Unable to link your approved application to this account.", 500);
             }
+            const initialProperty = await ensureApplicationProperty(context.admin, existingPartner, application);
             return NextResponse.json({
               success: true,
               partner: existingPartner,
-              properties: [],
+              properties: [initialProperty],
               partnerState: existingPartner.status,
               application,
             }, { headers: { "Cache-Control": "no-store" } });
@@ -223,10 +276,11 @@ export async function GET(request: NextRequest) {
             return fail("Your account could not be linked to the approved application. Please try again.", 500);
           }
 
+          const initialProperty = await ensureApplicationProperty(context.admin, createdPartner, application);
           return NextResponse.json({
             success: true,
             partner: createdPartner,
-            properties: [],
+            properties: [initialProperty],
             partnerState: "approved",
             application,
           }, { headers: { "Cache-Control": "no-store" } });
