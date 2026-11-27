@@ -116,7 +116,7 @@ let imported = 0;
 for (let offset = 0; offset < records.length; offset += 100) {
   const batch = records.slice(offset, offset + 100);
   const { error } = await db.from("independent_accommodations")
-    .upsert(batch, { onConflict: "source_id,external_source_id", ignoreDuplicates: false });
+    .upsert(batch, { onConflict: "source_id,external_source_id", ignoreDuplicates: true });
   if (error) throw new Error(`Import failed at batch ${offset / 100 + 1}: ${error.message}`);
   imported += batch.length;
   console.log(`Imported/reconciled ${imported} of ${records.length} review records…`);
