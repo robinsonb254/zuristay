@@ -3,6 +3,24 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
+const KENYAN_COUNTIES = [
+  "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet", "Embu",
+  "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
+  "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui", "Kwale",
+  "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit",
+  "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi",
+  "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya",
+  "Taita Taveta", "Tana River", "Tharaka-Nithi", "Trans Nzoia", "Turkana",
+  "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+];
+
+function countyMatch(value: string) {
+  const normalized = value.toLowerCase().replace(/\\s+county$/i, "").replace(/[^a-z0-9]+/g, "");
+  return KENYAN_COUNTIES.find((county) =>
+    county.toLowerCase().replace(/[^a-z0-9]+/g, "") === normalized
+  ) || null;
+}
+
 export async function GET(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -14,18 +32,20 @@ export async function GET(request: NextRequest) {
   const db = createClient(url, key, { auth: { persistSession: false } });
 
   let requestQuery = db.from("independent_accommodations")
-    .select("id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,source_listing_url,data_attribution,image_urls,booking_enabled,availability_status,last_verified_at")
+    .select("id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,image_urls,booking_enabled,availability_status,last_verified_at")
     .eq("listing_status", "published")
     .order("name", { ascending: true })
     .limit(query || city ? 500 : 100);
 
   if (query) {
-    const terms = query.split(/[,]+/).map((part) => part.trim()).filter(Boolean);
-    const searchTerm = terms[0]?.replace(/kenya|town|city|county/gi, "").trim() || query;
-    const safeTerm = searchTerm.replace(/[(),.%_*]/g, " ").trim();
-    if (safeTerm) {
+    const cleaned = query.replace(/,?\\s*Kenya$/i, "").replace(/\\s+county$/i, "").trim();
+    const county = countyMatch(cleaned);
+    const safeTerm = cleaned.replace(/[(),.%_*]/g, " ").trim();
+    if (county) {
+      requestQuery = requestQuery.or(`county.eq.${county},city.ilike.%${county}%`);
+    } else if (safeTerm) {
       requestQuery = requestQuery.or(
-        `name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%,address.ilike.%${safeTerm}%`
+        `name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`
       );
     }
   }
@@ -35,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await requestQuery;
-  if (error) return NextResponse.json({ success: false, error: "Unable to load independent accommodations." }, { status: 500 });
+  if (error) return NextResponse.json({ success: false, error: "Unable to load accommodations." }, { status: 500 });
 
   const accommodations = (data || []).map((item) => ({
     ...item,
