@@ -222,19 +222,7 @@ export default function LivePropertyResults({
         </p>
       </div>
 
-      <div className="mb-8">
-        <div className="mb-5">
-          <p className="text-sm font-semibold text-orange-500">INDEPENDENT ACCOMMODATION</p>
-          <h2 className="mt-2 text-2xl font-black text-blue-950">More stays across {destination || "Kenya"}</h2>
-          <p className="mt-2 text-sm text-slate-500">Explore independently listed hotels, villas, apartments, lodges and guesthouses.</p>
-        </div>
-        {independentLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Finding independent stays…</div> : independentStays.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{destination ? "No independently listed stays have been verified for this destination yet." : "Independently listed stays will appear here as verified listings are added."}</div> : <div className="grid gap-5">{independentStays.map((stay) => <article key={stay.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[260px_1fr]">
-          <div className="min-h-52 bg-slate-100 bg-cover bg-center" style={stay.image_urls?.[0] ? {backgroundImage:`url("${stay.image_urls[0]}")`} : undefined} role="img" aria-label={stay.name}>{!stay.image_urls?.[0] && <div className="flex h-full min-h-52 items-center justify-center"><Building2 className="text-slate-300" size={42}/></div>}</div>
-          <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
-            <div className="min-w-0 flex-1"><span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold capitalize text-orange-700">{stay.property_type}</span><h3 className="mt-3 text-xl font-black text-blue-950">{stay.name}</h3><p className="mt-2 flex items-center gap-1 text-sm text-slate-500"><MapPin size={14}/>{[stay.city,stay.county,stay.country].filter(Boolean).join(", ")}</p>{stay.description&&<p className="mt-2 line-clamp-2 text-sm text-slate-500">{stay.description}</p>}</div>
-            <div className="flex min-w-40 flex-row items-end justify-between gap-3 border-t border-slate-100 pt-4 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-5 md:pt-0">{stay.guest_rate!==null&&<div className="md:text-right"><p className="text-xs text-slate-500">From</p><p className="text-2xl font-black text-blue-950">{formatMoney(stay.guest_rate,stay.currency)}</p><p className="text-xs text-slate-500">per night</p></div>}<div className="flex flex-wrap gap-3">{stay.public_website_url&&<a href={stay.public_website_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-950">Website <ExternalLink size={13}/></a>}<a href={stay.source_listing_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-950">Source <ExternalLink size={13}/></a></div></div>
-          </div></article>)}</div>}
-      </div>
+
 
       <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3"><span className="mr-2 text-sm font-semibold text-slate-700">Conference rooms:</span><button type="button" onClick={() => setConferenceFilter("any")} className={`rounded-full px-4 py-2 text-sm font-semibold ${conferenceFilter === "any" ? "bg-blue-950 text-white" : "bg-slate-100 text-slate-700"}`}>Any</button><button type="button" onClick={() => setConferenceFilter("with")} className={`rounded-full px-4 py-2 text-sm font-semibold ${conferenceFilter === "with" ? "bg-blue-950 text-white" : "bg-slate-100 text-slate-700"}`}>With conference rooms</button><button type="button" onClick={() => setConferenceFilter("without")} className={`rounded-full px-4 py-2 text-sm font-semibold ${conferenceFilter === "without" ? "bg-blue-950 text-white" : "bg-slate-100 text-slate-700"}`}>Without conference rooms</button></div>
       {loading && (
@@ -379,6 +367,20 @@ export default function LivePropertyResults({
           })}
         </div>
       )}
+
+      <div className="mb-8">
+        <div className="mb-5">
+          <p className="text-sm font-semibold text-orange-500">ZURISTAY WORLDWIDE MANAGEMENT ACCOMMODATIONS</p>
+          <h2 className="mt-2 text-2xl font-black text-blue-950">More stays across {destination || "Kenya"}</h2>
+          <p className="mt-2 text-sm text-slate-500">Discover more hotels, villas, apartments, lodges and guesthouses across Kenya.</p>
+        </div>
+        {independentLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Finding more places to stay…</div> : independentStays.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{destination ? "No additional stays are currently listed for this destination." : "More accommodation listings will appear here as they are added."}</div> : <div className="grid gap-5">{independentStays.map((stay) => <article key={stay.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[260px_1fr]">
+          <div className="min-h-52 bg-slate-100 bg-cover bg-center" style={stay.image_urls?.[0] ? {backgroundImage:`url("${stay.image_urls[0]}")`} : undefined} role="img" aria-label={stay.name}>{!stay.image_urls?.[0] && <div className="flex h-full min-h-52 items-center justify-center"><Building2 className="text-slate-300" size={42}/></div>}</div>
+          <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
+            <div className="min-w-0 flex-1"><span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold capitalize text-orange-700">{stay.property_type}</span><h3 className="mt-3 text-xl font-black text-blue-950">{stay.name}</h3><p className="mt-2 flex items-center gap-1 text-sm text-slate-500"><MapPin size={14}/>{[stay.city,stay.county,stay.country].filter(Boolean).join(", ")}</p>{stay.description&&<p className="mt-2 line-clamp-2 text-sm text-slate-500">{stay.description}</p>}</div>
+            <div className="flex min-w-40 flex-row items-end justify-between gap-3 border-t border-slate-100 pt-4 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-5 md:pt-0">{stay.guest_rate!==null&&<div className="md:text-right"><p className="text-xs text-slate-500">From</p><p className="text-2xl font-black text-blue-950">{formatMoney(stay.guest_rate,stay.currency)}</p><p className="text-xs text-slate-500">per night</p></div>}<div className="flex flex-wrap gap-3">{stay.public_website_url&&<a href={stay.public_website_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-950">Website <ExternalLink size={13}/></a>}<a href={stay.source_listing_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-950">Source <ExternalLink size={13}/></a></div></div>
+          </div></article>)}</div>}
+      </div>
     </section>
   );
 }
