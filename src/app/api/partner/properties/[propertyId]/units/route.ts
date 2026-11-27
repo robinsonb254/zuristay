@@ -155,7 +155,7 @@ export async function POST(
       return fail("Number of rooms must be a whole number between 1 and 500.", 400);
     }
     if (!Number.isFinite(baseRate) || baseRate <= 0 || baseRate > 100000000) {
-      return fail("Enter a valid positive nightly rate.", 400);
+      return fail("Enter a valid positive 24-hour room rate.", 400);
     }
 
     const { data: unit, error: insertError } = await context.admin
@@ -195,7 +195,7 @@ export async function POST(
     return NextResponse.json(
       {
         success: true,
-        message: "Room category saved. Set availability dates before accepting bookings. A confirmation email will be sent to your registered partner address.",
+        message: "Room category saved and available by default. Guest bookings automatically reduce inventory for the selected stay dates. A confirmation email will be sent to your registered partner address.",
         unit,
       },
       { status: 201, headers: { "Cache-Control": "no-store" } }
