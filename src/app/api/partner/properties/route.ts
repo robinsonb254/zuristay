@@ -306,6 +306,29 @@ export async function GET(request: NextRequest) {
       }, { headers: { "Cache-Control": "no-store" } });
     }
 
+    // Existing approved partner accounts may predate automatic property seeding.
+    // If their approved application has no property record yet, create the draft workspace now.
+    const { data: approvedApplication, error: approvedApplicationError } = await context.admin
+      .from("partner_applications")
+      .select("id, business_name, contact_person, email, phone, property_type, location, message, has_conference_rooms, status, applicant_user_id, created_at")
+      .ilike("email", context.partner.email.trim().toLowerCase())
+      .eq("status", "approved")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (approvedApplicationError) {
+      console.error("Approved partner application lookup failed:", approvedApplicationError);
+      return fail("Unable to retrieve your approved property application.", 500);
+    }
+    if (approvedApplication) {
+      try {
+        await ensureApplicationProperty(context.admin, context.partner, approvedApplication);
+      } catch (seedError) {
+        console.error("Initial partner property setup failed:", seedError);
+        return fail("Unable to prepare your approved property workspace. Please refresh and try again.", 500);
+      }
+    }
+
     const { data: properties, error } = await context.admin
       .from("properties")
       .select(
