@@ -48,7 +48,7 @@ type Property = {
   partner: Partner | Partner[] | null;
 };
 
-type Filter = "all" | "pending" | "approved" | "rejected" | "suspended";
+type Filter = "all" | "pending" | "approved" | "rejected" | "suspended" | "archived";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-KE", {
@@ -138,18 +138,22 @@ export default function AdminPropertiesPage() {
     loadProperties();
   }, [loadProperties]);
 
-  async function archiveProperty(property: Property) {
-    if (!window.confirm(`Archive "${property.name}"? It will disappear from guest search. Booking and payment history will be retained.`)) return;
+  async function setPropertyArchived(property: Property, archive: boolean) {
+    const action = archive ? "archive" : "unarchive";
+    const prompt = archive
+      ? `Archive "${property.name}"? It will disappear from guest search. Booking and payment history will be retained.`
+      : `Unarchive "${property.name}"? It will return to the normal property list but remain inactive until separately approved for publication.`;
+    if (!window.confirm(prompt)) return;
     setProcessingId(property.id); setError(""); setSuccess("");
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
-      const response = await fetch("/api/admin/properties", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ propertyId: property.id, action: "archive" }) });
+      const response = await fetch("/api/admin/properties", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ propertyId: property.id, action }) });
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Unable to archive property.");
+      if (!response.ok || !result.success) throw new Error(result.error || `Unable to ${action} property.`);
       setSuccess(result.message); await loadProperties();
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to archive this property."); }
+    } catch (err) { setError(err instanceof Error ? err.message : `Unable to ${action} this property.`); }
     finally { setProcessingId(""); }
   }
 
@@ -207,8 +211,10 @@ export default function AdminPropertiesPage() {
 
   const visibleProperties =
     filter === "all"
-      ? properties
-      : properties.filter((property) => property.status === filter);
+      ? properties.filter((property) => !property.is_archived)
+      : filter === "archived"
+        ? properties.filter((property) => property.is_archived)
+        : properties.filter((property) => !property.is_archived && property.status === filter);
   const pendingCount = properties.filter((property) => property.status === "pending").length;
   const approvedCount = properties.filter((property) => property.status === "approved").length;
 
@@ -289,7 +295,7 @@ export default function AdminPropertiesPage() {
               <p className="mt-1 text-sm text-slate-500">Inspect the partner, location and listing details before approving.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {(["all", "pending", "approved", "rejected", "suspended"] as Filter[]).map((value) => (
+              {(["all", "pending", "approved", "rejected", "suspended", "archived"] as Filter[]).map((value) => (
                 <button
                   key={value}
                   onClick={() => setFilter(value)}
@@ -396,8 +402,12 @@ export default function AdminPropertiesPage() {
                           </button>
                         </>
                       )}
-                      {!property.is_archived && (
-                        <button onClick={() => archiveProperty(property)} disabled={processingId === property.id} className="inline-flex items-center rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">
+                      {property.is_archived ? (
+                        <button onClick={() => setPropertyArchived(property, false)} disabled={processingId === property.id} className="inline-flex items-center rounded-xl border border-green-200 px-4 py-2.5 text-sm font-bold text-green-700 hover:bg-green-50 disabled:opacity-50">
+                          {processingId === property.id ? "Processing..." : "Unarchive property"}
+                        </button>
+                      ) : (
+                        <button onClick={() => setPropertyArchived(property, true)} disabled={processingId === property.id} className="inline-flex items-center rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">
                           {processingId === property.id ? "Processing..." : "Archive property"}
                         </button>
                       )}
