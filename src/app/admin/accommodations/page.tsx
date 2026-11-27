@@ -82,24 +82,64 @@ export default function ManagementAccommodationsAdmin() {
       setError("Select no more than 15 photos at once.");
       return;
     }
+    if (files.some(file => file.size <= 0 || file.size > 8 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
+      setError("Use JPG, PNG or WebP photos, maximum 8 MB each.");
+      return;
+    }
     setBusy(item.id);
     setError("");
     setNotice("");
+    let uploadedPaths: string[] = [];
+    let accessToken = "";
     try {
-      const accessToken = await token();
-      const form = new FormData();
-      form.set("id", item.id);
-      files.forEach(file => form.append("files", file));
-      const response = await fetch("/api/admin/independent-accommodations", {
+      const sb = createSupabaseBrowserClient();
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) throw new Error("Please sign in to your administrator account.");
+      accessToken = session.access_token;
+
+      const prepareResponse = await fetch("/api/admin/independent-accommodations", {
         method: "POST",
-        headers: { authorization: "Bearer " + accessToken },
-        body: form,
+        headers: { "content-type": "application/json", authorization: "Bearer " + accessToken },
+        body: JSON.stringify({
+          id: item.id,
+          files: files.map(file => ({ name: file.name, contentType: file.type, size: file.size })),
+        }),
       });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Unable to upload photos.");
-      setItems(current => current.map(row => row.id === item.id ? { ...row, image_urls: result.image_urls } : row));
+      const prepared = await prepareResponse.json();
+      if (!prepareResponse.ok || !prepared.success || !Array.isArray(prepared.uploads) || prepared.uploads.length !== files.length) {
+        throw new Error(prepared.error || "Unable to prepare photo uploads.");
+      }
+
+      for (let index = 0; index < files.length; index++) {
+        const target = prepared.uploads[index];
+        const { error: uploadError } = await sb.storage.from("property-images").uploadToSignedUrl(
+          target.path,
+          target.token,
+          files[index],
+          { contentType: files[index].type, cacheControl: "31536000" },
+        );
+        if (uploadError) throw new Error("A photo could not be uploaded. Please try again.");
+        uploadedPaths.push(target.path);
+      }
+
+      const saveResponse = await fetch("/api/admin/independent-accommodations", {
+        method: "PUT",
+        headers: { "content-type": "application/json", authorization: "Bearer " + accessToken },
+        body: JSON.stringify({ id: item.id, paths: uploadedPaths }),
+      });
+      const saved = await saveResponse.json();
+      if (!saveResponse.ok || !saved.success) throw new Error(saved.error || "Unable to attach uploaded photos.");
+
+      setItems(current => current.map(row => row.id === item.id ? { ...row, image_urls: saved.image_urls } : row));
       setNotice(`Photos saved for ${item.name}.`);
     } catch (e) {
+      if (uploadedPaths.length && accessToken) {
+        await fetch("/api/admin/independent-accommodations", {
+          method: "DELETE",
+          headers: { "content-type": "application/json", authorization: "Bearer " + accessToken },
+          body: JSON.stringify({ id: item.id, paths: uploadedPaths }),
+        }).catch(() => undefined);
+      }
       setError(e instanceof Error ? e.message : "Unable to upload photos.");
     } finally {
       setBusy("");
