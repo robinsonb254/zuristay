@@ -5,12 +5,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) {
     return NextResponse.json({ error: "Database configuration is missing." }, { status: 500 });
   }
 
-  const supabase = createClient(url, key);
+  const supabase = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const [{ data: counties, error: countiesError }, { data: subcounties, error: subcountiesError }] =
     await Promise.all([
       supabase.from("kenya_counties").select("county_code,name,sort_order").order("sort_order"),
