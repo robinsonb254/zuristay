@@ -33,7 +33,11 @@ type LiveProperty = {
   has_conference_rooms: boolean;
 };
 
-type IndependentStay = { id:string; name:string; property_type:string; city:string; county:string|null; country:string; currency:string; guest_rate:number|null; public_website_url:string|null; source_listing_url:string; image_urls:string[]; description:string|null; };\n\ntype IndependentApiResponse = { success:boolean; accommodations:IndependentStay[]; error?:string; };\n\ntype ApiResponse = {
+type IndependentStay = { id:string; name:string; property_type:string; city:string; county:string|null; country:string; currency:string; guest_rate:number|null; public_website_url:string|null; source_listing_url:string; image_urls:string[]; description:string|null; };
+
+type IndependentApiResponse = { success:boolean; accommodations:IndependentStay[]; error?:string; };
+
+type ApiResponse = {
   success: boolean;
   properties: LiveProperty[];
   error?: string;
@@ -83,7 +87,9 @@ export default function LivePropertyResults({
   guests,
   rooms,
 }: Props) {
-  const [properties, setProperties] = useState<LiveProperty[]>([]);\n  const [independentStays, setIndependentStays] = useState<IndependentStay[]>([]);\n  const [independentLoading, setIndependentLoading] = useState(true);
+  const [properties, setProperties] = useState<LiveProperty[]>([]);
+  const [independentStays, setIndependentStays] = useState<IndependentStay[]>([]);
+  const [independentLoading, setIndependentLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [conferenceFilter, setConferenceFilter] = useState<"any" | "with" | "without">("any");
