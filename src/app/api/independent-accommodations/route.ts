@@ -1,0 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return NextResponse.json({ success: false, error: "Accommodation directory is temporarily unavailable." }, { status: 500 });
+
+  const query = request.nextUrl.searchParams.get("q")?.trim().slice(0, 100) || "";
+  const city = request.nextUrl.searchParams.get("city")?.trim().slice(0, 80) || "";
+  const type = request.nextUrl.searchParams.get("type")?.trim() || "";
+  const db = createClient(url, key, { auth: { persistSession: false } });
+
+  let requestQuery = db.from("independent_accommodations")
+    .select("id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,source_listing_url,data_attribution,image_urls,booking_enabled,availability_status,last_verified_at")
+    .eq("listing_status", "published")
+    .order("name", { ascending: true })
+    .limit(100);
+
+  if (query) requestQuery = requestQuery.or(`name.ilike.%${query}%,city.ilike.%${query}%,county.ilike.%${query}%`);
+  if (city) requestQuery = requestQuery.ilike("city", `%${city}%`);
+  if (type && ["hotel","resort","villa","apartment","lodge","guesthouse","hostel","camp","other"].includes(type)) requestQuery = requestQuery.eq("property_type", type);
+
+  const { data, error } = await requestQuery;
+  if (error) return NextResponse.json({ success: false, error: "Unable to load independent accommodations." }, { status: 500 });
+  return NextResponse.json({ success: true, count: data?.length || 0, accommodations: data || [] }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
+}
