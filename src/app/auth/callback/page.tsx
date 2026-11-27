@@ -39,7 +39,7 @@ export default function AuthCallbackPage() {
             ? window.location.hash.slice(1)
             : window.location.hash
         );
-        const requestedNext = params.get("next");
+        const requestedNext = params.get("next") || hashParams.get("next");
         const isInvite =
           params.get("type") === "invite" ||
           hashParams.get("type") === "invite";
