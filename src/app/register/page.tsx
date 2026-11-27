@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const isPartnerFlow = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "partner";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,30 +44,44 @@ export default function RegisterPage() {
     try {
       const supabase = createSupabaseBrowserClient();
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
+      if (isPartnerFlow) {
+        const response = await fetch("/api/partner/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: fullName.trim(),
+            email: email.trim().toLowerCase(),
             phone: phone.trim(),
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fpartner%2Fdashboard`,
-        },
-      });
-
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      if (data.session) {
+            password,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Partner registration could not be completed.");
+        }
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (loginError) throw loginError;
         window.location.replace("/partner/dashboard");
         return;
       }
 
-      setSuccess(
-        "Your account registration was received. Please check your email for a confirmation link before signing in."
-      );
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: { full_name: fullName.trim(), phone: phone.trim() },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (signUpError) throw signUpError;
+      if (data.session) {
+        window.location.replace("/account");
+        return;
+      }
+      setSuccess("Your account registration was received. Please check your email for a confirmation link before signing in.");
     } catch (err) {
       console.error("Registration error:", err);
       setError(
@@ -88,7 +103,7 @@ export default function RegisterPage() {
           </Link>
 
           <Link
-            href="/login?next=%2Fpartner%2Fdashboard"
+            href={isPartnerFlow ? "/login?mode=partner&next=%2Fpartner%2Fdashboard" : "/login"}
             className="text-sm font-semibold text-gray-600 hover:text-[#c49a52]"
           >
             Already have an account? Sign in
@@ -112,7 +127,7 @@ export default function RegisterPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Create your ZuriStay account to access your partner dashboard and manage your application.
+              {isPartnerFlow ? "Create your partner account and choose your password. After registration, use the Sign in option below to access your partner dashboard." : "Create your ZuriStay account to manage your stays and bookings."}
             </p>
           </div>
 
