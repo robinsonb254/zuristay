@@ -19,11 +19,21 @@ export async function GET(request: NextRequest) {
     .order("name", { ascending: true })
     .limit(100);
 
-  if (query) {\n    const terms = query.split(/[,,]+/).map((part) => part.trim()).filter(Boolean);\n    const searchTerm = terms[0]?.replace(/\\b(kenya|town|city|county)\\b/gi, "").trim() || query;\n    const safeTerm = searchTerm.replace(/[(),]/g, " ").trim();\n    if (safeTerm) requestQuery = requestQuery.or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`);\n  }
+  if (query) {
+    const terms = query.split(/[,,]+/).map((part) => part.trim()).filter(Boolean);
+    const searchTerm = terms[0]?.replace(/\\b(kenya|town|city|county)\\b/gi, "").trim() || query;
+    const safeTerm = searchTerm.replace(/[(),]/g, " ").trim();
+    if (safeTerm) requestQuery = requestQuery.or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`);
+  }
   if (city) requestQuery = requestQuery.ilike("city", `%${city}%`);
   if (type && ["hotel","resort","villa","apartment","lodge","guesthouse","hostel","camp","other"].includes(type)) requestQuery = requestQuery.eq("property_type", type);
 
   const { data, error } = await requestQuery;
   if (error) return NextResponse.json({ success: false, error: "Unable to load independent accommodations." }, { status: 500 });
-  const accommodations = (data || []).map((item) => ({\n    ...item,\n    guest_rate: item.published_base_rate === null ? null : Math.ceil(Number(item.published_base_rate) * 1.15),\n    published_base_rate: undefined,\n  }));\n  return NextResponse.json({ success: true, count: accommodations.length, accommodations }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
+  const accommodations = (data || []).map((item) => ({
+    ...item,
+    guest_rate: item.published_base_rate === null ? null : Math.ceil(Number(item.published_base_rate) * 1.15),
+    published_base_rate: undefined,
+  }));
+  return NextResponse.json({ success: true, count: accommodations.length, accommodations }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
 }
