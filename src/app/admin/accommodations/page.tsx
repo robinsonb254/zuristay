@@ -22,6 +22,7 @@ export default function ManagementAccommodationsAdmin() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [recovering, setRecovering] = useState(false);
 
   async function token() {
     const sb = createSupabaseBrowserClient();
@@ -52,6 +53,29 @@ export default function ManagementAccommodationsAdmin() {
   }
 
   useEffect(() => { void load(""); }, []);
+
+  async function recoverPhotos() {
+    setRecovering(true);
+    setError("");
+    setNotice("");
+    try {
+      const accessToken = await token();
+      const response = await fetch("/api/admin/independent-accommodations", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer " + accessToken },
+        body: JSON.stringify({ action: "recover-photos" }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to recover property photos.");
+      const recovery = result.recovery;
+      setNotice(`Photo recovery completed: ${recovery.photos_restored || 0} verified photos restored from ${recovery.osm_photo_tagged_features || 0} photo-tagged properties.`);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to recover property photos.");
+    } finally {
+      setRecovering(false);
+    }
+  }
 
   async function setBooking(item: Accommodation) {
     setBusy(item.id);
@@ -157,6 +181,9 @@ export default function ManagementAccommodationsAdmin() {
             <p className="mt-2 text-sm text-slate-500">Manage guest booking access and property photos.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void recoverPhotos()} disabled={recovering || loading} className="inline-flex items-center gap-2 rounded-xl bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+              <ImagePlus size={16}/> {recovering ? "Checking photo sources…" : "Recover verified photos"}
+            </button>
             <Link href="/admin#county-enrichment" className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-950">Update county locations</Link>
             <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-50">
               <RefreshCw size={16} className={loading ? "animate-spin" : ""}/> Refresh
