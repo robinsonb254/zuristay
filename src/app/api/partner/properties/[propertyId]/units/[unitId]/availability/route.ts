@@ -58,20 +58,6 @@ async function authenticatePartner(request: NextRequest) {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
-function getKenyaDate() {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date());
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
-
-function isRealDate(value: string) {
-  if (!datePattern.test(value)) return false;
-  const date = new Date(value + "T00:00:00.000Z");
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-}
-
 
 export async function GET(
   request: NextRequest,
@@ -84,8 +70,9 @@ export async function GET(
     if (!uuidPattern.test(propertyId) || !uuidPattern.test(unitId)) {
       return fail("Invalid property or room category ID.", 400);
     }
+
     const { data: property, error: propertyError } = await context.admin
-      .from("properties").select("id, name, status")
+      .from("properties").select("id, name")
       .eq("id", propertyId).eq("partner_id", context.partner.id).maybeSingle();
     if (propertyError) {
       console.error("Partner property lookup failed:", propertyError);
@@ -94,17 +81,9 @@ export async function GET(
     if (!property) return fail("Property not found in your partner account.", 404);
 
     const { data: unit, error: unitError } = await context.admin
-      .from("property_units").select("id, total_units, base_rate, currency")
-      .eq("id", unitId).eq("property_id", propertyId).maybeSingle();
-    if (unitError) return fail("Unable to verify this room category.", 500);
-    if (!unit) return fail("Room category not found for this property.", 404);
-
-    const { data: unit, error: unitError } = await context.admin
       .from("property_units")
       .select("id, total_units, base_rate, currency")
-      .eq("id", unitId)
-      .eq("property_id", propertyId)
-      .maybeSingle();
+      .eq("id", unitId).eq("property_id", propertyId).maybeSingle();
     if (unitError) return fail("Unable to verify this room category.", 500);
     if (!unit) return fail("Room category not found for this property.", 404);
 
@@ -112,11 +91,10 @@ export async function GET(
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    console.error("Partner availability calendar error:", error);
+    console.error("Partner room defaults lookup error:", error);
     return fail("An unexpected error occurred.", 500);
   }
 }
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ propertyId: string; unitId: string }> }
@@ -193,7 +171,7 @@ export async function POST(
       console.error("Availability update failed:", availabilityError);
       const message = availabilityError.message || "";
       const isInventoryConflict = /reserved|booked|hold|inventory|room count/i.test(message);
-      const isInputError = /valid date|date range|available rooms|nightly rate|room count|negative/i.test(message);
+      const isInputError = /available rooms|24-hour rate|nightly rate|room count|negative/i.test(message);
       const safeMessage = isInventoryConflict || isInputError
         ? message.replace(/[<>]/g, "").slice(0, 220)
         : "Unable to save availability. Please try again.";
