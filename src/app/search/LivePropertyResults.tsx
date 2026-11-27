@@ -203,8 +203,17 @@ export default function LivePropertyResults({
       )}
 
       {!loading && error && (
-        <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700">
-          Live listings could not be loaded. Please try again later.
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+          <BedDouble className="mx-auto text-orange-500" size={32} />
+          <h3 className="mt-3 font-bold text-blue-950">
+            No approved rooms could be confirmed for this search
+          </h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+            Try another nearby area or refresh your search. Only approved ZuriStay properties with active rooms and rates appear in live listings.
+          </p>
+          <Link href="/destinations" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-900">
+            Browse all destinations
+          </Link>
         </div>
       )}
 
@@ -212,11 +221,11 @@ export default function LivePropertyResults({
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
           <BedDouble className="mx-auto text-orange-500" size={32} />
           <h3 className="mt-3 font-bold text-blue-950">
-            No additional live listings found
+            No approved rooms available in this region
           </h3>
           <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
             {destination
-              ? "There are no approved, bookable properties matching this destination yet. Try another nearby area or explore the full Kenya directory."
+              ? "There are currently no approved ZuriStay rooms available in this region for your search. Try a nearby town or another destination."
               : "New approved properties will appear here once partners add accommodation units and rates."}
           </p>
           <Link
