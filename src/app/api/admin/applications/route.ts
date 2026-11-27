@@ -261,10 +261,10 @@ export async function POST(request: NextRequest) {
 
     if (!matchingUser) {
       const siteUrl = "https://www.zuristayworldwide.com";
-      const redirectTo = new URL(
-        "/auth/callback?next=%2Freset-password%3Fpartner%3Dactivation",
-        siteUrl
-      ).toString();
+      // Use the configured Supabase Site URL, which is always a valid
+      // fallback. The homepage detects the invite token fragment and routes
+      // the authenticated invitee to the password activation screen.
+      const redirectTo = siteUrl;
 
       const { data: inviteData, error: inviteError } =
         await admin.auth.admin.generateLink({
