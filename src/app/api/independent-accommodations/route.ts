@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     .limit(query || city ? 500 : 100);
 
   if (query) {
-    const cleaned = query.replace(/,?\\s*Kenya$/i, "").replace(/\s+county$/i, "").trim();
+    const cleaned = query.replace(/,?\s*Kenya$/i, "").replace(/\s+county$/i, "").trim();
     const county = countyMatch(cleaned);
     const safeTerm = cleaned.replace(/[(),.%_*]/g, " ").trim();
     if (county) {
