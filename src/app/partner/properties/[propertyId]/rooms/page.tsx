@@ -397,7 +397,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
 
   return (
     <div className="mt-3">
-      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setActive(unit.active); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details and base rate</button> :
+      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setActive(unit.active); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details</button> :
         <form onSubmit={save} className="mt-3 space-y-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
           <h4 className="text-sm font-bold text-slate-900">Edit room category</h4>
           <label className="block text-xs font-semibold text-slate-700">Category name
