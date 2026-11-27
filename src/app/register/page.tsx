@@ -54,7 +54,7 @@ export default function RegisterPage() {
             full_name: fullName.trim(),
             phone: phone.trim(),
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fpartner%2Fdashboard`,
         },
       });
 
@@ -63,8 +63,7 @@ export default function RegisterPage() {
       }
 
       if (data.session) {
-        router.push("/");
-        router.refresh();
+        window.location.replace("/partner/dashboard");
         return;
       }
 
@@ -92,7 +91,7 @@ export default function RegisterPage() {
           </Link>
 
           <Link
-            href="/login"
+            href="/login?next=%2Fpartner%2Fdashboard"
             className="text-sm font-semibold text-gray-600 hover:text-[#c49a52]"
           >
             Already have an account? Sign in
@@ -116,8 +115,7 @@ export default function RegisterPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Create an account to make your accommodation
-              booking experience easier.
+              Create your ZuriStay account to access your partner dashboard and manage your application.
             </p>
           </div>
 
@@ -271,7 +269,7 @@ export default function RegisterPage() {
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-sm text-gray-600">
             Already registered?{" "}
             <Link
-              href="/login"
+              href="/login?next=%2Fpartner%2Fdashboard"
               className="font-bold text-[#a77e3e] hover:underline"
             >
               Sign in
