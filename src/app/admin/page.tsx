@@ -458,6 +458,14 @@ export default function AdminPage() {
             <ShieldCheck size={18} />
             Cancellations & refunds
           </Link>
+
+          <Link
+            href="/admin/independent-bookings"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-100 hover:bg-white/10"
+          >
+            <CalendarDays size={18} />
+            Independent reservations
+          </Link>
         </nav>
 
         <div className="border-t border-white/10 p-5">
