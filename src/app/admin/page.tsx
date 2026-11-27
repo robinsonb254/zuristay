@@ -525,6 +525,14 @@ export default function AdminPage() {
             <CalendarDays size={18} />
             Independent reservations
           </Link>
+
+          <Link
+            href="/admin/accommodations"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-100 hover:bg-white/10"
+          >
+            <Building2 size={18} />
+            Management accommodations
+          </Link>
         </nav>
 
         <div className="border-t border-white/10 p-5">
