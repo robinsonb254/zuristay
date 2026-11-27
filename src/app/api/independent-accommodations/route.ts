@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return NextResponse.json({ success: false, error: "Accommodation directory is temporarily unavailable." }, { status: 500 });
 
   const query = request.nextUrl.searchParams.get("q")?.trim().slice(0, 100) || "";
@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
     .order("name", { ascending: true })
     .limit(100);
 
-  if (query) requestQuery = requestQuery.or(`name.ilike.%${query}%,city.ilike.%${query}%,county.ilike.%${query}%`);
+  if (query) {\n    const terms = query.split(/[,,]+/).map((part) => part.trim()).filter(Boolean);\n    const searchTerm = terms[0]?.replace(/\\b(kenya|town|city|county)\\b/gi, "").trim() || query;\n    const safeTerm = searchTerm.replace(/[(),]/g, " ").trim();\n    if (safeTerm) requestQuery = requestQuery.or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`);\n  }
   if (city) requestQuery = requestQuery.ilike("city", `%${city}%`);
   if (type && ["hotel","resort","villa","apartment","lodge","guesthouse","hostel","camp","other"].includes(type)) requestQuery = requestQuery.eq("property_type", type);
 
   const { data, error } = await requestQuery;
   if (error) return NextResponse.json({ success: false, error: "Unable to load independent accommodations." }, { status: 500 });
-  return NextResponse.json({ success: true, count: data?.length || 0, accommodations: data || [] }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
+  const accommodations = (data || []).map((item) => ({\n    ...item,\n    guest_rate: item.published_base_rate === null ? null : Math.ceil(Number(item.published_base_rate) * 1.15),\n    published_base_rate: undefined,\n  }));\n  return NextResponse.json({ success: true, count: accommodations.length, accommodations }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
 }
