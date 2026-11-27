@@ -121,6 +121,7 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await db.from("independent_accommodations")
         .select("id,latitude,longitude,county")
         .or("county.is.null,county.eq.Kenya")
+        .order("id", { ascending: true })
         .range(offset, offset + 499);
       if (error) throw error;
       candidates.push(...(data || []));
