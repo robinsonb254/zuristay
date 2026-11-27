@@ -4,14 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function getKenyaDate() {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date());
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
-
 function fail(message: string, status: number) {
   return NextResponse.json({ success: false, error: message }, { status, headers: { "Cache-Control": "no-store" } });
 }
@@ -68,26 +60,15 @@ async function checkReadiness(adminClient: unknown, propertyId: string, partnerI
 
   const activeUnits = (unitsResult.data ?? []) as Array<{ id: string; total_units: number }>;
   const activeUnitIds = new Set(activeUnits.map((unit) => unit.id));
-  let hasActiveUnitAvailability = false;
-  if (activeUnitIds.size > 0) {
-    const { data: availability, error: availabilityError } = await admin.from("unit_availability")
-      .select("id")
-      .in("unit_id", Array.from(activeUnitIds))
-      .gte("stay_date", getKenyaDate())
-      .gt("available_units", 0)
-      .limit(1);
-    if (availabilityError) {
-      console.error("Active room availability check failed:", availabilityError);
-      throw new Error("Unable to check property setup. Please try again.");
-    }
-    hasActiveUnitAvailability = (availability || []).length > 0;
-  }
+  // Room categories are available by default. Date-specific inventory rows are
+  // created lazily when a guest books, so readiness must use the default stock.
+  const hasActiveUnitAvailability = activeUnits.some((unit) => Number(unit.total_units) > 0);
   const checks = [
     { key: "property_details", label: "Property name, description, address and contact details", complete: Boolean(property.name?.trim() && property.description?.trim() && property.address?.trim() && property.contact_phone?.trim() && property.contact_email?.trim()) },
     { key: "rooms", label: "At least one active room category", complete: activeUnitIds.size > 0 },
     { key: "photos", label: "At least one property photograph", complete: (imagesResult.count || 0) > 0 },
     { key: "amenities", label: "At least one selected facility", complete: (amenitiesResult.count || 0) > 0 },
-    { key: "availability", label: "At least one future date with rooms available for an active room category", complete: hasActiveUnitAvailability },
+    { key: "availability", label: "Room categories have rooms available by default", complete: hasActiveUnitAvailability },
   ];
   return { property, checks, ready: checks.every((check) => check.complete) };
 }
