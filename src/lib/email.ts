@@ -146,8 +146,8 @@ export async function sendPartnerApplicationDecision(input: {
   const nextStep = input.approved
     ? approvedText + " " + onboarding
     : "If you would like clarification or wish to discuss a future application, please contact our team.";
-  const assistanceText = "For assistance, reply to this email, email bookings@zuristayworldwide.com, or call/WhatsApp +254 742 804 057.";
-  const assistanceHtml = '<p>For assistance, reply to this email or email <a href="mailto:bookings@zuristayworldwide.com">bookings@zuristayworldwide.com</a>.</p><p><strong>Phone / WhatsApp support:</strong> <a href="tel:+254742804057">+254 742 804 057</a></p>';
+  const assistanceText = "For assistance, reply to this email or email bookings@zuristayworldwide.com.";
+  const assistanceHtml = '<p>For assistance, reply to this email or email <a href="mailto:bookings@zuristayworldwide.com">bookings@zuristayworldwide.com</a>.</p>';
   const activationHtml = input.activationUrl
     ? '<p>Your ZuriStay Worldwide partner account has been created and linked to this application. To activate it, use the secure link below. The link is time-limited and can only be used once.</p><p style="margin:24px 0;text-align:center"><a href="' + activationUrl + '" style="display:inline-block;padding:14px 24px;background:#173b30;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700">SET YOUR PASSWORD</a></p><p>After setting your password, visit <a href="https://www.zuristayworldwide.com">www.zuristayworldwide.com</a> and select <strong>Partner Login</strong> on the homepage.</p>'
     : '<p>Your partner application has been approved and linked to your existing ZuriStay Worldwide account. Visit <a href="https://www.zuristayworldwide.com">www.zuristayworldwide.com</a>, select <strong>Partner Login</strong> on the homepage, and sign in using your existing password.</p>';
