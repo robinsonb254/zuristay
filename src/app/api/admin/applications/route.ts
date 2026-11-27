@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPartnerApplicationDecision } from "@/lib/email";
+import { createPartnerAccessToken } from "@/lib/partner-access";
 
 export const dynamic = "force-dynamic";
 
