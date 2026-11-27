@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { sendPartnerPropertyEditAcknowledgement } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ type ApplicationPropertySeed = {
 };
 
 async function ensureApplicationProperty(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   partner: PartnerPropertySeed,
   application: ApplicationPropertySeed
 ) {
