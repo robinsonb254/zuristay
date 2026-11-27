@@ -120,9 +120,6 @@ export async function POST(
       return fail("Unable to verify this property.", 500);
     }
     if (!property) return fail("Property not found in your partner account.", 404);
-    if (property.status !== "approved") {
-      return fail("Photos can be added after the property is approved.", 409);
-    }
 
     const form = await request.formData();
     const file = form.get("image");
