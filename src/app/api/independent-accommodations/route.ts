@@ -29,13 +29,16 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim().slice(0, 100) || "";
   const city = request.nextUrl.searchParams.get("city")?.trim().slice(0, 80) || "";
   const type = request.nextUrl.searchParams.get("type")?.trim() || "";
+  const accommodationId = request.nextUrl.searchParams.get("id")?.trim() || "";
   const db = createClient(url, key, { auth: { persistSession: false } });
 
   let requestQuery = db.from("independent_accommodations")
     .select("id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,image_urls,booking_enabled,availability_status,last_verified_at")
     .eq("listing_status", "published")
     .order("name", { ascending: true })
-    .limit(query || city ? 500 : 100);
+    .limit(accommodationId ? 1 : query || city ? 500 : 100);
+
+  if (accommodationId) requestQuery = requestQuery.eq("id", accommodationId);
 
   if (query) {
     const cleaned = query.replace(/,?\s*Kenya$/i, "").replace(/\s+county$/i, "").trim();
