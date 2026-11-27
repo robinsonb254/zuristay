@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -22,7 +22,11 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const isPartnerFlow = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "partner";
+  const [isPartnerFlow, setIsPartnerFlow] = useState(false);
+
+  useEffect(() => {
+    setIsPartnerFlow(new URLSearchParams(window.location.search).get("mode") === "partner");
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
