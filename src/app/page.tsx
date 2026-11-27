@@ -811,6 +811,7 @@ export default function Home() {
               <a href="mailto:bookings@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">Bookings: bookings@zuristayworldwide.com</a>
               <a href="mailto:info@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">General: info@zuristayworldwide.com</a>
               <a href="mailto:support@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">Support: support@zuristayworldwide.com</a>
+              <a href="tel:+254742804057" className="whitespace-nowrap transition hover:text-[#d8b879]">Phone / WhatsApp: +254 742 804 057</a>
               <a href="mailto:partners@zuristayworldwide.com" className="whitespace-nowrap transition hover:text-[#d8b879]">Partners: partners@zuristayworldwide.com</a>
             </div>
           </div>
