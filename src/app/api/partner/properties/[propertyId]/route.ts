@@ -80,6 +80,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     try { body = await request.json(); } catch { return fail("Please provide valid property details.", 400); }
     if (!body || typeof body !== "object" || Array.isArray(body)) return fail("Invalid property details.", 400);
     const input = body as Record<string, unknown>;
+    if (input.action === "unarchive") {
+      const { data: restored, error: restoreError } = await context.admin.from("properties")
+        .update({ is_archived: false, archived_at: null })
+        .eq("id", propertyId).eq("partner_id", context.partner.id).eq("is_archived", true)
+        .select("id, name, is_active, is_archived").maybeSingle();
+      if (restoreError) {
+        console.error("Partner property unarchive failed:", restoreError);
+        return fail("Unable to unarchive this property. Please try again.", 500);
+      }
+      if (!restored) return fail("This property is already active or no longer exists.", 409);
+      return NextResponse.json({ success: true, message: "Property restored to your partner workspace.", property: restored }, { headers: { "Cache-Control": "no-store" } });
+    }
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const propertyType = typeof input.propertyType === "string" ? input.propertyType.trim().toLowerCase() : "";
     const destinationId = typeof input.destinationId === "string" ? input.destinationId.trim() : "";
@@ -137,29 +149,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
-  try {
-    const { propertyId } = await params;
-    const context = await ownedProperty(request, propertyId);
-    if ("error" in context) return context.error;
-    let body: unknown;
-    try { body = await request.json(); } catch { return fail("Invalid property action.", 400); }
-    if (!body || typeof body !== "object" || (body as Record<string, unknown>).action !== "unarchive") {
-      return fail("Unsupported property action.", 400);
-    }
-    const { data: restored, error } = await context.admin.from("properties")
-      .update({ is_archived: false, archived_at: null })
-      .eq("id", propertyId).eq("partner_id", context.partner.id).eq("is_archived", true)
-      .select("id, name, is_active, is_archived").maybeSingle();
-    if (error) { console.error("Partner property unarchive failed:", error); return fail("Unable to unarchive this property. Please try again.", 500); }
-    if (!restored) return fail("This property is already active or no longer exists.", 409);
-    return NextResponse.json({ success: true, message: "Property restored to your partner workspace.", property: restored }, { headers: { "Cache-Control": "no-store" } });
-  } catch (error) {
-    console.error("Partner property unarchive error:", error);
-    return fail("An unexpected error occurred.", 500);
-  }
-}
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
   try {
