@@ -89,7 +89,7 @@ async function checkReadiness(adminClient: unknown, propertyId: string, partnerI
     { key: "amenities", label: "At least one selected facility", complete: (amenitiesResult.count || 0) > 0 },
     { key: "availability", label: "At least one future date with rooms available for an active room category", complete: hasActiveUnitAvailability },
   ];
-  return { property, checks, ready: property.status === "approved" && checks.every((check) => check.complete) };
+  return { property, checks, ready: checks.every((check) => check.complete) };
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
@@ -120,7 +120,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!uuidPattern.test(propertyId)) return fail("Invalid property ID.", 400);
     const result = await checkReadiness(context.admin, propertyId, context.partner.id);
     if (!result) return fail("Property not found in your partner account.", 404);
-    if (result.property.status !== "approved") return fail("ZuriStay must approve this property before it can be published.", 409);
     const incomplete = result.checks.filter((check) => !check.complete);
     if (incomplete.length) return NextResponse.json({
       success: false, error: "Complete all property setup requirements before publishing.",
@@ -133,7 +132,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { data: updated, error } = await context.admin.from("properties").update({
       is_active: false, publication_status: "pending_review", publication_submitted_at: new Date().toISOString(),
       publication_reviewed_at: null, publication_reviewed_by: null,
-    }).eq("id", propertyId).eq("partner_id", context.partner.id).eq("status", "approved")
+    }).eq("id", propertyId).eq("partner_id", context.partner.id).in("status", ["pending", "approved"])
       .select("id, is_active, publication_status").single();
     if (error || !updated) {
       console.error("Property final review submission failed:", error);
