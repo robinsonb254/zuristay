@@ -92,37 +92,23 @@ export async function GET(
       return fail("Unable to verify this property.", 500);
     }
     if (!property) return fail("Property not found in your partner account.", 404);
-    if (property.status !== "approved") return fail("Availability can only be viewed after property approval.", 409);
 
     const { data: unit, error: unitError } = await context.admin
-      .from("property_units").select("id")
+      .from("property_units").select("id, total_units, base_rate, currency")
       .eq("id", unitId).eq("property_id", propertyId).maybeSingle();
     if (unitError) return fail("Unable to verify this room category.", 500);
     if (!unit) return fail("Room category not found for this property.", 404);
 
-    const today = getKenyaDate();
-    const query = request.nextUrl.searchParams;
-    const startDate = query.get("startDate") || today;
-    const defaultEnd = new Date(Date.now() + 29 * 86400000).toISOString().slice(0, 10);
-    const endDate = query.get("endDate") || defaultEnd;
-    if (!isRealDate(startDate) || !isRealDate(endDate) || endDate < startDate) {
-      return fail("Choose a valid date range.", 400);
-    }
-    const dayCount = Math.round((new Date(endDate + "T00:00:00Z").getTime() - new Date(startDate + "T00:00:00Z").getTime()) / 86400000) + 1;
-    if (dayCount > 366) return fail("Please request no more than 366 days at a time.", 400);
+    const { data: unit, error: unitError } = await context.admin
+      .from("property_units")
+      .select("id, total_units, base_rate, currency")
+      .eq("id", unitId)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (unitError) return fail("Unable to verify this room category.", 500);
+    if (!unit) return fail("Room category not found for this property.", 404);
 
-    const { data: availability, error } = await context.admin
-      .from("unit_availability")
-      .select("id, stay_date, available_units, partner_base_rate, currency")
-      .eq("unit_id", unitId)
-      .gte("stay_date", startDate)
-      .lte("stay_date", endDate)
-      .order("stay_date", { ascending: true });
-    if (error) {
-      console.error("Partner availability calendar query failed:", error);
-      return fail("Unable to load room availability.", 500);
-    }
-    return NextResponse.json({ success: true, startDate, endDate, availability: availability ?? [] }, {
+    return NextResponse.json({ success: true, unit }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
@@ -156,9 +142,6 @@ export async function POST(
       return fail("Unable to verify this property.", 500);
     }
     if (!property) return fail("Property not found in your partner account.", 404);
-    if (property.status !== "approved") {
-      return fail("Availability can only be managed after property approval.", 409);
-    }
 
     const { data: unit, error: unitError } = await context.admin
       .from("property_units")
@@ -184,44 +167,24 @@ export async function POST(
     }
 
     const input = body as Record<string, unknown>;
-    const startDate = typeof input.startDate === "string" ? input.startDate : "";
-    const endDate = typeof input.endDate === "string" ? input.endDate : "";
     const availableUnits = Number(input.availableUnits);
-    const rateInput = input.partnerBaseRate;
-    const partnerBaseRate =
-      rateInput === "" || rateInput === null || rateInput === undefined
-        ? Number(unit.base_rate)
-        : Number(rateInput);
+    const partnerBaseRate = Number(input.partnerBaseRate);
 
-    if (!isRealDate(startDate) || !isRealDate(endDate) || endDate < startDate) {
-      return fail("Choose a valid date range.", 400);
-    }
-
-    const today = getKenyaDate();
-    if (startDate < today) return fail("Availability dates cannot be in the past.", 400);
-
-    const start = new Date(startDate + "T00:00:00.000Z");
-    const end = new Date(endDate + "T00:00:00.000Z");
-    const dayCount = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
-    if (dayCount > 366) return fail("Please update no more than 366 days at a time.", 400);
-
-    if (!Number.isInteger(availableUnits) || availableUnits < 0 || availableUnits > unit.total_units) {
-      return fail("Available rooms must be between 0 and the total number of rooms in this category.", 400);
+    if (!Number.isInteger(availableUnits) || availableUnits < 1 || availableUnits > 500) {
+      return fail("Rooms available must be a whole number between 1 and 500.", 400);
     }
     if (!Number.isFinite(partnerBaseRate) || partnerBaseRate <= 0 || partnerBaseRate > 100000000) {
-      return fail("Enter a valid positive nightly rate.", 400);
+      return fail("Enter a valid positive 24-hour room rate.", 400);
     }
 
-    // Update each date under a database row lock. The RPC caps sellable
-    // inventory at total rooms minus active holds and confirmed reservations.
+    // The database updates the room category defaults and safely preserves
+    // all active holds and confirmed reservations across existing stay dates.
     const { data: updatedDates, error: availabilityError } = await context.admin.rpc(
-      "partner_set_unit_availability",
+      "partner_update_unit_defaults",
       {
         p_partner_id: context.partner.id,
         p_unit_id: unitId,
-        p_start_date: startDate,
-        p_end_date: endDate,
-        p_available_units: availableUnits,
+        p_total_units: availableUnits,
         p_partner_base_rate: Number(partnerBaseRate.toFixed(2)),
       }
     );
@@ -229,7 +192,7 @@ export async function POST(
     if (availabilityError) {
       console.error("Availability update failed:", availabilityError);
       const message = availabilityError.message || "";
-      const isInventoryConflict = /reserved|booked|hold|inventory/i.test(message);
+      const isInventoryConflict = /reserved|booked|hold|inventory|room count/i.test(message);
       const isInputError = /valid date|date range|available rooms|nightly rate|room count|negative/i.test(message);
       const safeMessage = isInventoryConflict || isInputError
         ? message.replace(/[<>]/g, "").slice(0, 220)
@@ -262,10 +225,8 @@ export async function POST(
     return NextResponse.json(
       {
         success: true,
-        message: availableUnits === 0
-          ? `Room availability blocked for ${dayCount} date(s). A confirmation email will be sent to your registered partner address.`
-          : `Availability saved for ${dayCount} date(s). A confirmation email will be sent to your registered partner address.`,
-        updatedDates: typeof updatedDates === "number" ? updatedDates : dayCount,
+        message: `Room count and 24-hour rate saved. Your room category remains available by default for all dates; guest bookings automatically deduct inventory. A confirmation email will be sent to your registered partner address.`,
+        updatedDates: typeof updatedDates === "number" ? updatedDates : 0,
       },
       { headers: { "Cache-Control": "no-store" } }
     );
