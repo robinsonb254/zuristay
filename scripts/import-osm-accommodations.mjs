@@ -105,7 +105,7 @@ for (const element of features) {
     source_terms_reviewed: true,
     owner_authorised_booking: false,
     owner_authorised_payment: false,
-    listing_status: "pending_review",
+    listing_status: "published",
     booking_enabled: false,
     availability_status: "unverified",
     booking_method: "manual_admin",
@@ -129,6 +129,6 @@ await db.from("accommodation_sources")
 console.log(JSON.stringify({
   fetched_named_features: features.length,
   imported_or_updated_review_records: imported,
-  publicly_published: 0,
-  note: "All records remain pending_review until verified by ZuriStay."
+  publicly_published: imported,
+  note: "OSM directory records are published for discovery; booking_enabled remains false and no rate is advertised until verified."
 }, null, 2));
