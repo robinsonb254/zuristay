@@ -138,6 +138,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
+  try {
+    const { propertyId } = await params;
+    const context = await ownedProperty(request, propertyId);
+    if ("error" in context) return context.error;
+    let body: unknown;
+    try { body = await request.json(); } catch { return fail("Invalid property action.", 400); }
+    if (!body || typeof body !== "object" || (body as Record<string, unknown>).action !== "unarchive") {
+      return fail("Unsupported property action.", 400);
+    }
+    const { data: restored, error } = await context.admin.from("properties")
+      .update({ is_archived: false, archived_at: null })
+      .eq("id", propertyId).eq("partner_id", context.partner.id).eq("is_archived", true)
+      .select("id, name, is_active, is_archived").maybeSingle();
+    if (error) { console.error("Partner property unarchive failed:", error); return fail("Unable to unarchive this property. Please try again.", 500); }
+    if (!restored) return fail("This property is already active or no longer exists.", 409);
+    return NextResponse.json({ success: true, message: "Property restored to your partner workspace.", property: restored }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Partner property unarchive error:", error);
+    return fail("An unexpected error occurred.", 500);
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
   try {
     const { propertyId } = await params;
