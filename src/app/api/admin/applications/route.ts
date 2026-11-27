@@ -249,10 +249,10 @@ export async function POST(request: NextRequest) {
     return respond(
       true,
       notificationSent
-        ? "Application approved and partner account linked successfully."
+        ? "Application approved. The applicant can now create or sign in to their ZuriStay account."
         : "Application approved, but the notification email could not be delivered. Please contact the applicant using the application details.",
       200,
-      { result: approvalResult, notificationSent }
+      { result: approvedApplication, notificationSent }
     );
   } catch (error) {
     console.error("Admin application API error:", error);
