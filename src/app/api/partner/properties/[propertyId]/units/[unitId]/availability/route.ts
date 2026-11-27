@@ -64,7 +64,7 @@ export async function GET(
   { params }: { params: Promise<{ propertyId: string; unitId: string }> }
 ) {
   try {
-    const context = await authenticatePartner(request);
+    const context = await authenticatePartner(_request);
     if ("error" in context) return context.error;
     const { propertyId, unitId } = await params;
     if (!uuidPattern.test(propertyId) || !uuidPattern.test(unitId)) {
