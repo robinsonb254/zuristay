@@ -60,7 +60,7 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ propertyId: string; unitId: string }> }
 ) {
   try {
