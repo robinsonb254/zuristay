@@ -16,6 +16,27 @@ const COUNTY_NAMES = [
   "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
 ] as const;
 
+type CountyGeometry =
+  | { type: "Polygon"; coordinates: number[][][] }
+  | { type: "MultiPolygon"; coordinates: number[][][][] };
+
+type CountyFeature = {
+  properties: Record<string, unknown> | null;
+  geometry: CountyGeometry | null;
+};
+
+type CountyBoundary = {
+  name: string;
+  geometry: CountyGeometry;
+};
+
+type AccommodationCandidate = {
+  id: string;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  county: string | null;
+};
+
 const COUNTY_ALIASES: Record<string, string> = {
   "elgeyo marakwet": "Elgeyo-Marakwet",
   "homabay": "Homa Bay",
@@ -76,13 +97,10 @@ function pointInPolygon(lon: number, lat: number, rings: number[][][]) {
   return true;
 }
 
-function pointInGeometry(lon: number, lat: number, geometry: any) {
+function pointInGeometry(lon: number, lat: number, geometry: CountyGeometry | null) {
   if (!geometry) return false;
   if (geometry.type === "Polygon") return pointInPolygon(lon, lat, geometry.coordinates);
-  if (geometry.type === "MultiPolygon") {
-    return geometry.coordinates.some((polygon: number[][][]) => pointInPolygon(lon, lat, polygon));
-  }
-  return false;
+  return geometry.coordinates.some((polygon) => pointInPolygon(lon, lat, polygon));
 }
 
 Deno.serve(async (req: Request) => {
@@ -108,19 +126,19 @@ Deno.serve(async (req: Request) => {
       signal: AbortSignal.timeout(60_000),
     });
     if (!boundaryResponse.ok) throw new Error(`County boundary source returned HTTP ${boundaryResponse.status}.`);
-    const boundaryData = await boundaryResponse.json();
+    const boundaryData = await boundaryResponse.json() as { features?: CountyFeature[] };
     const features = Array.isArray(boundaryData.features) ? boundaryData.features : [];
-    const counties = features.map((feature: any) => ({
+    const counties = features.map((feature) => ({
       name: countyFromProperties(feature.properties),
       geometry: feature.geometry,
-    })).filter((item: any) => item.name && item.geometry);
+    })).filter((item): item is CountyBoundary => item.name !== null && item.geometry !== null);
 
-    const uniqueCounties = new Set(counties.map((item: any) => item.name));
+    const uniqueCounties = new Set(counties.map((item) => item.name));
     if (uniqueCounties.size !== 47 || counties.length < 47) {
       throw new Error(`County boundary validation failed: expected 47 named counties, received ${uniqueCounties.size}.`);
     }
 
-    const candidates: any[] = [];
+    const candidates: AccommodationCandidate[] = [];
     for (let offset = 0; ; offset += 500) {
       const { data, error } = await db.from("independent_accommodations")
         .select("id,latitude,longitude,county")
@@ -128,7 +146,7 @@ Deno.serve(async (req: Request) => {
         .order("id", { ascending: true })
         .range(offset, offset + 499);
       if (error) throw error;
-      candidates.push(...(data || []));
+      candidates.push(...((data || []) as AccommodationCandidate[]));
       if (!data || data.length < 500) break;
     }
 
@@ -142,7 +160,7 @@ Deno.serve(async (req: Request) => {
         unmatched++;
         continue;
       }
-      const matches = counties.filter((county: any) => pointInGeometry(lon, lat, county.geometry));
+      const matches = counties.filter((county) => pointInGeometry(lon, lat, county.geometry));
       if (matches.length === 1) assignments.push({ id: item.id, county: matches[0].name });
       else if (matches.length > 1) ambiguous++;
       else unmatched++;
