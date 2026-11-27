@@ -125,6 +125,101 @@ export async function GET(request: NextRequest) {
           return fail("Unable to retrieve your partner application status.", 500);
         }
         application = data;
+
+        // An approved applicant creates their own account from the email link.
+        // Claim the approved application only when the authenticated account
+        // email matches and the application has not been linked to another user.
+        if (application?.status === "approved") {
+          const { data: existingPartner, error: existingPartnerError } = await context.admin
+            .from("property_partners")
+            .select("id, owner_user_id, business_name, contact_person, email, phone, status")
+            .or(`owner_user_id.eq.${context.user.id},email.ilike.${email}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingPartnerError) {
+            console.error("Existing partner lookup failed:", existingPartnerError);
+            return fail("Unable to verify your partner account.", 500);
+          }
+
+          if (existingPartner && existingPartner.owner_user_id !== context.user.id) {
+            return fail("This approved application is already linked to another account. Please contact partner support.", 409);
+          }
+
+          if (existingPartner) {
+            const { error: linkError } = await context.admin
+              .from("partner_applications")
+              .update({ applicant_user_id: context.user.id })
+              .eq("id", application.id)
+              .eq("status", "approved")
+              .or(`applicant_user_id.is.null,applicant_user_id.eq.${context.user.id}`);
+            if (linkError) {
+              console.error("Partner application account link failed:", linkError);
+              return fail("Unable to link your approved application to this account.", 500);
+            }
+            return NextResponse.json({
+              success: true,
+              partner: existingPartner,
+              properties: [],
+              partnerState: existingPartner.status,
+              application,
+            }, { headers: { "Cache-Control": "no-store" } });
+          }
+
+          const { data: profile } = await context.admin
+            .from("profiles")
+            .select("role")
+            .eq("id", context.user.id)
+            .maybeSingle();
+          if (profile?.role === "admin") {
+            return fail("Administrator accounts cannot be registered as partner accounts.", 403);
+          }
+
+          if (application.applicant_user_id && application.applicant_user_id !== context.user.id) {
+            return fail("This approved application is already linked to another account.", 409);
+          }
+
+          const { data: createdPartner, error: createPartnerError } = await context.admin
+            .from("property_partners")
+            .insert({
+              owner_user_id: context.user.id,
+              business_name: application.business_name,
+              contact_person: application.contact_person,
+              email,
+              phone: null,
+              status: "approved",
+            })
+            .select("id, owner_user_id, business_name, contact_person, email, phone, status")
+            .single();
+
+          if (createPartnerError || !createdPartner) {
+            console.error("Approved partner account creation failed:", createPartnerError);
+            return fail("Unable to create your partner account. Please contact support.", 500);
+          }
+
+          const [{ error: profileUpdateError }, { error: applicationUpdateError }] = await Promise.all([
+            context.admin.from("profiles").update({ role: "partner" }).eq("id", context.user.id).neq("role", "admin"),
+            context.admin.from("partner_applications")
+              .update({ applicant_user_id: context.user.id })
+              .eq("id", application.id)
+              .eq("status", "approved")
+              .or(`applicant_user_id.is.null,applicant_user_id.eq.${context.user.id}`),
+          ]);
+
+          if (profileUpdateError || applicationUpdateError) {
+            console.error("Partner account linking failed:", profileUpdateError || applicationUpdateError);
+            await context.admin.from("property_partners").delete().eq("id", createdPartner.id).eq("owner_user_id", context.user.id);
+            return fail("Your account could not be linked to the approved application. Please try again.", 500);
+          }
+
+          return NextResponse.json({
+            success: true,
+            partner: createdPartner,
+            properties: [],
+            partnerState: "approved",
+            application,
+          }, { headers: { "Cache-Control": "no-store" } });
+        }
       }
       return NextResponse.json({
         success: true,
