@@ -76,61 +76,72 @@ export default function NewPartnerPropertyPage() {
   const [hasConferenceRooms, setHasConferenceRooms] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadPage() {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
+      if (!session) {
+        router.replace("/login");
+        return;
+      }
 
-        const response = await fetch("/api/destinations", {
-          cache: "no-store",
-        });
+      // Load reference data in the background and retry automatically.
+      // Partners are not shown transient database/API retrieval errors.
+      while (!cancelled) {
+        try {
+          const [destinationsResponse, locationsResponse] = await Promise.all([
+            fetch("/api/destinations", { cache: "no-store" }),
+            fetch("/api/kenya-locations", { cache: "no-store" }),
+          ]);
 
-        const result = await response.json();
+          if (!destinationsResponse.ok || !locationsResponse.ok) {
+            throw new Error("Reference data is temporarily unavailable.");
+          }
 
-        if (!response.ok) {
-          throw new Error(result.error || "Unable to load destinations.");
-        }
+          const [destinationsResult, locationsResult] = await Promise.all([
+            destinationsResponse.json(),
+            locationsResponse.json(),
+          ]);
 
-        const rows: Destination[] = Array.isArray(result)
-          ? result
-          : result.destinations || result.data || [];
+          const rows: Destination[] = destinationsResult.destinations || destinationsResult.data || [];
+          const countyRows: KenyaCounty[] = locationsResult.counties || [];
 
-        setDestinations(rows);
+          if (!destinationsResult.success || !locationsResult.success || rows.length === 0 || countyRows.length === 0) {
+            throw new Error("Reference data is temporarily unavailable.");
+          }
 
-        const locationsResponse = await fetch("/api/kenya-locations", { cache: "no-store" });
-        const locationsResult = await locationsResponse.json();
-        if (!locationsResponse.ok || !locationsResult.success) {
-          throw new Error(locationsResult.error || "Unable to load Kenya counties and sub-counties.");
-        }
-        const countyRows: KenyaCounty[] = locationsResult.counties || [];
-        setCounties(countyRows);
-        if (countyRows.length > 0) {
+          if (cancelled) return;
+
+          setDestinations(rows);
+          setCounties(countyRows);
+
           const firstCounty = countyRows[0];
           setCountyCode(String(firstCounty.county_code));
           const firstDestination = rows.find((destination) =>
             destinationBelongsToCounty(destination.county, firstCounty.name)
           );
           if (firstDestination) setDestinationId(firstDestination.id);
+
+          setLoadingDestinations(false);
+          return;
+        } catch {
+          if (cancelled) return;
+          await new Promise((resolve) => setTimeout(resolve, 3000));
         }
-      } catch (error) {
-        setPageError(
-          error instanceof Error
-            ? error.message
-            : "Unable to load the property form."
-        );
-      } finally {
-        setLoadingDestinations(false);
       }
     }
 
-    loadPage();
+    loadPage().catch(() => {
+      if (!cancelled) router.replace("/login");
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -412,11 +423,7 @@ export default function NewPartnerPropertyPage() {
                       </option>
                     ))}
                   </select>
-                  {countyDestinations.length === 0 && (
-                    <p className="mt-2 text-sm text-red-600">
-                      No active destinations were returned. Please try again later.
-                    </p>
-                  )}
+
                 </div>
 
                 <div>
