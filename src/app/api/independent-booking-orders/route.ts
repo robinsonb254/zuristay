@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 export const dynamic = "force-dynamic";
 
 function isValidDate(value: string) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00.000Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   if (
     !name ||
-    !/^\\S+@\\S+\\.\\S+$/.test(email) ||
+    !/^\S+@\S+\.\S+$/.test(email) ||
     !phone ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accommodationId) ||
     !isValidDate(checkIn) ||
