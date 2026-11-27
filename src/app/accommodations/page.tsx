@@ -57,7 +57,7 @@ export default function AccommodationsPage() {
       <section className="bg-gradient-to-br from-[#123b31] to-[#1c5947] px-5 py-16 text-white">
         <div className="mx-auto max-w-7xl">
           <p className="text-xs font-bold uppercase tracking-[.24em] text-orange-300">Discover more places to stay</p>
-          <h1 className="mt-3 max-w-3xl font-serif text-4xl font-bold sm:text-5xl">ZuriStay Worldwide Accommodations</h1>
+          <h1 className="mt-3 max-w-3xl font-serif text-4xl font-bold sm:text-5xl">ZuriStay Worldwide Management Accommodations</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/75">Find hotels, resorts, villas, apartments, lodges and guesthouses across Kenya.</p>
           <div className="mt-8 flex max-w-3xl flex-col gap-3 rounded-2xl bg-white p-3 sm:flex-row">
             <div className="flex flex-1 items-center gap-3 px-3"><Search className="text-slate-400" size={20}/><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&load()} placeholder="Search property, town or county" className="w-full py-3 text-slate-800 outline-none"/></div>
