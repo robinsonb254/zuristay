@@ -152,7 +152,7 @@ export default function AdminPropertiesPage() {
       const response = await fetch("/api/admin/properties", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ propertyId: property.id, action }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || `Unable to ${action} property.`);
-      setSuccess(result.message); await loadProperties();
+      await loadProperties(); setSuccess(result.message);
     } catch (err) { setError(err instanceof Error ? err.message : `Unable to ${action} this property.`); }
     finally { setProcessingId(""); }
   }
