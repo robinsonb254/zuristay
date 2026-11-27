@@ -26,57 +26,23 @@ type Property = {
   is_active: boolean;
 };
 
-function RoomAvailabilityForm({
-  propertyId,
-  unit,
-}: {
-  propertyId: string;
-  unit: Unit;
-}) {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+function RoomAvailabilityForm({ propertyId, unit, onSaved }: { propertyId: string; unit: Unit; onSaved: () => void }) {
   const [availableUnits, setAvailableUnits] = useState(String(unit.total_units));
   const [partnerBaseRate, setPartnerBaseRate] = useState(String(unit.base_rate));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [availability, setAvailability] = useState<{ id: string; stay_date: string; available_units: number; partner_base_rate: number; currency: string }[]>([]);
-  const [calendarLoading, setCalendarLoading] = useState(true);
 
-  const loadCalendar = useCallback(async () => {
-    setCalendarLoading(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const response = await fetch(
-        "/api/partner/properties/" + propertyId + "/units/" + unit.id + "/availability",
-        { headers: { Authorization: "Bearer " + session.access_token }, cache: "no-store" }
-      );
-      const result = await response.json();
-      if (response.ok && result.success) setAvailability(result.availability || []);
-    } catch (err) {
-      console.error("Unable to refresh room availability:", err);
-    } finally {
-      setCalendarLoading(false);
-    }
-  }, [propertyId, unit.id]);
-
-  useEffect(() => { loadCalendar(); }, [loadCalendar]);
-
-  const today = new Date();
-  const minDate = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getDate()).padStart(2, "0"),
-  ].join("-");
+  useEffect(() => {
+    setAvailableUnits(String(unit.total_units));
+    setPartnerBaseRate(String(unit.base_rate));
+  }, [unit.total_units, unit.base_rate]);
 
   async function saveAvailability(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setError("");
     setMessage("");
-
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -84,7 +50,6 @@ function RoomAvailabilityForm({
         window.location.href = "/login?next=" + encodeURIComponent("/partner/properties/" + propertyId + "/rooms");
         return;
       }
-
       const response = await fetch(
         "/api/partner/properties/" + propertyId + "/units/" + unit.id + "/availability",
         {
@@ -94,21 +59,17 @@ function RoomAvailabilityForm({
             Authorization: "Bearer " + session.access_token,
           },
           body: JSON.stringify({
-            startDate,
-            endDate,
             availableUnits: Number(availableUnits),
             partnerBaseRate,
           }),
         }
       );
       const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Unable to save availability.");
-      }
-      setMessage(result.message || "Availability saved.");
-      await loadCalendar();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unable to save room availability.");
+      setMessage(result.message || "Room availability and 24-hour rate saved.");
+      onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save availability.");
+      setError(err instanceof Error ? err.message : "Unable to save room availability.");
     } finally {
       setSaving(false);
     }
@@ -116,59 +77,31 @@ function RoomAvailabilityForm({
 
   return (
     <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-    <form onSubmit={saveAvailability}>
-      <h4 className="font-semibold text-slate-900">Set availability and nightly rate</h4>
-      <p className="mt-1 text-xs text-slate-500">
-        Apply these settings to every date in the selected range. Set available rooms to zero to block the dates.
-      </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="text-xs font-semibold text-slate-600">
-          From
-          <input type="date" min={minDate} required value={startDate} onChange={(event) => setStartDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
-        </label>
-        <label className="text-xs font-semibold text-slate-600">
-          To
-          <input type="date" min={startDate || minDate} required value={endDate} onChange={(event) => setEndDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
-        </label>
-        <label className="text-xs font-semibold text-slate-600">
-          Available rooms
-          <input type="number" min="0" max={unit.total_units} step="1" required value={availableUnits} onChange={(event) => setAvailableUnits(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
-        </label>
-        <label className="text-xs font-semibold text-slate-600">
-          Partner nightly rate ({unit.currency})
-          <input type="number" min="0.01" max="100000000" step="0.01" required value={partnerBaseRate} onChange={(event) => setPartnerBaseRate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
-        </label>
-      </div>
-      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-      {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
-      <button type="submit" disabled={saving} className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
-        {saving ? <Loader2 size={16} className="animate-spin" /> : null}
-        {saving ? "Saving dates..." : "Save availability"}
-      </button>
-    </form>
-      <div className="mt-5 border-t border-slate-200 pt-4">
-        <h5 className="text-sm font-semibold text-slate-800">Upcoming availability · next 30 days</h5>
-        {calendarLoading ? <p className="mt-2 text-xs text-slate-500">Loading dates...</p> :
-          availability.length === 0 ? <p className="mt-2 text-xs text-slate-500">No date-specific settings yet. Add a date range above to set room inventory and rates.</p> :
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[420px] text-left text-xs">
-              <thead><tr className="border-b border-slate-200 text-slate-500"><th className="py-2 pr-3">Date</th><th className="py-2 pr-3">Available rooms</th><th className="py-2">Partner rate</th></tr></thead>
-              <tbody>{availability.map((day) => (
-                <tr key={day.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-3 text-slate-700">{new Date(day.stay_date + "T00:00:00").toLocaleDateString()}</td>
-                  <td className="py-2 pr-3"><span className={day.available_units === 0 ? "font-semibold text-red-700" : "text-slate-700"}>{day.available_units} / {unit.total_units}</span></td>
-                  <td className="py-2 text-slate-700">{day.currency} {Number(day.partner_base_rate).toLocaleString()}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        }
-      </div>
+      <form onSubmit={saveAvailability}>
+        <h4 className="font-semibold text-slate-900">Room availability and 24-hour rate</h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Your rooms are available by default for all dates. Set your room count and 24-hour rate once; each guest booking automatically reduces inventory for the selected stay dates.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-slate-600">
+            Rooms available
+            <input type="number" min="1" max="500" step="1" required value={availableUnits} onChange={(event) => setAvailableUnits(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+          </label>
+          <label className="text-xs font-semibold text-slate-600">
+            24-hour room rate ({unit.currency})
+            <input type="number" min="0.01" max="100000000" step="0.01" required value={partnerBaseRate} onChange={(event) => setPartnerBaseRate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
+          </label>
+        </div>
+        {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+        {message && <p role="status" className="mt-3 text-sm text-green-700">{message}</p>}
+        <button type="submit" disabled={saving} className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+          {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+          {saving ? "Saving..." : "Save availability"}
+        </button>
+      </form>
     </div>
   );
 }
-
-
 
 type Amenity = { id: string; name: string; category: string | null };
 
@@ -435,7 +368,6 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
   const [unitType, setUnitType] = useState(unit.unit_type || "");
   const [description, setDescription] = useState(unit.description || "");
   const [capacity, setCapacity] = useState(String(unit.capacity));
-  const [baseRate, setBaseRate] = useState(String(unit.base_rate));
   const [active, setActive] = useState(unit.active);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -451,7 +383,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
       const response = await fetch("/api/partner/properties/" + propertyId + "/units/" + unit.id, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
-        body: JSON.stringify({ name, unitType, description, capacity: Number(capacity), baseRate: Number(baseRate), active }),
+        body: JSON.stringify({ name, unitType, description, capacity: Number(capacity), active }),
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Unable to update room category.");
@@ -465,7 +397,7 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
 
   return (
     <div className="mt-3">
-      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setBaseRate(String(unit.base_rate)); setActive(unit.active); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details and base rate</button> :
+      {!editing ? <button type="button" onClick={() => { setName(unit.name); setUnitType(unit.unit_type || ""); setDescription(unit.description || ""); setCapacity(String(unit.capacity)); setActive(unit.active); setEditing(true); setError(""); setMessage(""); }} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Edit room details and base rate</button> :
         <form onSubmit={save} className="mt-3 space-y-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
           <h4 className="text-sm font-bold text-slate-900">Edit room category</h4>
           <label className="block text-xs font-semibold text-slate-700">Category name
@@ -481,12 +413,9 @@ function RoomCategoryEditor({ propertyId, unit, onSaved }: { propertyId: string;
             <label className="block text-xs font-semibold text-slate-700">Maximum guests
               <input type="number" min="1" max="20" step="1" required value={capacity} onChange={(e) => setCapacity(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
             </label>
-            <label className="block text-xs font-semibold text-slate-700">Default partner rate ({unit.currency})
-              <input type="number" min="0.01" max="100000000" step="0.01" required value={baseRate} onChange={(e) => setBaseRate(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
-            </label>
           </div>
           <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-blue-900 focus:ring-blue-700" />Room category active and eligible for bookings</label>
-          <p className="text-xs text-slate-500">Changing the default rate does not overwrite date-specific availability rates already saved. Activating a room does not publish the property.</p>
+          <p className="text-xs text-slate-500">Manage the room count and 24-hour rate in the availability settings below. Activating a room does not publish the property.</p>
           {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="submit" disabled={saving} className="rounded-lg bg-blue-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{saving ? "Saving..." : "Save room changes"}</button>
@@ -512,7 +441,7 @@ function PropertyReadiness({ propertyId, onPublished }: { propertyId: string; on
     rooms: { href: "#room-categories", label: "Add rooms" },
     photos: { href: "#property-photos", label: "Upload photos" },
     amenities: { href: "#property-amenities", label: "Choose facilities" },
-    availability: { href: "#room-categories", label: "Set dates and rates" },
+    availability: { href: "#room-categories", label: "Set rooms and 24-hour rate" },
   };
 
   const load = useCallback(async (silent = false) => {
@@ -726,7 +655,7 @@ export default function PartnerPropertyRoomsPage() {
                 <div><label htmlFor="capacity" className={labelClass}>Maximum guests per room *</label><input id="capacity" type="number" className={fieldClass} min="1" max="20" step="1" value={capacity} onChange={(e) => setCapacity(e.target.value)} required /></div>
                 <div><label htmlFor="totalUnits" className={labelClass}>Number of rooms *</label><input id="totalUnits" type="number" className={fieldClass} min="1" max="500" step="1" value={totalUnits} onChange={(e) => setTotalUnits(e.target.value)} required /></div>
               </div>
-              <div><label htmlFor="baseRate" className={labelClass}>Partner nightly rate ({property?.currency || "KES"}) *</label><input id="baseRate" type="number" className={fieldClass} min="1" max="100000000" step="0.01" value={baseRate} onChange={(e) => setBaseRate(e.target.value)} placeholder="e.g. 6500" required /><p className="mt-2 text-xs text-slate-500">Enter the amount you charge ZuriStay before the platform&apos;s guest-facing markup.</p></div>
+              <div><label htmlFor="baseRate" className={labelClass}>Partner 24-hour rate ({property?.currency || "KES"}) *</label><input id="baseRate" type="number" className={fieldClass} min="1" max="100000000" step="0.01" value={baseRate} onChange={(e) => setBaseRate(e.target.value)} placeholder="e.g. 6500" required /><p className="mt-2 text-xs text-slate-500">Enter the amount you charge ZuriStay before the platform&apos;s guest-facing markup.</p></div>
               <button type="submit" disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}{saving ? "Saving room category..." : "Save room category"}</button>
               <p className="text-xs text-slate-500">You can set up rooms immediately after your partner account is approved. ZuriStay reviews the completed property once, at final submission.</p>
             </form>
@@ -734,7 +663,7 @@ export default function PartnerPropertyRoomsPage() {
 
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 p-5"><div><h2 className="text-xl font-bold text-slate-900">Room categories</h2><p className="mt-1 text-sm text-slate-500">{units.length} saved</p></div><button onClick={loadRooms} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><RefreshCw size={15} />Refresh</button></div>
-            {units.length === 0 ? <div className="px-6 py-12 text-center"><BedDouble className="mx-auto mb-3 text-slate-400" size={34} /><h3 className="font-semibold text-slate-900">No room categories yet</h3><p className="mt-2 text-sm text-slate-500">Add your first room category using the form.</p></div> : <div className="divide-y divide-slate-100">{units.map((unit) => <article key={unit.id} className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{unit.name}</h3><p className="mt-1 text-sm text-slate-500">{unit.unit_type || "Room"} · {unit.total_units} room(s)</p></div><span className={unit.active ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"}>{unit.active ? "Active" : "Inactive"}</span></div><div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600"><span className="inline-flex items-center gap-1"><Users size={15} />Up to {unit.capacity} guests</span><span className="font-semibold text-slate-900">{unit.currency} {Number(unit.base_rate).toLocaleString()} / night</span></div>{unit.description && <p className="mt-3 text-sm leading-6 text-slate-600">{unit.description}</p>}<RoomCategoryEditor propertyId={propertyId} unit={unit} onSaved={loadRooms} /><RoomAvailabilityForm propertyId={propertyId} unit={unit} /></article>)}</div>}
+            {units.length === 0 ? <div className="px-6 py-12 text-center"><BedDouble className="mx-auto mb-3 text-slate-400" size={34} /><h3 className="font-semibold text-slate-900">No room categories yet</h3><p className="mt-2 text-sm text-slate-500">Add your first room category using the form.</p></div> : <div className="divide-y divide-slate-100">{units.map((unit) => <article key={unit.id} className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{unit.name}</h3><p className="mt-1 text-sm text-slate-500">{unit.unit_type || "Room"} · {unit.total_units} room(s)</p></div><span className={unit.active ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"}>{unit.active ? "Active" : "Inactive"}</span></div><div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600"><span className="inline-flex items-center gap-1"><Users size={15} />Up to {unit.capacity} guests</span><span className="font-semibold text-slate-900">{unit.currency} {Number(unit.base_rate).toLocaleString()} / night</span></div>{unit.description && <p className="mt-3 text-sm leading-6 text-slate-600">{unit.description}</p>}<RoomCategoryEditor propertyId={propertyId} unit={unit} onSaved={loadRooms} /><RoomAvailabilityForm propertyId={propertyId} unit={unit} onSaved={loadRooms} /></article>)}</div>}
           </section>
         </div>
         {property && <><PropertyFacilities propertyId={propertyId} /><PropertyPhotos propertyId={propertyId} /></>}\n        <p className="mt-8 text-center text-xs text-slate-400">ZuriStay Partner Portal · Your World. Your Stay.</p>
