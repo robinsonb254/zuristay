@@ -224,7 +224,7 @@ type PropertyImage = {
 
 function PropertyPhotos({ propertyId }: { propertyId: string }) {
   const [images, setImages] = useState<PropertyImage[]>([]);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -258,7 +258,15 @@ function PropertyPhotos({ propertyId }: { propertyId: string }) {
 
   async function uploadPhoto(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file) return;
+    if (files.length === 0) return;
+    if (files.length > 15) {
+      setError("Select no more than 15 photos in one upload.");
+      return;
+    }
+    if (images.length + files.length > 30) {
+      setError("This property can have up to 30 photos in total. Remove existing photos before adding more.");
+      return;
+    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -266,22 +274,42 @@ function PropertyPhotos({ propertyId }: { propertyId: string }) {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Please sign in again to upload photos.");
-      const form = new FormData();
-      form.append("image", file);
-      form.append("caption", caption);
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { Authorization: "Bearer " + session.access_token },
-        body: form,
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Photo upload failed.");
-      setMessage(result.message || "Photo uploaded.");
-      setFile(null);
+
+      let uploaded = 0;
+      const failures: string[] = [];
+      for (const selectedFile of files) {
+        const form = new FormData();
+        form.append("image", selectedFile);
+        form.append("caption", caption);
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { Authorization: "Bearer " + session.access_token },
+            body: form,
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            failures.push(selectedFile.name + ": " + (result.error || "Upload failed"));
+          } else {
+            uploaded += 1;
+          }
+        } catch {
+          failures.push(selectedFile.name + ": Upload failed. Please try again.");
+        }
+      }
+
+      setFiles([]);
       setCaption("");
-      const input = document.getElementById("propertyPhotoFile") as HTMLInputElement | null;
+      const input = document.getElementById("propertyPhotoFiles") as HTMLInputElement | null;
       if (input) input.value = "";
       await loadImages();
+
+      if (failures.length > 0) {
+        setMessage(uploaded + " of " + files.length + " photos uploaded successfully.");
+        setError(failures.slice(0, 3).join(" ") + (failures.length > 3 ? " " + (failures.length - 3) + " more upload(s) failed." : ""));
+      } else {
+        setMessage(uploaded + " photo(s) uploaded successfully.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Photo upload failed.");
     } finally {
@@ -318,24 +346,41 @@ function PropertyPhotos({ propertyId }: { propertyId: string }) {
     <section id="property-photos" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="mb-5">
         <h2 className="text-xl font-bold text-slate-900">Property photographs</h2>
-        <p className="mt-1 text-sm text-slate-500">Upload up to 30 clear JPG, PNG or WebP photos. Maximum 8 MB each. Your first photo becomes the cover image.</p>
+        <p className="mt-1 text-sm text-slate-500">Select and upload up to 15 photos at once, with a maximum of 30 photos per property. JPG, PNG or WebP · 8 MB maximum per photo. Your first photo becomes the cover image.</p>
       </div>
       <form onSubmit={uploadPhoto} className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <label className="text-xs font-semibold text-slate-600">
-          Choose photo
-          <input id="propertyPhotoFile" type="file" accept="image/jpeg,image/png,image/webp" required
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
+          Choose photos (up to 15 at once)
+          <input id="propertyPhotoFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple required
+            onChange={(event) => {
+              const selected = Array.from(event.target.files || []);
+              if (selected.length > 15) {
+                setError("You can select a maximum of 15 photos at once.");
+                event.target.value = "";
+                setFiles([]);
+                return;
+              }
+              if (images.length + selected.length > 30) {
+                setError("This property can have up to 30 photos in total. You can add " + Math.max(0, 30 - images.length) + " more.");
+                event.target.value = "";
+                setFiles([]);
+                return;
+              }
+              setError("");
+              setFiles(selected);
+            }}
             className="mt-1 block w-full text-sm font-normal text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:font-semibold file:text-blue-900" />
+          <span className="mt-1 block text-[11px] font-normal text-slate-500">{files.length} selected · {Math.max(0, 30 - images.length)} total slots remaining</span>
         </label>
         <label className="text-xs font-semibold text-slate-600">
           Caption (optional)
           <input value={caption} maxLength={160} onChange={(event) => setCaption(event.target.value)}
             placeholder="e.g. Ocean-view balcony" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900" />
         </label>
-        <button type="submit" disabled={!file || saving || images.length >= 30}
+        <button type="submit" disabled={files.length === 0 || saving || images.length >= 30}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-          {saving ? "Uploading..." : "Upload photo"}
+          {saving ? "Uploading " + files.length + " photo(s)..." : "Upload " + (files.length || "") + " photo(s)"}
         </button>
       </form>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
