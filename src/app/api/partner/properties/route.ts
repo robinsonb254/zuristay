@@ -30,7 +30,27 @@ function destinationBelongsToCounty(destinationCounty: string | null, countyName
     destinationCounty.split(/[\/,]/).some((part) => normalizeCountyName(part) === target);
 }
 
-async function ensureApplicationProperty(admin: ReturnType<typeof createClient>, partner: any, application: any) {
+type PartnerPropertySeed = {
+  id: string;
+  phone: string | null;
+  email: string | null;
+};
+
+type ApplicationPropertySeed = {
+  business_name: string;
+  location: string | null;
+  property_type: string | null;
+  message: string | null;
+  phone: string | null;
+  email: string | null;
+  has_conference_rooms: boolean | null;
+};
+
+async function ensureApplicationProperty(
+  admin: ReturnType<typeof createClient>,
+  partner: PartnerPropertySeed,
+  application: ApplicationPropertySeed
+) {
   const { data: existing, error: existingError } = await admin
     .from("properties")
     .select("id, name, property_type, city, county, sub_county, country, status, is_active, publication_status, publication_submitted_at, is_archived, has_conference_rooms, created_at")
