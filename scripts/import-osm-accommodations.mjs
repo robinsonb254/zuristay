@@ -123,7 +123,7 @@ for (let offset = 0; offset < records.length; offset += 100) {
 }
 
 await db.from("accommodation_sources")
-  .update({ last_checked_at: new Date().toISOString(), notes: "OpenStreetMap Kenya accommodation features imported to pending review. No listings are auto-published; owner permission, contact, current rates, availability and photos require verification." })
+  .update({ last_checked_at: new Date().toISOString(), notes: "OpenStreetMap Kenya accommodation records imported and published for reservation requests. ZuriStay administration handles property contact, availability confirmation and fulfilment." })
   .eq("id", source.id);
 
 console.log(JSON.stringify({
