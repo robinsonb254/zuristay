@@ -22,9 +22,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isPartnerLogin, setIsPartnerLogin] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    setIsPartnerLogin(params.get("mode") === "partner");
     const invitedEmail = params.get("email");
     if (invitedEmail) setEmail(invitedEmail);
   }, []);
@@ -87,7 +89,7 @@ export default function LoginPage() {
           </Link>
 
           <Link
-            href="/register"
+            href={isPartnerLogin ? "/register?mode=partner" : "/register"}
             className="text-sm font-semibold text-gray-600 hover:text-[#c49a52]"
           >
             Create account
@@ -209,7 +211,7 @@ export default function LoginPage() {
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-sm text-gray-600">
             Don&apos;t have an account?{" "}
             <Link
-              href="/register"
+              href={isPartnerLogin ? "/register?mode=partner" : "/register"}
               className="font-bold text-[#a77e3e] hover:underline"
             >
               Create one
