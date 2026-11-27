@@ -322,7 +322,7 @@ export default function RegisterPage() {
               By creating an account, you agree to use ZuriStay Worldwide
               responsibly and provide accurate information.
             </p>
-          </form>
+          </form>}
 
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-sm text-gray-600">
             Already registered?{" "}
