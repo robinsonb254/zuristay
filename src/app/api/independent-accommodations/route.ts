@@ -32,33 +32,63 @@ export async function GET(request: NextRequest) {
   const accommodationId = request.nextUrl.searchParams.get("id")?.trim() || "";
   const db = createClient(url, key, { auth: { persistSession: false } });
 
-  let requestQuery = db.from("independent_accommodations")
-    .select("id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,image_urls,booking_enabled,availability_status,last_verified_at")
-    .eq("listing_status", "published")
-    .order("name", { ascending: true })
-    .limit(accommodationId ? 1 : query || city ? 500 : 100);
+  const selectFields = "id,name,property_type,description,address,city,county,country,currency,published_base_rate,public_website_url,image_urls,booking_enabled,availability_status,last_verified_at";
+  const baseQuery = () => {
+    let q = db.from("independent_accommodations")
+      .select(selectFields)
+      .eq("listing_status", "published")
+      .order("name", { ascending: true });
+    if (type && ["hotel", "resort", "villa", "apartment", "lodge", "guesthouse", "hostel", "camp", "other"].includes(type)) {
+      q = q.eq("property_type", type);
+    }
+    return q;
+  };
 
-  if (accommodationId) requestQuery = requestQuery.eq("id", accommodationId);
+  let data: any[] | null = null;
+  let error: { message: string } | null = null;
 
-  if (query) {
-    const cleaned = query.replace(/,?\s*Kenya$/i, "").replace(/\s+county$/i, "").trim();
+  if (accommodationId) {
+    const result = await baseQuery().eq("id", accommodationId).limit(1);
+    data = result.data;
+    error = result.error;
+  } else if (query) {
+    const cleaned = query.replace(/,?\\s*Kenya$/i, "").replace(/\\s+county$/i, "").trim();
     const county = countyMatch(cleaned);
     const safeTerm = cleaned.replace(/[(),.%_*]/g, " ").trim();
-    if (county) {
-      requestQuery = requestQuery.eq("county", county);
-    } else if (safeTerm) {
-      // This endpoint is used for destination searches. Match the locality
-      // field directly; the previous multi-column OR filter returned no rows
-      // for valid destinations such as Mombasa.
-      requestQuery = requestQuery.ilike("city", `%${safeTerm}%`);
+    const pattern = `%${safeTerm}%`;
+    // Search each geographic/name field separately, then merge by ID.
+    // This avoids fragile PostgREST OR parsing and works consistently for
+    // county searches and individual towns in every Kenyan region.
+    const searches = county
+      ? [
+          baseQuery().ilike("county", `%${county}%`).limit(500),
+          baseQuery().ilike("city", pattern).limit(500),
+        ]
+      : [
+          baseQuery().ilike("city", pattern).limit(500),
+          baseQuery().ilike("county", pattern).limit(500),
+          baseQuery().ilike("name", pattern).limit(500),
+        ];
+    const results = await Promise.all(searches);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) error = failed.error;
+    else {
+      const byId = new Map<string, any>();
+      for (const result of results) {
+        for (const item of result.data || []) byId.set(item.id, item);
+      }
+      data = Array.from(byId.values()).sort((a, b) => String(a.name).localeCompare(String(b.name))).slice(0, 500);
     }
-  }
-  if (city) requestQuery = requestQuery.ilike("city", `%${city}%`);
-  if (type && ["hotel", "resort", "villa", "apartment", "lodge", "guesthouse", "hostel", "camp", "other"].includes(type)) {
-    requestQuery = requestQuery.eq("property_type", type);
+  } else if (city) {
+    const result = await baseQuery().ilike("city", `%${city}%`).limit(500);
+    data = result.data;
+    error = result.error;
+  } else {
+    const result = await baseQuery().limit(100);
+    data = result.data;
+    error = result.error;
   }
 
-  const { data, error } = await requestQuery;
   if (error) return NextResponse.json({ success: false, error: "Unable to load accommodations." }, { status: 500 });
 
   const accommodations = (data || []).map((item) => ({
