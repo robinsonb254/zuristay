@@ -83,8 +83,9 @@ function formatMoney(amount: number, currency: string) {
 type AreaPhotoData = { title: string; imageUrl: string; sourceUrl: string; credit: string; license: string; licenseUrl: string };
 const areaPhotoRequests = new Map<string, Promise<AreaPhotoData[]>>();
 
-function IndependentAreaPhoto({ location }: { location: string }) {
-  const [photo, setPhoto] = useState<AreaPhotoData | null>(null);
+function IndependentAreaPhoto({ location, propertyId }: { location: string; propertyId: string }) {
+  const [photos, setPhotos] = useState<AreaPhotoData[]>([]);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
@@ -103,17 +104,22 @@ function IndependentAreaPhoto({ location }: { location: string }) {
     }
     request.then((photos) => {
       if (!active) return;
-      setPhoto(photos[0] || null);
+      setPhotos(photos);
+      // Different properties in the same town use different images from the location gallery.
+      const hash = Array.from(propertyId).reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 7);
+      setPhotoIndex(photos.length ? hash % photos.length : 0);
       setFinished(true);
     });
     return () => { active = false; };
   }, [location]);
 
+  const photo = photos[photoIndex] || null;
+
   return (
     <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300 md:h-full md:min-h-56">
       {photo ? (
         <>
-          <img src={photo.imageUrl} alt={`${location} area photograph: ${photo.title}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+          <img key={photo.imageUrl} src={photo.imageUrl} alt={`${location} area photograph: ${photo.title}`} loading="lazy" decoding="async" onError={() => setPhotoIndex((current) => current + 1 < photos.length ? current + 1 : current)} className="h-full w-full object-cover" />
           <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-between gap-1 bg-slate-950/65 px-3 py-2 text-[10px] text-white">
             <span className="font-semibold">Area photo · {photo.credit}</span>
             <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Image source · {photo.license}</a>
@@ -444,7 +450,7 @@ export default function LivePropertyResults({
                   </div>)}
                 </div>
               ) : (
-                <IndependentAreaPhoto location={areaLocation || "Kenya"} />
+                <IndependentAreaPhoto location={areaLocation || "Kenya"} propertyId={stay.id} />
               )}
             </div>
             <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
