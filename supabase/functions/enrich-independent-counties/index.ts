@@ -159,14 +159,26 @@ Deno.serve(async (req: Request) => {
       throw new Error(`geoBoundaries returned ${features.length} county polygons; expected exactly 47.`);
     }
 
-    const counties = features.map((feature) => ({
+    const mappedFeatures = features.map((feature, index) => ({
+      index,
       name: countyFromProperties(feature.properties),
       geometry: feature.geometry,
-    })).filter((item): item is CountyBoundary => item.name !== null && item.geometry !== null);
+      properties: feature.properties,
+    }));
+    const counties = mappedFeatures
+      .filter((item): item is CountyBoundary => item.name !== null && item.geometry !== null)
+      .map(({ name, geometry }) => ({ name, geometry }));
 
     const uniqueCounties = new Set(counties.map((item) => item.name));
     if (uniqueCounties.size !== 47 || counties.length !== 47) {
-      throw new Error(`County boundary validation failed: expected exactly 47 named county polygons, received ${uniqueCounties.size} names across ${counties.length} features.`);
+      const unresolved = mappedFeatures
+        .filter((item) => item.name === null || item.geometry === null)
+        .map((item) => ({
+          feature_index: item.index,
+          geometry_type: item.geometry?.type ?? null,
+          properties: item.properties,
+        }));
+      throw new Error(`County boundary validation failed: expected exactly 47 named county polygons, received ${uniqueCounties.size} names across ${counties.length} features. Unresolved feature diagnostics: ${JSON.stringify(unresolved)}`);
     }
 
     const candidates: AccommodationCandidate[] = [];
