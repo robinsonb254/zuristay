@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "The accommodation rate needs administrator review." }, { status: 409 });
   }
   const base = nightlyRate === null ? 0 : nightlyRate * nights * rooms;
-  const markup = Math.ceil(base * 0.15);
+  const markup = Math.ceil(base * 0.3);
   const reference = "ZSI-" + randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase();
 
   const { data: order, error } = await db.from("independent_booking_orders").insert({
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     rooms,
     currency: stay.currency || "KES",
     property_base_amount: base,
-    markup_rate: 0.15,
+    markup_rate: 0.3,
     markup_amount: markup,
     guest_total: base + markup,
     payment_status: "unpaid",
