@@ -218,7 +218,7 @@ export default function LivePropertyResults({
           More places to stay
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Approved accommodation listings supplied by our property partners.
+          Submit a reservation request through ZuriStay. Our administration team will coordinate directly with the accommodation.
         </p>
       </div>
 
