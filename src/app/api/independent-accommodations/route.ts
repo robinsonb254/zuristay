@@ -14,6 +14,24 @@ const KENYAN_COUNTIES = [
   "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
 ];
 
+type AccommodationRow = {
+  id: string;
+  name: string;
+  property_type: string;
+  description: string | null;
+  address: string | null;
+  city: string;
+  county: string | null;
+  country: string;
+  currency: string;
+  published_base_rate: number | string | null;
+  public_website_url: string | null;
+  image_urls: string[] | null;
+  booking_enabled: boolean;
+  availability_status: string;
+  last_verified_at: string | null;
+};
+
 function countyMatch(value: string) {
   const normalized = value.toLowerCase().replace(/\s+county$/i, "").replace(/[^a-z0-9]+/g, "");
   return KENYAN_COUNTIES.find((county) =>
@@ -44,7 +62,7 @@ export async function GET(request: NextRequest) {
     return q;
   };
 
-  let data: any[] | null = null;
+  let data: AccommodationRow[] | null = null;
   let error: { message: string } | null = null;
 
   if (accommodationId) {
@@ -73,9 +91,9 @@ export async function GET(request: NextRequest) {
     const failed = results.find((result) => result.error);
     if (failed?.error) error = failed.error;
     else {
-      const byId = new Map<string, any>();
+      const byId = new Map<string, AccommodationRow>();
       for (const result of results) {
-        for (const item of result.data || []) byId.set(item.id, item);
+        for (const item of result.data || []) byId.set(item.id, item as AccommodationRow);
       }
       data = Array.from(byId.values()).sort((a, b) => String(a.name).localeCompare(String(b.name))).slice(0, 500);
     }
