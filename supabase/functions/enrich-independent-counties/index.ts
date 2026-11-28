@@ -120,22 +120,49 @@ Deno.serve(async (req: Request) => {
       return Response.json({ error: "Administrator access required." }, { status: 403 });
     }
 
-    const boundaryUrl = "https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=geojson";
-    const boundaryResponse = await fetch(boundaryUrl, {
-      headers: { "accept": "application/geo+json,application/json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment; bookings@zuristayworldwide.com)" },
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!boundaryResponse.ok) throw new Error(`County boundary source returned HTTP ${boundaryResponse.status}.`);
-    const boundaryData = await boundaryResponse.json() as { features?: CountyFeature[] };
-    const features = Array.isArray(boundaryData.features) ? boundaryData.features : [];
+    // ArcGIS feature services can return only a small first page by default.
+    // Fetch the complete object ID list first, then retrieve geometries in bounded batches.
+    const arcgisBase = "https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/MapServer/0/query";
+    const requestArcgis = async (params: Record<string, string>) => {
+      const url = new URL(arcgisBase);
+      for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+      const response = await fetch(url, {
+        headers: { "accept": "application/json,application/geo+json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment)" },
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!response.ok) throw new Error(`County boundary source returned HTTP ${response.status}.`);
+      const payload = await response.json();
+      if (payload?.error) throw new Error(`County boundary source error: ${payload.error.message || "ArcGIS query failed"}.`);
+      return payload;
+    };
+
+    const idPayload = await requestArcgis({ where: "1=1", returnIdsOnly: "true", f: "json" });
+    const objectIds: number[] = Array.isArray(idPayload.objectIds) ? idPayload.objectIds : [];
+    if (objectIds.length < 47) {
+      throw new Error(`County boundary source returned only ${objectIds.length} feature IDs; expected at least 47.`);
+    }
+
+    const features: CountyFeature[] = [];
+    for (let offset = 0; offset < objectIds.length; offset += 10) {
+      const batchIds = objectIds.slice(offset, offset + 10);
+      const payload = await requestArcgis({
+        objectIds: batchIds.join(","),
+        outFields: "*",
+        returnGeometry: "true",
+        outSR: "4326",
+        f: "geojson",
+      });
+      if (Array.isArray(payload.features)) features.push(...payload.features as CountyFeature[]);
+    }
+
     const counties = features.map((feature) => ({
       name: countyFromProperties(feature.properties),
       geometry: feature.geometry,
     })).filter((item): item is CountyBoundary => item.name !== null && item.geometry !== null);
 
     const uniqueCounties = new Set(counties.map((item) => item.name));
-    if (uniqueCounties.size !== 47 || counties.length < 47) {
-      throw new Error(`County boundary validation failed: expected 47 named counties, received ${uniqueCounties.size}.`);
+    if (uniqueCounties.size !== 47 || counties.length !== 47) {
+      throw new Error(`County boundary validation failed: expected exactly 47 named county polygons, received ${uniqueCounties.size} names across ${counties.length} features.`);
     }
 
     const candidates: AccommodationCandidate[] = [];
