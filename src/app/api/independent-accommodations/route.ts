@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     data = result.data;
     error = result.error;
   } else if (query) {
-    const cleaned = query.replace(/,?\\s*Kenya$/i, "").replace(/\\s+county$/i, "").trim();
+    const cleaned = query.replace(/,?\s*Kenya$/i, "").replace(/\s+county$/i, "").trim();
     const county = countyMatch(cleaned);
     const safeTerm = cleaned.replace(/[(),.%_*]/g, " ").trim();
     const pattern = `%${safeTerm}%`;
