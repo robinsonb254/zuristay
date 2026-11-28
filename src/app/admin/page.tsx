@@ -156,6 +156,7 @@ export default function AdminPage() {
   const [independentAccommodationCount, setIndependentAccommodationCount] = useState(0);
   const [bookingEnabledAccommodationCount, setBookingEnabledAccommodationCount] = useState(0);
   const [countyCandidatesCount, setCountyCandidatesCount] = useState(0);
+  const [countyAssignedCount, setCountyAssignedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [processingApplicationId, setProcessingApplicationId] = useState("");
@@ -232,7 +233,7 @@ export default function AdminPage() {
         applicationsCount, pendingApplicationsCount, propertiesCount,
         approvedPropertiesCount, partnersCount, bookingsCount, confirmedBookingsCount,
         applicationsResult, propertiesResult, partnersResult, bookingsResult,
-        independentAccommodationCountResult, bookingEnabledAccommodationCountResult, countyCandidatesCountResult, independentAccommodationsResult,
+        independentAccommodationCountResult, bookingEnabledAccommodationCountResult, countyCandidatesCountResult, countyAssignedCountResult, independentAccommodationsResult,
       ] = await Promise.all([
         runQuery("total applications", supabase.from("partner_applications").select("id", { count: "exact", head: true })),
         runQuery("pending applications", supabase.from("partner_applications").select("id", { count: "exact", head: true }).eq("status", "pending")),
@@ -248,6 +249,7 @@ export default function AdminPage() {
         runQuery("published management accommodation count", supabase.from("independent_accommodations").select("id", { count: "exact", head: true }).eq("listing_status", "published")),
         runQuery("booking-enabled management accommodation count", supabase.from("independent_accommodations").select("id", { count: "exact", head: true }).eq("listing_status", "published").eq("booking_enabled", true)),
         runQuery("county enrichment candidate count", supabase.from("independent_accommodations").select("id", { count: "exact", head: true }).or("county.is.null,county.ilike.Kenya")),
+        runQuery("county assigned management accommodations", supabase.from("independent_accommodations").select("id", { count: "exact", head: true }).not("county", "is", null).not("county", "ilike", "Kenya")),
         runQuery("recent management accommodations", supabase.from("independent_accommodations").select("id, name, city, county, listing_status, booking_enabled, availability_status, created_at").eq("listing_status", "published").order("created_at", { ascending: false }).limit(6)),
       ]);
 
@@ -267,6 +269,7 @@ export default function AdminPage() {
       if (independentAccommodationCountResult) setIndependentAccommodationCount(independentAccommodationCountResult.count || 0);
       if (bookingEnabledAccommodationCountResult) setBookingEnabledAccommodationCount(bookingEnabledAccommodationCountResult.count || 0);
       if (countyCandidatesCountResult) setCountyCandidatesCount(countyCandidatesCountResult.count || 0);
+      if (countyAssignedCountResult) setCountyAssignedCount(countyAssignedCountResult.count || 0);
       if (independentAccommodationsResult) setIndependentAccommodations((independentAccommodationsResult.data || []) as IndependentAccommodation[]);
 
       setError(failures.length
@@ -683,7 +686,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               {statCards.map((card) => {
                 const Icon = card.icon;
 
@@ -718,6 +721,36 @@ export default function AdminPage() {
           </section>
 
           <AdminAnalytics enabled={!!profile} />
+
+          <section id="imported-inventory" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Imported marketplace inventory</p>
+                <h3 className="mt-1 text-xl font-black text-blue-950">ZuriStay management accommodation inventory</h3>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">Imported independent listings are tracked separately from properties submitted and managed through registered ZuriStay partners.</p>
+              </div>
+              <span className="text-sm font-semibold text-slate-500">Separate inventory stream</span>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">Published imported listings</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{independentAccommodationCount.toLocaleString("en-KE")}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">Booking requests enabled</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{bookingEnabledAccommodationCount.toLocaleString("en-KE")}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">County assigned</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{countyAssignedCount.toLocaleString("en-KE")}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">County not assigned</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{countyCandidatesCount.toLocaleString("en-KE")}</p>
+                <p className="mt-1 text-xs text-slate-500">Held for location review; no guessed county assignments.</p>
+              </div>
+            </div>
+          </section>
 
           <section id="county-enrichment" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
