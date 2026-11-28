@@ -56,6 +56,8 @@ const COUNTY_ALIASES: Record<string, string> = {
   "muranga county": "Murang'a",
   "nairobi city": "Nairobi",
   "taita-taveta": "Taita Taveta",
+  "tharaka": "Tharaka-Nithi",
+  "tharaka county": "Tharaka-Nithi",
   "tharaka nithi": "Tharaka-Nithi",
   "transnzoia": "Trans Nzoia",
   "uasin-gishu": "Uasin Gishu",
