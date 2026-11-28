@@ -47,9 +47,10 @@ export async function GET(request: NextRequest) {
     if (county) {
       requestQuery = requestQuery.eq("county", county);
     } else if (safeTerm) {
-      requestQuery = requestQuery.or(
-        `name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%,county.ilike.%${safeTerm}%`
-      );
+      // This endpoint is used for destination searches. Match the locality
+      // field directly; the previous multi-column OR filter returned no rows
+      // for valid destinations such as Mombasa.
+      requestQuery = requestQuery.ilike("city", `%${safeTerm}%`);
     }
   }
   if (city) requestQuery = requestQuery.ilike("city", `%${city}%`);
