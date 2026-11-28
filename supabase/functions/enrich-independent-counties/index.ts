@@ -127,39 +127,39 @@ Deno.serve(async (req: Request) => {
       return Response.json({ error: "Administrator access required." }, { status: 403 });
     }
 
-    // ArcGIS feature services can return only a small first page by default.
-    // Fetch the complete object ID list first, then retrieve geometries in bounded batches.
+    // Fetch the county polygons directly in one bounded GeoJSON query.
+    // The service layer contains 47 counties; the prior returnIdsOnly request
+    // unexpectedly returned only 3 IDs, so avoid that unreliable ID-only path.
     const arcgisBase = "https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/MapServer/0/query";
-    const requestArcgis = async (params: Record<string, string>) => {
-      const url = new URL(arcgisBase);
-      for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-      const response = await fetch(url, {
-        headers: { "accept": "application/json,application/geo+json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment)" },
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (!response.ok) throw new Error(`County boundary source returned HTTP ${response.status}.`);
-      const payload = await response.json();
-      if (payload?.error) throw new Error(`County boundary source error: ${payload.error.message || "ArcGIS query failed"}.`);
-      return payload;
+    const url = new URL(arcgisBase);
+    const query = {
+      where: "1=1",
+      outFields: "*",
+      returnGeometry: "true",
+      outSR: "4326",
+      resultRecordCount: "1000",
+      f: "geojson",
     };
-
-    const idPayload = await requestArcgis({ where: "1=1", returnIdsOnly: "true", f: "json" });
-    const objectIds: number[] = Array.isArray(idPayload.objectIds) ? idPayload.objectIds : [];
-    if (objectIds.length < 47) {
-      throw new Error(`County boundary source returned only ${objectIds.length} feature IDs; expected at least 47.`);
+    for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
+    const boundaryResponse = await fetch(url, {
+      headers: { "accept": "application/geo+json,application/json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment)" },
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!boundaryResponse.ok) {
+      throw new Error(`County boundary source returned HTTP ${boundaryResponse.status}.`);
     }
-
-    const features: CountyFeature[] = [];
-    for (let offset = 0; offset < objectIds.length; offset += 10) {
-      const batchIds = objectIds.slice(offset, offset + 10);
-      const payload = await requestArcgis({
-        objectIds: batchIds.join(","),
-        outFields: "*",
-        returnGeometry: "true",
-        outSR: "4326",
-        f: "geojson",
-      });
-      if (Array.isArray(payload.features)) features.push(...payload.features as CountyFeature[]);
+    const boundaryPayload = await boundaryResponse.json();
+    if (boundaryPayload?.error) {
+      throw new Error(`County boundary source error: ${boundaryPayload.error.message || "ArcGIS query failed"}.`);
+    }
+    if (boundaryPayload?.exceededTransferLimit) {
+      throw new Error("County boundary response exceeded its record limit; refusing incomplete boundary data.");
+    }
+    const features: CountyFeature[] = Array.isArray(boundaryPayload.features)
+      ? boundaryPayload.features as CountyFeature[]
+      : [];
+    if (features.length < 47) {
+      throw new Error(`County boundary source returned only ${features.length} polygon features; expected 47.`);
     }
 
     const counties = features.map((feature) => ({
