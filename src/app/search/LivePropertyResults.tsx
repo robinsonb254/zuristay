@@ -434,6 +434,7 @@ export default function LivePropertyResults({
         </div>
         {independentLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Finding more places to stay…</div> : independentStays.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{destination ? "No additional stays are currently listed for this destination." : "More accommodation listings will appear here as they are added."}</div> : <div className="grid gap-5">{independentStays.map((stay) => {
           const photos = Array.isArray(stay.image_urls) ? stay.image_urls.filter((url) => typeof url === "string" && /^https?:\/\//i.test(url)) : [];
+          const areaLocation = [stay.city && !/^unspecified locality$/i.test(stay.city) ? stay.city : null, stay.county && stay.county.toLowerCase() !== stay.city.toLowerCase() ? stay.county : null, stay.country].filter(Boolean).join(", ");
           return <article key={stay.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[280px_1fr]">
             <div className="min-h-56 bg-slate-100 md:min-h-full">
               {photos.length > 0 ? (
@@ -443,7 +444,7 @@ export default function LivePropertyResults({
                   </div>)}
                 </div>
               ) : (
-                <IndependentAreaPhoto location={[` ${stay.city && !/^unspecified locality$/i.test(stay.city) ? stay.city : ""}`, stay.county, "Kenya"].filter(Boolean).join(", ")} />
+                <IndependentAreaPhoto location={areaLocation || "Kenya"} />
               )}
             </div>
             <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
