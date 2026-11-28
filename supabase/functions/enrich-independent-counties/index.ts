@@ -127,48 +127,32 @@ Deno.serve(async (req: Request) => {
       return Response.json({ error: "Administrator access required." }, { status: 403 });
     }
 
-    // Use the FeatureServer layer endpoint (the MapServer query endpoint
-    // was returning only 3 records despite the service's 47-county metadata).
-    const arcgisBase = "https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/FeatureServer/0/query";
-    const requestArcgis = async (params: Record<string, string>) => {
-      const url = new URL(arcgisBase);
-      for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-      const response = await fetch(url, {
-        headers: { "accept": "application/geo+json,application/json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment)" },
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (!response.ok) throw new Error(`County boundary source returned HTTP ${response.status}.`);
-      const payload = await response.json();
-      if (payload?.error) throw new Error(`County boundary source error: ${payload.error.message || "ArcGIS query failed"}.`);
-      return payload;
-    };
-
-    const countPayload = await requestArcgis({
-      where: "1=1",
-      returnCountOnly: "true",
-      f: "json",
+    // Use geoBoundaries gbOpen Kenya ADM1. Its metadata declares 47 county
+    // units and the simplified GeoJSON is a stable, public-domain download.
+    // Validate metadata and every returned feature before any database writes.
+    const metadataResponse = await fetch("https://www.geoboundaries.org/api/current/gbOpen/KEN/ADM1/", {
+      headers: { "accept": "application/json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment)" },
+      signal: AbortSignal.timeout(60_000),
     });
-    const boundaryCount = Number(countPayload.count);
-    if (boundaryCount !== 47) {
-      throw new Error(`County boundary source count check returned ${boundaryCount || 0}; expected exactly 47.`);
+    if (!metadataResponse.ok) throw new Error(`County boundary metadata returned HTTP ${metadataResponse.status}.`);
+    const metadata = await metadataResponse.json();
+    if (metadata?.boundaryISO !== "KEN" || metadata?.boundaryType !== "ADM1" ||
+        Number(metadata?.admUnitCount) !== 47 || !metadata?.simplifiedGeometryGeoJSON ||
+        String(metadata?.boundaryLicense || "").toLowerCase() !== "public domain") {
+      throw new Error("geoBoundaries metadata failed Kenya ADM1, 47-county, or public-domain validation.");
     }
 
-    const boundaryPayload = await requestArcgis({
-      where: "1=1",
-      outFields: "*",
-      returnGeometry: "true",
-      outSR: "4326",
-      resultRecordCount: "1000",
-      f: "geojson",
+    const boundaryResponse = await fetch(metadata.simplifiedGeometryGeoJSON, {
+      headers: { "accept": "application/geo+json,application/json", "user-agent": "ZuriStayWorldwide/1.0 (county data enrichment)" },
+      signal: AbortSignal.timeout(60_000),
     });
-    if (boundaryPayload?.exceededTransferLimit) {
-      throw new Error("County boundary response exceeded its record limit; refusing incomplete boundary data.");
-    }
+    if (!boundaryResponse.ok) throw new Error(`County GeoJSON download returned HTTP ${boundaryResponse.status}.`);
+    const boundaryPayload = await boundaryResponse.json();
     const features: CountyFeature[] = Array.isArray(boundaryPayload.features)
       ? boundaryPayload.features as CountyFeature[]
       : [];
     if (features.length !== 47) {
-      throw new Error(`County boundary source returned ${features.length} polygon features after a verified count of 47.`);
+      throw new Error(`geoBoundaries returned ${features.length} county polygons; expected exactly 47.`);
     }
 
     const counties = features.map((feature) => ({
@@ -225,7 +209,7 @@ Deno.serve(async (req: Request) => {
       rows_updated: updated,
       unmatched_coordinates: unmatched,
       ambiguous_boundary_matches: ambiguous,
-      attribution: "County boundaries: WWF-Kenya layer sourced from Survey of Kenya, Ministry of Lands. This assigns administrative county only; it does not verify the accommodation, owner, price, images, or availability.",
+      attribution: "County boundaries: geoBoundaries gbOpen Kenya ADM1 (2020), sourced from RCMRD GeoPortal and Africa GeoPortal; public domain. This assigns administrative county only; it does not verify the accommodation, owner, price, images, or availability.",
     });
   } catch (error) {
     console.error(error);
