@@ -5,6 +5,16 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+};
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 const COUNTY_NAMES = [
   "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet", "Embu",
   "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
@@ -62,19 +72,15 @@ for (const [alias, canonical] of Object.entries(COUNTY_ALIASES)) {
 
 function countyFromProperties(properties: Record<string, unknown> | null) {
   if (!properties) return null;
-  const entries = Object.entries(properties);
-  for (const [key, value] of entries) {
+  // ArcGIS layers use inconsistent field labels. Match exact normalized
+  // values against the authoritative 47-county allow-list, not field names.
+  const matches = new Set<string>();
+  for (const value of Object.values(properties)) {
     if (typeof value !== "string") continue;
-    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    const isCountyNameField =
-      normalizedKey.includes("county") ||
-      normalizedKey === "name" ||
-      normalizedKey.startsWith("name") ||
-      normalizedKey.includes("admin1");
     const matched = countyByNormalizedName.get(normalize(value));
-    if (matched && isCountyNameField) return matched;
+    if (matched) matches.add(matched);
   }
-  return null;
+  return matches.size === 1 ? [...matches][0] : null;
 }
 
 function pointInRing(lon: number, lat: number, ring: number[][]) {
@@ -104,7 +110,8 @@ function pointInGeometry(lon: number, lat: number, geometry: CountyGeometry | nu
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return jsonResponse({ error: "POST required" }, 405);
 
   try {
     const authorization = req.headers.get("authorization") || "";
@@ -201,7 +208,7 @@ Deno.serve(async (req: Request) => {
       updated += Number(data || 0);
     }
 
-    return Response.json({
+    return jsonResponse({
       success: true,
       boundary_counties_validated: uniqueCounties.size,
       candidates_checked: candidates.length,
@@ -213,6 +220,6 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error(error);
-    return Response.json({ success: false, error: error instanceof Error ? error.message : "County enrichment failed." }, { status: 500 });
+    return jsonResponse({ success: false, error: error instanceof Error ? error.message : "County enrichment failed." }, 500);
   }
 });
