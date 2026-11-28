@@ -120,10 +120,7 @@ function IndependentAreaPhoto({ location, propertyId }: { location: string; prop
       {photo ? (
         <>
           <img key={photo.imageUrl} src={photo.imageUrl} alt={`${location} area photograph: ${photo.title}`} loading="lazy" decoding="async" onError={() => setPhotoIndex((current) => current + 1 < photos.length ? current + 1 : current)} className="h-full w-full object-cover" />
-          <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-between gap-1 bg-slate-950/65 px-3 py-2 text-[10px] text-white">
-            <span className="font-semibold">Area photo · {photo.credit}</span>
-            <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Image source · {photo.license}</a>
-          </div>
+
         </>
       ) : (
         <div className="flex h-full min-h-56 flex-col items-center justify-center gap-2 p-4 text-center text-slate-500">
