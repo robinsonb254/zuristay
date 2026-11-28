@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Wifi, Waves, Car, Utensils, BedDouble, Building2 } from "lucide-react";
+import { MapPin, Wifi, Waves, Car, Utensils, BedDouble } from "lucide-react";
 
 type LiveProperty = {
   id: string;
@@ -77,6 +77,57 @@ function formatMoney(amount: number, currency: string) {
   } catch {
     return `${currency || "KES"} ${amount.toLocaleString("en-KE")}`;
   }
+}
+
+
+type AreaPhotoData = { title: string; imageUrl: string; sourceUrl: string; credit: string; license: string; licenseUrl: string };
+const areaPhotoRequests = new Map<string, Promise<AreaPhotoData[]>>();
+
+function IndependentAreaPhoto({ location }: { location: string }) {
+  const [photo, setPhoto] = useState<AreaPhotoData | null>(null);
+  const [finished, setFinished] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const key = location.trim().toLowerCase();
+    let request = areaPhotoRequests.get(key);
+    if (!request) {
+      request = fetch(`/api/location-photos?location=${encodeURIComponent(location)}`, { cache: "force-cache" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Area image lookup failed");
+          const result = await response.json();
+          return Array.isArray(result.photos) ? result.photos as AreaPhotoData[] : [];
+        })
+        .catch(() => []);
+      areaPhotoRequests.set(key, request);
+    }
+    request.then((photos) => {
+      if (!active) return;
+      setPhoto(photos[0] || null);
+      setFinished(true);
+    });
+    return () => { active = false; };
+  }, [location]);
+
+  return (
+    <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300 md:h-full md:min-h-56">
+      {photo ? (
+        <>
+          <img src={photo.imageUrl} alt={`${location} area photograph: ${photo.title}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+          <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-between gap-1 bg-slate-950/65 px-3 py-2 text-[10px] text-white">
+            <span className="font-semibold">Area photo · {photo.credit}</span>
+            <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Image source · {photo.license}</a>
+          </div>
+        </>
+      ) : (
+        <div className="flex h-full min-h-56 flex-col items-center justify-center gap-2 p-4 text-center text-slate-500">
+          <BedDouble size={38} />
+          <span className="text-sm font-semibold">{finished ? "Area photo unavailable" : "Loading area photo…"}</span>
+          <span className="text-xs">Photos of {location}</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function LivePropertyResults({
@@ -392,10 +443,7 @@ export default function LivePropertyResults({
                   </div>)}
                 </div>
               ) : (
-                <div className="flex h-56 flex-col items-center justify-center gap-2 text-slate-400 md:min-h-56">
-                  <Building2 size={42} />
-                  <span className="text-xs font-medium">Property photos</span>
-                </div>
+                <IndependentAreaPhoto location={[` ${stay.city && !/^unspecified locality$/i.test(stay.city) ? stay.city : ""}`, stay.county, "Kenya"].filter(Boolean).join(", ")} />
               )}
             </div>
             <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
