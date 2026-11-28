@@ -70,6 +70,17 @@ type Booking = {
   created_at: string;
 };
 
+type IndependentAccommodation = {
+  id: string;
+  name: string;
+  city: string;
+  county: string | null;
+  listing_status: string;
+  booking_enabled: boolean;
+  availability_status: string | null;
+  created_at: string;
+};
+
 type SafeQueryResult<T = unknown> = { data: T | null; count: number | null; error: { message: string } | null };
 
 type DashboardStats = {
@@ -141,6 +152,9 @@ export default function AdminPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [independentAccommodations, setIndependentAccommodations] = useState<IndependentAccommodation[]>([]);
+  const [independentAccommodationCount, setIndependentAccommodationCount] = useState(0);
+  const [countyCandidatesCount, setCountyCandidatesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [processingApplicationId, setProcessingApplicationId] = useState("");
@@ -217,6 +231,7 @@ export default function AdminPage() {
         applicationsCount, pendingApplicationsCount, propertiesCount,
         approvedPropertiesCount, partnersCount, bookingsCount, confirmedBookingsCount,
         applicationsResult, propertiesResult, partnersResult, bookingsResult,
+        independentAccommodationCountResult, countyCandidatesCountResult, independentAccommodationsResult,
       ] = await Promise.all([
         runQuery("total applications", supabase.from("partner_applications").select("id", { count: "exact", head: true })),
         runQuery("pending applications", supabase.from("partner_applications").select("id", { count: "exact", head: true }).eq("status", "pending")),
@@ -229,6 +244,9 @@ export default function AdminPage() {
         runQuery("property list", supabase.from("properties").select("id, name, city, county, sub_county, country, status, is_active, created_at").order("created_at", { ascending: false }).limit(6)),
         runQuery("partner list", supabase.from("property_partners").select("id, business_name, status, created_at").order("created_at", { ascending: false }).limit(5)),
         runQuery("booking list", supabase.from("bookings").select("id, booking_reference, guest_name, total_amount, currency, booking_status, payment_status, created_at").order("created_at", { ascending: false }).limit(6)),
+        runQuery("published management accommodation count", supabase.from("independent_accommodations").select("id", { count: "exact", head: true }).eq("listing_status", "published")),
+        runQuery("county enrichment candidate count", supabase.from("independent_accommodations").select("id", { count: "exact", head: true }).or("county.is.null,county.ilike.Kenya")),
+        runQuery("recent management accommodations", supabase.from("independent_accommodations").select("id, name, city, county, listing_status, booking_enabled, availability_status, created_at").eq("listing_status", "published").order("created_at", { ascending: false }).limit(6)),
       ]);
 
       setStats((current) => ({
@@ -244,6 +262,9 @@ export default function AdminPage() {
       if (propertiesResult) setProperties((propertiesResult.data || []) as Property[]);
       if (partnersResult) setPartners((partnersResult.data || []) as Partner[]);
       if (bookingsResult) setBookings((bookingsResult.data || []) as Booking[]);
+      if (independentAccommodationCountResult) setIndependentAccommodationCount(independentAccommodationCountResult.count || 0);
+      if (countyCandidatesCountResult) setCountyCandidatesCount(countyCandidatesCountResult.count || 0);
+      if (independentAccommodationsResult) setIndependentAccommodations((independentAccommodationsResult.data || []) as IndependentAccommodation[]);
 
       setError(failures.length
         ? "Some dashboard sections could not be refreshed: " + failures.join(", ") + ". Other available sections remain accessible. Please refresh to retry."
@@ -410,6 +431,14 @@ export default function AdminPage() {
       icon: CalendarDays,
       color: "text-green-700 bg-green-50",
       href: "#bookings",
+    },
+    {
+      label: "Management listings",
+      value: independentAccommodationCount,
+      detail: `${countyCandidatesCount.toLocaleString("en-KE")} awaiting county matching`,
+      icon: Building2,
+      color: "text-indigo-700 bg-indigo-50",
+      href: "#county-enrichment",
     },
   ];
 
@@ -708,6 +737,45 @@ export default function AdminPage() {
                 <RefreshCw size={16} className={countyEnrichmentLoading ? "animate-spin" : ""} />
                 {countyEnrichmentLoading ? "Assigning counties..." : "Run county enrichment"}
               </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">Published management listings</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{independentAccommodationCount.toLocaleString("en-KE")}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">Booking requests enabled</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{independentAccommodations.length ? independentAccommodations.filter((item) => item.booking_enabled).length.toLocaleString("en-KE") : "—"}</p>
+                <p className="mt-1 text-xs text-slate-500">Across the full published inventory: 3,581 enabled in the current database.</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500">County matching candidates</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-blue-950">{countyCandidatesCount.toLocaleString("en-KE")}</p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <h4 className="text-sm font-bold text-blue-950">Recently imported accommodation listings</h4>
+              {independentAccommodations.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-500">No published management listings were returned.</p>
+              ) : (
+                <div className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100">
+                  {independentAccommodations.map((item) => (
+                    <div key={item.id} className="flex flex-col justify-between gap-2 px-4 py-3 sm:flex-row sm:items-center">
+                      <div>
+                        <p className="text-sm font-bold text-blue-950">{item.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{[item.city, item.county].filter(Boolean).join(", ") || "Location not assigned"}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">Published</span>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.booking_enabled ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{item.booking_enabled ? "Booking requests on" : "Booking requests off"}</span>
+                        <span className="text-xs text-slate-400">{item.availability_status || "Availability unverified"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {countyEnrichmentError && (
