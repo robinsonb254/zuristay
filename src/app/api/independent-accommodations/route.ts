@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
   const accommodations = (data || []).map((item) => ({
     ...item,
-    guest_rate: item.published_base_rate === null ? null : Math.ceil(Number(item.published_base_rate) * 1.15),
+    guest_rate: item.published_base_rate === null ? null : Math.ceil(Number(item.published_base_rate) * 1.3),
     published_base_rate: undefined,
   }));
 
