@@ -51,6 +51,8 @@ const COUNTY_ALIASES: Record<string, string> = {
   "elgeyo marakwet": "Elgeyo-Marakwet",
   "homabay": "Homa Bay",
   "muranga": "Murang'a",
+  "murang a": "Murang'a",
+  "murang a county": "Murang'a",
   "muranga county": "Murang'a",
   "nairobi city": "Nairobi",
   "taita-taveta": "Taita Taveta",
@@ -77,7 +79,9 @@ function countyFromProperties(properties: Record<string, unknown> | null) {
   const matches = new Set<string>();
   for (const value of Object.values(properties)) {
     if (typeof value !== "string") continue;
-    const matched = countyByNormalizedName.get(normalize(value));
+    const normalized = normalize(value);
+    const matched = countyByNormalizedName.get(normalized) ??
+      countyByNormalizedName.get(normalized.replace(/\s+county$/, ""));
     if (matched) matches.add(matched);
   }
   return matches.size === 1 ? [...matches][0] : null;
