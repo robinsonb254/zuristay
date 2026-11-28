@@ -120,7 +120,7 @@ async function searchOpenverse(term: string, placeName: string, countyName: stri
     // Keep relevant local photos even when image metadata omits the place name.
     return [{
       title,
-      imageUrl: item.thumbnail || item.url || "",
+      imageUrl: item.url || item.thumbnail || "",
       sourceUrl: item.foreign_landing_url || item.url || "",
       credit: item.creator || "Openverse contributor",
       license: `${item.license || "Open licence"}${item.license_version ? ` ${item.license_version}` : ""}`,
@@ -156,11 +156,14 @@ async function searchCommons(term: string, placeName: string, countyName: string
     const meta = info?.extmetadata || {};
     const title = String(page.title || "").replace(/^File:/, "");
     const description = plain(meta.ImageDescription);
-    const searchable = `${title} ${description}`.toLowerCase();
+    const artist = plain(meta.Artist);
+    const credit = plain(meta.Credit);
+    const searchable = `${title} ${description} ${artist} ${credit}`.toLowerCase();
     const imageUrl = info?.thumburl || info?.url || "";
     const sourceUrl = info?.descriptionurl || "";
     if (!imageUrl || !sourceUrl) return [];
     if (isLikelyMap(title, description) || isNonPhoto(title, description, imageUrl)) return [];
+    if (/\\b(watermark|watermarked|sample image|preview image|proof copy|mockup|stock preview)\\b/i.test(searchable)) return [];
     const exactMatch = searchable.includes(placeName.toLowerCase());
     const countyMatch = Boolean(countyName) && searchable.includes(countyName.toLowerCase());
     // Commons search is already scoped to the named location query.
@@ -169,7 +172,7 @@ async function searchCommons(term: string, placeName: string, countyName: string
       title,
       imageUrl,
       sourceUrl,
-      credit: plain(meta.Artist) || plain(meta.Credit) || "Wikimedia Commons contributor",
+      credit: artist || credit || "Wikimedia Commons contributor",
       license: plain(meta.LicenseShortName) || "See source page",
       licenseUrl: plain(meta.LicenseUrl),
       rank: exactMatch ? 3 : countyMatch ? 2 : 1,
